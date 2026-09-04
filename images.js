@@ -1,35 +1,22 @@
-/*
-  THE WHOLESALE GHANA — IMAGE REGISTRY
-  =====================================
-  Edit image filenames / URLs HERE ONLY.
 
-  You can use either:
-    - a local repo path, e.g. "images/my-new-photo.jpg"
-    - a full remote URL, e.g. "https://example.com/photo.jpg"
-
-  Homepage/editorial images are in WGH_IMAGES.site.
-  Every product colour image is in WGH_IMAGES.products.
-  When you replace a product image here, shop cards, product pages and the
-  default catalogue will all use the new image automatically.
-*/
 
 (function (root) {
   const WGH_IMAGES = {
     site: {
       // Homepage / sharing
-      homepageHero: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=2000&q=90",
-      socialShare: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1600&q=90",
-      retailCampaign: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1400&q=88",
-      wholesaleCampaign: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1400&q=88",
-      productionBanner: "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=2000&q=88",
-      categoryDresses: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=1200&q=88",
-      categoryTops: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=88",
-      categorySets: "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1200&q=88",
-      wholesaleStory: "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?auto=format&fit=crop&w=1600&q=88",
+      homepageHero: "images/hero.jpg",
+      socialShare: "images/hero.jpg",
+      retailCampaign: "images/ruche-wrap-mini-dress-curry.jpeg",
+      wholesaleCampaign: "images/wholesale.jpg",
+      productionBanner: "images/prod.jpg",
+      categoryDresses: "images/ruffle-asymmetric-mini-dress-black.jpeg",
+      categoryTops: "images/drapped-halter-mini-dress-baby-blue.jpeg",
+      categorySets: "images/foldover-waist-flare-pants-brown.jpeg",
+      wholesaleStory: "images/story.jpg",
 
       // Authentication / admin
-      accountLogin: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=88",
-      adminLogin: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1400&q=86",
+      accountLogin: "images/account.jpg",
+      adminLogin: "images/admin.jpg",
 
       // Homepage editorial strip — currently uses her real product photos
       editorial1: "images/drapped-halter-mini-dress-dark-brown.jpeg",
