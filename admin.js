@@ -13,9 +13,63 @@
   function showView(name){location.hash=name;document.querySelectorAll('[data-admin-view]').forEach(b=>b.classList.toggle('active',b.dataset.adminView===name));document.querySelectorAll('[data-view-panel]').forEach(p=>{const active=p.dataset.viewPanel===name;p.hidden=!active;p.classList.toggle('active',active)});document.body.classList.remove('admin-menu-open');window.scrollTo({top:0,behavior:'instant'});if(name==='overview')loadOverview();if(name==='orders')loadOrders();if(name==='customers')loadCustomers();if(name==='batches')loadBatches();if(name==='products')loadProducts();if(name==='alerts')loadAlerts();if(name==='settings')loadSettings();}
   document.querySelectorAll('[data-admin-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.adminView)));document.querySelectorAll('[data-jump-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.jumpView)));document.querySelector('[data-admin-menu]')?.addEventListener('click',()=>document.body.classList.toggle('admin-menu-open'));
 
-  async function waitForAuth(){if(!WGH.auth){setTimeout(waitForAuth,120);return;}WGH.auth.onAuthStateChanged(async user=>{if(!user){login.hidden=false;app.hidden=true;return;}try{login.hidden=true;app.hidden=false;message.textContent='';showView(['overview','orders','batches','products','customers','alerts','settings'].includes(location.hash.slice(1))?location.hash.slice(1):'overview');}catch(err){message.textContent=WGH.friendlyError(err);WGH.showToast(err);}})}
+  let authListenerBound=false;
+  let authBootPromise=null;
+  async function ensureAdminAuth(){
+    if(WGH.auth)return WGH.auth;
+    if(authBootPromise)return authBootPromise;
+    authBootPromise=(async()=>{
+      const started=Date.now();
+      while(!window.firebase&&Date.now()-started<8000)await new Promise(r=>setTimeout(r,80));
+      if(!window.firebase)throw new Error('Firebase failed to load. Check your connection and reload this page.');
+      if(!firebase.apps.length){
+        const config=await WGH.api('/config');
+        if(!config?.firebase?.apiKey)throw new Error('Firebase sign-in is not configured on this deployment.');
+        firebase.initializeApp(config.firebase);
+      }
+      WGH.auth=firebase.auth();
+      await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      return WGH.auth;
+    })();
+    try{return await authBootPromise}finally{authBootPromise=null}
+  }
 
-  document.querySelector('[data-admin-login-form]')?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button[type="submit"]'),data=Object.fromEntries(new FormData(e.currentTarget));message.textContent='';await WGH.withLoading(btn,async()=>{try{await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);await WGH.auth.signInWithEmailAndPassword(data.email.trim(),data.password)}catch(err){message.textContent=WGH.friendlyError(err)}},'Signing in')});
+  async function openAdminForUser(user){
+    if(!user){login.hidden=false;app.hidden=true;return;}
+    login.hidden=true;app.hidden=false;message.textContent='';
+    const view=['overview','orders','batches','products','customers','alerts','settings'].includes(location.hash.slice(1))?location.hash.slice(1):'overview';
+    try{showView(view)}catch(err){console.error('Admin view error',err);WGH.showToast(WGH.friendlyError(err))}
+  }
+
+  async function waitForAuth(){
+    try{
+      const auth=await ensureAdminAuth();
+      if(authListenerBound)return;
+      authListenerBound=true;
+      auth.onAuthStateChanged(user=>openAdminForUser(user),err=>{
+        console.error('Admin auth state error',err);
+        login.hidden=false;app.hidden=true;message.textContent=WGH.friendlyError(err);
+      });
+    }catch(err){
+      console.error('Admin auth bootstrap error',err);
+      login.hidden=false;app.hidden=true;message.textContent=WGH.friendlyError(err);
+    }
+  }
+
+  document.querySelector('[data-admin-login-form]')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const btn=e.currentTarget.querySelector('button[type="submit"]'),data=Object.fromEntries(new FormData(e.currentTarget));
+    message.textContent='';
+    await WGH.withLoading(btn,async()=>{
+      try{
+        const auth=await ensureAdminAuth();
+        await auth.signInWithEmailAndPassword(String(data.email||'').trim(),String(data.password||''));
+      }catch(err){
+        console.error('Admin sign-in error',err);
+        message.textContent=WGH.friendlyError(err);
+      }
+    },'Signing in');
+  });
   document.querySelector('[data-admin-signout]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>WGH.auth?.signOut(),'Signing out'));
 
   async function loadOverview(){
