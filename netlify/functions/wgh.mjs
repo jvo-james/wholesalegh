@@ -387,7 +387,16 @@ async function sendTemplate(to, template) {
    product database is being populated.
    ========================================================= */
 
-const SERVER_CATALOG = {"drapped-halter-mini-dress":{"name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":null,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"]},"ruffle-asymmetric-mini-dress":{"name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"]},"ruche-wrap-mini-dress":{"name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"]},"nael-mini-dress":{"name":"Naël Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Red","Orange","Black"],"sizes":["XS","S","M","L","XL","2XL"]},"dante-capri":{"name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},"ruched-waist-pants":{"name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},"foldover-waist-flare-pants":{"name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"]}};
+const SERVER_CATALOG = {
+  "drapped-halter-mini-dress": {"name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruffle-asymmetric-mini-dress": {"name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruche-wrap-mini-dress": {"name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "nael-mini-dress": {"name":"Naël Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Red","Orange","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "dante-capri": {"name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruched-waist-pants": {"name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "foldover-waist-flare-pants": {"name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruffle-button-top": {"name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"]}
+};
 // Keep the default server catalogue in sync with the one image registry.
 for (const [productId, product] of Object.entries(SERVER_CATALOG)) {
   const media = globalThis.WGH_IMAGES?.products?.[productId];
@@ -1900,7 +1909,7 @@ export default async function handler(
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
-      await db.collection("mailingList").doc(crypto.createHash("sha256").update(email).digest("hex")).set({email, source:"account-signup", subscribed:true, createdAt:admin.firestore.FieldValue.serverTimestamp(), updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      await db.collection("mailingList").doc(crypto.createHash("sha256").update(email).digest("hex")).set({email,firstName:safeText(data.firstName,80),lastName:safeText(data.lastName,80),name:`${safeText(data.firstName,80)} ${safeText(data.lastName,80)}`.trim(),source:"account-signup", subscribed:true, createdAt:admin.firestore.FieldValue.serverTimestamp(), updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
       await ref.delete();
       const customToken = await admin.auth().createCustomToken(created.uid);
       return json(200, { ok: true, customToken });
@@ -3735,11 +3744,28 @@ export default async function handler(
     /* ===============================================
        CATALOG OVERRIDES + MAILING LIST
        =============================================== */
+    if (path === "/session-role" && method === "GET") {
+      await requireUser(request);
+      try {
+        await requireAdmin(request);
+        return json(200, { role: "admin" });
+      } catch {
+        return json(200, { role: "customer" });
+      }
+    }
+
     if (path === "/catalog" && method === "GET") {
       const db = getDb();
       const snap = await db.collection("productOverrides").get();
       return json(200, snap.docs.filter(doc => !LEGACY_PRODUCT_IDS.has(doc.id)).map(doc => ({ id: doc.id, ...doc.data() })));
     }
+
+    if (path === "/abandoned-cart" && method === "POST") {
+      const input=await readBody(request),email=safeText(input.email,160).toLowerCase(),phone=safeText(input.phone,50); if(!email&&!phone)return json(200,{ok:true,ignored:true});
+      const id=crypto.createHash("sha256").update(email||phone).digest("hex"),items=Array.isArray(input.items)?input.items.slice(0,30):[]; const pieces=items.reduce((n,i)=>n+Math.max(0,Number(i.totalQuantity||0)),0),value=items.reduce((n,i)=>n+Math.max(0,Number(i.unitPrice||0))*Math.max(0,Number(i.totalQuantity||0)),0);
+      await getDb().collection("abandonedCarts").doc(id).set({email,phone,name:safeText(input.name,160),items,pieces,value,status:"active",dismissed:false,recovered:false,updatedAt:admin.firestore.FieldValue.serverTimestamp(),createdAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true}); return json(200,{ok:true,id});
+    }
+    if (path === "/abandoned-recovered" && method === "POST") {const input=await readBody(request),email=safeText(input.email,160).toLowerCase();if(email){const id=crypto.createHash("sha256").update(email).digest("hex");await getDb().collection("abandonedCarts").doc(id).set({recovered:true,status:"recovered",orderNumber:safeText(input.orderNumber,50),updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true})}return json(200,{ok:true});}
 
     if (path === "/notify" && method === "POST") {
       const input=await readBody(request),email=safeText(input.email,160).toLowerCase(),productId=safeText(input.productId,80);
@@ -3764,7 +3790,7 @@ export default async function handler(
     if (path === "/admin/product-save" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80);
       if(!id) throw new Error("Choose a product."); const db=getDb();
-      const payload={name:safeText(input.name,120),category:safeText(input.category,50),retailPrice:Number(input.retailPrice||0),wholesalePrice:Number(input.wholesalePrice||0),moq:Math.max(1,Number(input.moq||6)),description:safeText(input.description,800),details:safeText(input.details,1000),colours:Array.isArray(input.colours)?input.colours.map(x=>safeText(x,40)).filter(Boolean):[],sizes:Array.isArray(input.sizes)?input.sizes.map(x=>safeText(x,20)).filter(Boolean):[],images:Array.isArray(input.images)?input.images.map(x=>safeText(x,500)).filter(Boolean):[],colourImages:input.colourImages&&typeof input.colourImages==='object'?input.colourImages:{},isNew:Boolean(input.isNew),available:input.available!==false,active:input.active!==false,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
+      const payload={name:safeText(input.name,120),category:safeText(input.category,50),retailPrice:Number(input.retailPrice||0),wholesalePrice:Number(input.wholesalePrice||0),moq:Math.max(1,Number(input.moq||6)),description:safeText(input.description,800),details:safeText(input.details,1000),colours:Array.isArray(input.colours)?input.colours.map(x=>safeText(x,40)).filter(Boolean):[],sizes:Array.isArray(input.sizes)?input.sizes.map(x=>safeText(x,20)).filter(Boolean):[],images:Array.isArray(input.images)?input.images.map(x=>safeText(x,500)).filter(Boolean):[],colourImages:input.colourImages&&typeof input.colourImages==='object'?input.colourImages:{},colourHexes:input.colourHexes&&typeof input.colourHexes==='object'?input.colourHexes:{},inventory:input.inventory&&typeof input.inventory==='object'?input.inventory:{},isNew:Boolean(input.isNew),available:input.available!==false,active:input.active!==false,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
       await db.collection("productOverrides").doc(id).set(payload,{merge:true}); return json(200,{ok:true,id});
     }
     if (path === "/admin/product-delete" && method === "POST") {
@@ -3807,10 +3833,31 @@ export default async function handler(
       await getDb().collection("settings").doc("store").set(payload,{merge:true}); return json(200,{ok:true});
     }
 
-    if (path === "/admin/subscribers" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("mailingList").limit(1000).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt),updatedAt:timestampIso(d.data().updatedAt)}))); }
+    if (path === "/admin/subscribers" && method === "GET") {
+      await requireAdmin(request); const db=getDb(); const [mailSnap,userSnap]=await Promise.all([db.collection("mailingList").limit(1500).get(),db.collection("users").limit(1500).get()]);
+      const merged=new Map();
+      mailSnap.docs.forEach(d=>{const x=d.data(),email=String(x.email||'').trim().toLowerCase();if(email)merged.set(email,{id:d.id,...x,email,createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),source:x.source||'newsletter'})});
+      userSnap.docs.forEach(d=>{const x=d.data(),email=String(x.email||'').trim().toLowerCase();if(!email)return;const prev=merged.get(email)||{};merged.set(email,{...prev,id:prev.id||d.id,email,name:prev.name||[x.firstName,x.lastName].filter(Boolean).join(' '),firstName:x.firstName||prev.firstName||'',lastName:x.lastName||prev.lastName||'',subscribed:prev.subscribed!==false,source:prev.source||'account',createdAt:prev.createdAt||timestampIso(x.createdAt),updatedAt:prev.updatedAt||timestampIso(x.updatedAt)})});
+      return json(200,[...merged.values()].sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))));
+    }
     if (path === "/admin/reviews" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("reviews").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}))); }
     if (path === "/admin/abandoned" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("abandonedCarts").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt),updatedAt:timestampIso(d.data().updatedAt)}))); }
     if (path === "/admin/messages" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("messages").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}))); }
+
+    if (path === "/admin/abandoned-action" && method === "POST") {await requireAdmin(request);const input=await readBody(request),id=safeText(input.id,100),action=safeText(input.action,30);if(!id)throw new Error("Choose a cart.");const patch={updatedAt:admin.firestore.FieldValue.serverTimestamp()};if(action==="dismiss")Object.assign(patch,{dismissed:true,status:"dismissed"});if(action==="restore")Object.assign(patch,{dismissed:false,status:"active"});await getDb().collection("abandonedCarts").doc(id).set(patch,{merge:true});return json(200,{ok:true});}
+
+    if (path === "/admin/accounts" && method === "GET") {
+      await requireAdmin(request); const db=getDb(); const [usersSnap,ordersSnap]=await Promise.all([db.collection("users").limit(1500).get(),db.collection("orders").limit(1000).get()]);
+      const counts=new Map();ordersSnap.docs.map(serializeOrder).forEach(o=>{const k=String(o.customerEmail||'').toLowerCase();if(k)counts.set(k,(counts.get(k)||0)+1)});
+      return json(200,usersSnap.docs.map(d=>{const x=d.data();return {id:d.id,firstName:x.firstName||'',lastName:x.lastName||'',email:x.email||'',phone:x.phone||'',createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),orderCount:counts.get(String(x.email||'').toLowerCase())||0}}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))));
+    }
+
+    if (path === "/admin/broadcast" && method === "POST") {
+      await requireAdmin(request); const input=await readBody(request),subject=safeText(input.subject,140),message=safeText(input.message,5000); if(!subject||!message)throw new Error("Add an email subject and message first.");
+      const db=getDb(),[mailSnap,userSnap]=await Promise.all([db.collection("mailingList").limit(1500).get(),db.collection("users").limit(1500).get()]); const optedOut=new Set(mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed===false).map(x=>String(x.email||'').trim().toLowerCase()).filter(Boolean)); const emails=[...new Set([...mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed!==false).map(x=>String(x.email||'').trim().toLowerCase()),...userSnap.docs.map(d=>String(d.data().email||'').trim().toLowerCase())].filter(email=>email&&!optedOut.has(email)))]; let sent=0,failed=0;
+      const html=`<!doctype html><html><body style="margin:0;background:#f2eee8;font-family:Arial,sans-serif;color:#171412"><div style="max-width:620px;margin:0 auto;padding:34px 18px"><div style="background:#171412;color:#fff;padding:28px;text-align:center"><div style="font-family:Georgia,serif;font-size:24px">THE WHOLESALE</div><div style="font-size:10px;letter-spacing:.42em;margin-top:7px">GHANA</div></div><div style="background:#fff;padding:38px 34px;border:1px solid #ddd5cc"><div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#765b4d">Subscriber update</div><h1 style="font-family:Georgia,serif;font-weight:400;font-size:38px;line-height:1;margin:14px 0 20px">${subject.replace(/[<>&]/g,'')}</h1><div style="font-size:15px;line-height:1.75;white-space:pre-line">${message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="margin-top:32px;padding-top:18px;border-top:1px solid #ddd5cc;font-size:11px;color:#746d66">The Wholesale Ghana · Joy City & The Clock Bar · 0533357961 · @the.wholesalegh</div></div></div></body></html>`;
+      for(const email of emails){try{await sendEmail({to:email,subject,html});sent++}catch(err){failed++;console.error("Broadcast failed",email,err)}} return json(200,{ok:true,total:emails.length,sent,failed});
+    }
 
     /* ===============================================
        NOT FOUND
