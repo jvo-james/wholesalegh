@@ -48,5 +48,7 @@
   function completeOrder(order,email){
     const local={...order,email,status:order.status||'order_confirmed'};const orders=JSON.parse(localStorage.getItem(WGH.ORDER_KEY)||'[]');orders.unshift(local);localStorage.setItem(WGH.ORDER_KEY,JSON.stringify(orders.slice(0,20)));WGH.saveCart([]);cart=[];drawer.classList.remove('active');document.body.classList.remove('no-scroll');document.querySelector('[data-success-order]').textContent=order.orderNumber;document.querySelector('[data-success-batch]').textContent=order.batchName;document.querySelector('[data-success-delivery]').textContent=order.estimatedDelivery;document.querySelector('[data-success-screen]').hidden=false;render();
   }
+  document.querySelector('[data-share-cart]')?.addEventListener('click',async()=>{if(!cart.length)return;const text=['The Wholesale Ghana bag',...cart.map(i=>`${i.name} — ${i.totalQuantity} piece${i.totalQuantity===1?'':'s'} — ${WGH.money(i.unitPrice*i.totalQuantity)}`),`Total: ${WGH.money(total())}`].join('\n');try{await navigator.share({title:'My Wholesale Ghana bag',text,url:location.href})}catch{await navigator.clipboard?.writeText(text);WGH.showToast('Cart summary copied.','success')}});
+
   render();
 })();

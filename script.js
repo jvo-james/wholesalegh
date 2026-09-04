@@ -80,7 +80,11 @@ WGH.withLoading = async (button,fn,label='Please wait') => {
   try{return await fn();}finally{WGH.setLoading(button,false);}
 };
 
-WGH.productCard = (p,mode='retail') => `<article class="product-card"><a href="product.html?id=${encodeURIComponent(p.id)}&mode=${mode}" aria-label="View ${p.name}"><div class="product-card-image">${p.isNew?'<span class="product-badge">New</span>':''}<img class="primary-image" src="${p.images[0]}" alt="${p.name}" loading="lazy"><img class="hover-image" src="${p.images[1]||p.images[0]}" alt="${p.name} alternate view" loading="lazy"></div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?'Wholesale · MOQ '+p.moq:'Made to order'}</p></div><strong>${WGH.money(mode==='wholesale'?p.wholesalePrice:p.retailPrice)}</strong></div></a></article>`;
+WGH.colourValue = name => ({black:'#151515',white:'#f4f2ec',cream:'#e8dfcf',ivory:'#eee9df',bone:'#ddd3c3',nude:'#c9aa93',brown:'#6c4937',cocoa:'#593d32',mocha:'#806451',espresso:'#3d2b24',sand:'#c9b79c',stone:'#999186',taupe:'#9b8b79',camel:'#b98b63',oat:'#d9ccb6',mushroom:'#988979',dust:'#bea99d'}[String(name||'').toLowerCase()]||'#b7aea5');
+WGH.productCard = (p,mode='retail') => { const colours=(p.colours||[]).slice(0,5); const imageMap=p.colourImages||{}; return `<article class="product-card" data-product-card="${p.id}"><a href="product.html?id=${encodeURIComponent(p.id)}&mode=${mode}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${p.images?.[0]||''}" alt="${p.name}" loading="lazy"><img class="hover-image" src="${p.images?.[1]||p.images?.[0]||''}" alt="${p.name} alternate view" loading="lazy"></div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?'Wholesale · MOQ '+p.moq:'Made to order'}</p></div><strong>${WGH.money(mode==='wholesale'?p.wholesalePrice:p.retailPrice)}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map((c,i)=>`<button type="button" data-card-colour="${c}" data-card-src="${(imageMap[c]||[])[0]||p.images?.[i]||p.images?.[0]||''}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name}"><i class="fa-regular fa-heart"></i></button></article>` };
+WGH.loadProducts = async()=>{try{const data=await WGH.api('/catalog');if(Array.isArray(data)&&data.length){const base=new Map(WGH.products.map(p=>[p.id,p]));data.forEach(o=>{const prev=base.get(o.id)||{};base.set(o.id,{...prev,...o})});WGH.products=[...base.values()].filter(p=>p.active!==false)}}catch{}return WGH.products};
+WGH.bindProductCards = root=>{(root||document).querySelectorAll('[data-product-card]').forEach(card=>{const img=card.querySelector('[data-card-image]'),name=card.querySelector('[data-card-colour-name]');let touched=false,startX=0;const buttons=[...card.querySelectorAll('[data-card-colour]')];const set=(b)=>{if(!b||!img)return;buttons.forEach(x=>x.classList.toggle('active',x===b));img.classList.add('is-changing');setTimeout(()=>{img.src=b.dataset.cardSrc||img.src;img.classList.remove('is-changing')},110);if(name)name.textContent=b.dataset.cardColour};buttons.forEach(b=>{b.addEventListener('mouseenter',()=>set(b));b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();touched=true;set(b)})});const gallery=card.querySelector('[data-card-gallery]');gallery?.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});gallery?.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-startX;if(Math.abs(dx)<35||!buttons.length)return;touched=true;let i=Math.max(0,buttons.findIndex(b=>b.classList.contains('active')));i=(i+(dx<0?1:-1)+buttons.length)%buttons.length;set(buttons[i])},{passive:true});if(buttons[0])set(buttons[0]);card._wghSetColour=set;card._wghTouched=()=>touched});(root||document).querySelectorAll('[data-wishlist]').forEach(btn=>{const read=()=>{try{return JSON.parse(localStorage.getItem('wgh_wishlist')||'[]')}catch{return[]}},sync=()=>{const on=read().includes(btn.dataset.wishlist);btn.classList.toggle('saved',on);btn.innerHTML=`<i class="fa-${on?'solid':'regular'} fa-heart"></i>`};sync();btn.onclick=e=>{e.preventDefault();e.stopPropagation();let a=read();a=a.includes(btn.dataset.wishlist)?a.filter(x=>x!==btn.dataset.wishlist):[...a,btn.dataset.wishlist];localStorage.setItem('wgh_wishlist',JSON.stringify(a));sync();WGH.showToast(a.includes(btn.dataset.wishlist)?'Saved for later.':'Removed from saved items.','success')}});};
+
 
 WGH.panelCopy = {
   size:`<p class="eyebrow">Size guide</p><h2>Find your fit.</h2><p>Use this guide as a general reference. Measurements are in inches. If you are between sizes, choose the fit you prefer.</p><table><thead><tr><th>Size</th><th>Bust</th><th>Waist</th><th>Hip</th></tr></thead><tbody><tr><td>XS</td><td>30–32</td><td>24–26</td><td>34–36</td></tr><tr><td>S</td><td>32–34</td><td>26–28</td><td>36–38</td></tr><tr><td>M</td><td>34–36</td><td>28–30</td><td>38–40</td></tr><tr><td>L</td><td>36–39</td><td>30–33</td><td>40–43</td></tr><tr><td>XL</td><td>39–42</td><td>33–36</td><td>43–46</td></tr></tbody></table><p>Need help choosing? Contact us before placing your order.</p>`,
@@ -113,11 +117,12 @@ async function initFirebase(){
     if(window.firebase&&config.firebase?.apiKey){
       if(!firebase.apps.length)firebase.initializeApp(config.firebase);
       WGH.auth=firebase.auth();
+      await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       WGH.db=firebase.firestore?.();
       WGH.auth.onAuthStateChanged(user=>{
         WGH.currentUser=user||null;
         document.querySelectorAll('[data-account-status]').forEach(el=>{const verified=!!user?.emailVerified;el.textContent=verified?'Signed In':'';el.hidden=!verified});
-        document.body.classList.toggle('user-signed-in',!!user?.emailVerified);
+        document.body.classList.toggle('user-signed-in',!!user?.emailVerified);window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user}}));
       });
     }
   }catch(err){console.warn('Account services are not available yet.');}
@@ -159,11 +164,14 @@ function initTracking(){
 }
 
 function initNewsletter(){
-  document.querySelectorAll('[data-newsletter-form]').forEach(form=>form.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('button[type="submit"]');await WGH.withLoading(btn,async()=>{await new Promise(r=>setTimeout(r,450));form.reset();WGH.showToast('You are on the list.','success')},'Joining')}));
+  const hydrate=()=>document.querySelectorAll('[data-newsletter-form] input[type="email"]').forEach(input=>{if(WGH.auth?.currentUser?.email&&!input.value)input.value=WGH.auth.currentUser.email});
+  setTimeout(hydrate,800);setTimeout(hydrate,1800);window.addEventListener('wgh:auth',hydrate);
+  document.querySelectorAll('[data-newsletter-form]').forEach(form=>form.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('button[type="submit"]');await WGH.withLoading(btn,async()=>{const email=String(new FormData(form).get('email')||form.querySelector('input[type="email"]')?.value||'').trim();await WGH.api('/newsletter',{email},{auth:!!WGH.auth?.currentUser});WGH.showToast('You are on the list.','success')},'Joining')}));
 }
 
+
 function initHome(){
-  const rail=document.querySelector('[data-featured-products]');if(rail)rail.innerHTML=WGH.products.filter(p=>p.isNew).slice(0,5).map(p=>WGH.productCard(p)).join('');
+  const rail=document.querySelector('[data-featured-products]');if(rail)WGH.loadProducts().then(()=>{rail.innerHTML=WGH.products.filter(p=>p.isNew).slice(0,5).map(p=>WGH.productCard(p)).join('');WGH.bindProductCards(rail)});
   const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
 }
 
@@ -171,11 +179,11 @@ function initIcons(){
   document.querySelectorAll('[data-icon="user"]').forEach(el=>el.innerHTML=WGH.icons.user);
   document.querySelectorAll('[data-icon="bag"]').forEach(el=>el.innerHTML=WGH.icons.bag);
   document.querySelectorAll('[data-icon="arrow"]').forEach(el=>el.innerHTML=WGH.icons.arrow);
-  document.querySelectorAll('[data-icon="instagram"]').forEach(el=>el.innerHTML=WGH.icons.instagram);
-  document.querySelectorAll('[data-icon="whatsapp"]').forEach(el=>el.innerHTML=WGH.icons.whatsapp);
-  document.querySelectorAll('[data-icon="mail"]').forEach(el=>el.innerHTML=WGH.icons.mail);
-  document.querySelectorAll('[data-icon="snapchat"]').forEach(el=>el.innerHTML=WGH.icons.snapchat);
-  document.querySelectorAll('[data-icon="tiktok"]').forEach(el=>el.innerHTML=WGH.icons.tiktok);
+  document.querySelectorAll('[data-icon="instagram"]').forEach(el=>el.innerHTML='<i class="fa-brands fa-instagram"></i>');
+  document.querySelectorAll('[data-icon="whatsapp"]').forEach(el=>el.innerHTML='<i class="fa-brands fa-whatsapp"></i>');
+  document.querySelectorAll('[data-icon="mail"]').forEach(el=>el.innerHTML='<i class="fa-regular fa-envelope"></i>');
+  document.querySelectorAll('[data-icon="snapchat"]').forEach(el=>el.innerHTML='<i class="fa-brands fa-snapchat"></i>');
+  document.querySelectorAll('[data-icon="tiktok"]').forEach(el=>el.innerHTML='<i class="fa-brands fa-tiktok"></i>');
 }
 
 document.addEventListener('DOMContentLoaded',()=>{

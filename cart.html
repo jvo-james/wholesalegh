@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
 <body class="cart-page">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -23,7 +24,7 @@
       <div class="cart-title"><p class="eyebrow">Your selection</p><h1>Shopping bag</h1><p>Review your colours, sizes and quantities before checkout.</p></div>
       <div class="cart-items-list" data-cart-items></div>
       <div class="cart-empty" data-cart-empty hidden><span class="empty-bag-icon" data-icon="bag"></span><h2>Your bag is empty.</h2><p>Explore the collection and add your made-to-order pieces.</p><a class="button button-dark" href="shop.html">Shop the collection</a></div>
-      <div class="cart-support"><div><strong>Need help before ordering?</strong><p>Use Track Order for an existing purchase or contact us for size and product questions.</p></div><a href="mailto:hello@thewholesaleghana.com">Email us <span data-icon="arrow"></span></a></div>
+      <div class="cart-share-row"><button class="text-link" type="button" data-share-cart><i class="fa-solid fa-arrow-up-from-bracket"></i> Share this cart</button></div><div class="cart-support"><div><strong>Need help before ordering?</strong><p>Use Track Order for an existing purchase or contact us for size and product questions.</p></div><a href="mailto:hello@thewholesaleghana.com">Email us <span data-icon="arrow"></span></a></div>
     </section>
 
     <aside class="order-summary" data-order-summary>
@@ -42,13 +43,13 @@
     <div class="checkout-drawer-head"><div><p class="eyebrow">Checkout</p><h2>Complete your order</h2></div><button type="button" data-checkout-close aria-label="Close checkout">×</button></div>
     <div class="checkout-drawer-layout">
       <form class="checkout-form" data-checkout-form>
-        <div class="checkout-step"><span>01</span><div><h3>Contact details</h3><p>We will use these details for your order updates.</p></div></div>
+        <div class="checkout-step"><span>1</span><div><h3>Contact details</h3><p>We will use these details for your order updates.</p></div></div>
         <div class="field-grid checkout-fields"><label>First name<input name="firstName" autocomplete="given-name" required></label><label>Last name<input name="lastName" autocomplete="family-name" required></label><label class="full-field">Email address<input name="email" type="email" autocomplete="email" required></label><label class="full-field">Phone number<input name="phone" type="tel" autocomplete="tel" required></label></div>
 
-        <div class="checkout-step"><span>02</span><div><h3>Delivery address</h3><p>Enter where you would like your order delivered.</p></div></div>
+        <div class="checkout-step"><span>2</span><div><h3>Delivery address</h3><p>Enter where you would like your order delivered.</p></div></div>
         <div class="field-grid checkout-fields"><label class="full-field">Address<input name="address" autocomplete="street-address" required></label><label>City / town<input name="city" autocomplete="address-level2" required></label><label>Region<select name="region" required><option value="">Select region</option><option>Greater Accra</option><option>Ashanti</option><option>Central</option><option>Eastern</option><option>Western</option><option>Western North</option><option>Volta</option><option>Oti</option><option>Northern</option><option>North East</option><option>Savannah</option><option>Upper East</option><option>Upper West</option><option>Bono</option><option>Bono East</option><option>Ahafo</option></select></label></div>
 
-        <div class="checkout-step"><span>03</span><div><h3>Production & delivery</h3><p>Your final cycle is secured after payment is confirmed.</p></div></div>
+        <div class="checkout-step"><span>3</span><div><h3>Production & delivery</h3><p>Your final cycle is secured after payment is confirmed.</p></div></div>
         <div class="cycle-card"><div><span>Current estimated cycle</span><strong data-cycle-name>Calculating</strong></div><div><span>Estimated delivery</span><strong data-cycle-delivery>Calculating</strong></div></div>
         <label class="acknowledge"><input type="checkbox" name="madeToOrderAccepted" required><span>I understand that my order is made to order and the estimated delivery window is 14 to 21 days after my assigned production cycle closes.</span></label>
 
