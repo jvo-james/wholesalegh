@@ -213,3 +213,211 @@ a.campaign-media{display:block;cursor:pointer;position:relative}a.campaign-media
 @media(max-width:820px){.saved-hero{grid-template-columns:1fr;padding:60px 18px 40px}.editorial-intro .section-heading{grid-template-columns:1fr;gap:14px}.editorial-intro .section-heading .eyebrow{padding:0}.admin-desktop-topbar{display:none}.admin-mobile-head{grid-template-columns:40px 1fr 42px!important}.admin-mobile-head .admin-notification-wrap{justify-self:end}.admin-sidebar-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:89;opacity:0;pointer-events:none;transition:.2s}.admin-menu-open .admin-sidebar-backdrop{opacity:1;pointer-events:auto}.admin-metric-grid{grid-template-columns:1fr 1fr!important}.admin-overview-grid{grid-template-columns:1fr!important}.admin-bulk-bar{align-items:flex-start;flex-direction:column}.admin-bulk-bar>div{width:100%}.admin-bulk-bar select,.admin-bulk-bar .button{flex:1}.subscriber-composer{grid-template-columns:1fr}.subscriber-email-preview{min-height:280px}.inventory-size-grid{grid-template-columns:repeat(3,1fr)}.product-gallery .single-product-image{min-height:auto;scroll-margin-top:80px}.product-gallery .single-product-image img{height:auto;aspect-ratio:3/4}}
 .abandoned-cart-card{background:#fff;border:1px solid #ddd5cd;margin-bottom:12px;padding:18px}.abandoned-cart-card.recovered{opacity:.68}.abandoned-cart-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.abandoned-cart-head>div{display:grid;gap:3px}.abandoned-cart-head span{font-size:8px;text-transform:uppercase;letter-spacing:.12em;color:#9a5d45}.abandoned-cart-head strong{font:400 22px var(--serif)}.abandoned-cart-head small{font-size:9px;color:var(--muted)}.abandoned-cart-head>b{font-size:12px}.abandoned-items{display:flex;gap:6px;flex-wrap:wrap;margin:15px 0}.abandoned-items>span{background:#eee8e0;padding:6px 8px;font-size:9px}.abandoned-cart-card footer{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #eee7df;padding-top:13px}.abandoned-cart-card footer>span{font-size:9px;color:var(--muted)}.abandoned-cart-card footer>div{display:flex;gap:7px}.abandoned-cart-card .button{min-height:36px;padding:0 12px}.admin-overview-grid>.admin-card:not(.admin-attention-card){min-height:300px}.admin-attention-card{min-height:auto!important}
 @media(max-width:760px){.abandoned-cart-card footer,.abandoned-cart-head{align-items:flex-start;flex-direction:column}.abandoned-cart-card footer>div{width:100%;flex-wrap:wrap}.abandoned-cart-card footer .button{flex:1}.admin-overview-grid>.admin-card:not(.admin-attention-card){min-height:auto}}
+
+/* =========================================================
+   FINAL SHOP SCROLL BEHAVIOUR — single source of truth
+   Collection/filters are ordinary document content.
+   Only the real site header hides on scroll down and returns
+   on scroll up, matching the homepage behaviour.
+   ========================================================= */
+body.shop-page .shop-main{
+  padding-top:var(--header-h)!important;
+}
+body.shop-page .shop-top-stack,
+body.shop-page.scroll-up .shop-top-stack,
+body.shop-page.scroll-down .shop-top-stack,
+body.shop-page.scroll-up:not(.at-page-top) .shop-top-stack,
+body.shop-page.scroll-down:not(.at-page-top) .shop-top-stack{
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;
+  left:auto!important;
+  right:auto!important;
+  transform:none!important;
+  padding-top:0!important;
+  z-index:auto!important;
+  box-shadow:none!important;
+  will-change:auto!important;
+}
+body.shop-page .shop-top-stack .shop-hero,
+body.shop-page.scroll-up .shop-top-stack .shop-hero,
+body.shop-page.scroll-down .shop-top-stack .shop-hero,
+body.shop-page.scroll-up:not(.at-page-top) .shop-top-stack .shop-hero,
+body.shop-page.scroll-down:not(.at-page-top) .shop-top-stack .shop-hero{
+  display:block!important;
+}
+body.shop-page .shop-toolbar,
+body.shop-page.scroll-up .shop-toolbar,
+body.shop-page.scroll-down .shop-toolbar{
+  position:relative!important;
+  top:auto!important;
+  transform:none!important;
+  z-index:auto!important;
+  backdrop-filter:none!important;
+}
+body.shop-page #siteHeader{
+  position:fixed!important;
+  top:0!important;
+  left:0!important;
+  right:0!important;
+  transform:translateY(0)!important;
+}
+body.shop-page.scroll-down:not(.at-page-top) #siteHeader{
+  transform:translateY(-105%)!important;
+}
+body.shop-page.scroll-up #siteHeader,
+body.shop-page.at-page-top #siteHeader{
+  transform:translateY(0)!important;
+}
+@media(max-width:820px){
+  body.shop-page .shop-main{padding-top:var(--header-h)!important}
+  body.shop-page .shop-top-stack{padding-top:0!important}
+}
+
+
+/* =========================================================
+   2026-09 FINAL STOREFRONT HOTFIX
+   Keep the shop intro + filters in ordinary document flow.
+   ONLY the true site header responds to scroll direction.
+   These selectors intentionally outrank all legacy shop rules.
+   ========================================================= */
+html body.shop-page .shop-main{
+  padding-top:var(--header-h)!important;
+}
+html body.shop-page .shop-top-stack.shop-top-stack,
+html body.shop-page.scroll-up .shop-top-stack.shop-top-stack,
+html body.shop-page.scroll-down .shop-top-stack.shop-top-stack,
+html body.shop-page.scroll-up:not(.at-page-top) .shop-top-stack.shop-top-stack,
+html body.shop-page.scroll-down:not(.at-page-top) .shop-top-stack.shop-top-stack{
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  left:auto!important;
+  display:block!important;
+  transform:none!important;
+  translate:none!important;
+  margin:0!important;
+  padding-top:0!important;
+  z-index:1!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  will-change:auto!important;
+}
+html body.shop-page .shop-top-stack.shop-top-stack .shop-hero,
+html body.shop-page.scroll-up .shop-top-stack.shop-top-stack .shop-hero,
+html body.shop-page.scroll-down .shop-top-stack.shop-top-stack .shop-hero,
+html body.shop-page.scroll-up:not(.at-page-top) .shop-top-stack.shop-top-stack .shop-hero,
+html body.shop-page.scroll-down:not(.at-page-top) .shop-top-stack.shop-top-stack .shop-hero{
+  display:block!important;
+  position:relative!important;
+  inset:auto!important;
+  transform:none!important;
+}
+html body.shop-page .shop-toolbar.shop-toolbar,
+html body.shop-page.scroll-up .shop-toolbar.shop-toolbar,
+html body.shop-page.scroll-down .shop-toolbar.shop-toolbar,
+html body.shop-page.scroll-up:not(.at-page-top) .shop-toolbar.shop-toolbar,
+html body.shop-page.scroll-down:not(.at-page-top) .shop-toolbar.shop-toolbar{
+  position:relative!important;
+  inset:auto!important;
+  top:auto!important;
+  transform:none!important;
+  margin:0!important;
+  z-index:1!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+html body.shop-page #siteHeader.site-header{
+  position:fixed!important;
+  top:0!important;
+  right:0!important;
+  left:0!important;
+  transform:translate3d(0,0,0)!important;
+  transition:transform .36s cubic-bezier(.22,.61,.36,1),background .3s,color .3s,border-color .3s!important;
+  will-change:transform;
+}
+html body.shop-page.scroll-down:not(.at-page-top) #siteHeader.site-header{
+  transform:translate3d(0,-105%,0)!important;
+}
+html body.shop-page.scroll-up #siteHeader.site-header,
+html body.shop-page.at-page-top #siteHeader.site-header{
+  transform:translate3d(0,0,0)!important;
+}
+
+/* Product-card colour changes are JS-controlled so image + swatch stay synchronized. */
+html body .product-card .hover-image,
+html body .product-card:hover .hover-image{
+  opacity:0!important;
+  pointer-events:none!important;
+}
+html body .card-colours button.active i{
+  outline:1px solid var(--ink)!important;
+  outline-offset:3px!important;
+}
+
+/* Desktop product page: show the entire garment without cropping. */
+@media(min-width:821px){
+  html body.product-page .product-gallery .single-product-image{
+    min-height:calc(100vh - var(--header-h))!important;
+    height:calc(100vh - var(--header-h))!important;
+    display:grid!important;
+    place-items:center!important;
+    overflow:hidden!important;
+    background:#f4f0ea!important;
+  }
+  html body.product-page .product-gallery .single-product-image img{
+    display:block!important;
+    width:100%!important;
+    height:100%!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    object-fit:contain!important;
+    object-position:center center!important;
+    aspect-ratio:auto!important;
+    background:#f7f4ef!important;
+  }
+}
+
+/* Product information accordions: CSS chevron only — no emoji/native marker on mobile. */
+html body.product-page .info-panel details summary{
+  position:relative!important;
+  list-style:none!important;
+  padding-right:34px!important;
+}
+html body.product-page .info-panel details summary::-webkit-details-marker{
+  display:none!important;
+}
+html body.product-page .info-panel details summary::marker{
+  content:""!important;
+  font-size:0!important;
+}
+html body.product-page .info-panel details summary::after{
+  content:""!important;
+  position:absolute!important;
+  right:4px!important;
+  top:50%!important;
+  width:8px!important;
+  height:8px!important;
+  margin-top:-6px!important;
+  border-right:1px solid currentColor!important;
+  border-bottom:1px solid currentColor!important;
+  transform:rotate(45deg)!important;
+  transform-origin:center!important;
+  transition:transform .2s ease!important;
+  float:none!important;
+}
+html body.product-page .info-panel details[open] summary::after{
+  content:""!important;
+  transform:rotate(225deg)!important;
+  margin-top:-2px!important;
+}
+
+@media(max-width:820px){
+  html body.shop-page .shop-main{padding-top:var(--header-h)!important}
+  html body.shop-page .shop-top-stack.shop-top-stack{padding-top:0!important}
+  html body.product-page .product-gallery .single-product-image{
+    scroll-margin-top:calc(var(--header-h) + 8px)!important;
+  }
+}

@@ -85,6 +85,14 @@
           "Brown": ["images/ruffle-button-top-brown.jpeg"],
           "Cream": ["images/ruffle-button-top-cream.jpeg"]
         }
+      },
+      "ribbed-contrast-top": {
+        colours: {
+          "Black": ["images/ribbed-contrast-top-black.jpeg"],
+          "White": ["images/ribbed-contrast-top-white.jpeg"],
+          "Flamingo": ["images/ribbed-contrast-top-flamingo.jpeg"],
+          "Chartreuse": ["images/ribbed-contrast-top-chartreuse.jpeg"]
+        }
       }
     }
   };
