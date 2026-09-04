@@ -159,31 +159,60 @@ function processingFee(subtotal) {
 
 function getDb() {
   if (!admin.apps.length) {
+    // Accept either the three individual Netlify variables or a complete
+    // Firebase service-account JSON variable. This avoids deployment breakage
+    // when Netlify stores credentials in a different (but common) format.
+    const serviceAccountRaw =
+      env("FIREBASE_SERVICE_ACCOUNT") ||
+      env("FIREBASE_SERVICE_ACCOUNT_JSON") ||
+      env("FIREBASE_ADMIN_CREDENTIALS") ||
+      env("GOOGLE_SERVICE_ACCOUNT_JSON");
+
+    let serviceAccount = null;
+    if (serviceAccountRaw) {
+      try {
+        serviceAccount = JSON.parse(serviceAccountRaw);
+      } catch {
+        throw new Error("Firebase Admin service-account JSON is invalid.");
+      }
+    }
+
     const projectId =
+      serviceAccount?.project_id ||
+      serviceAccount?.projectId ||
       env("FIREBASE_PROJECT_ID") ||
-      env("FIREBASE_ADMIN_PROJECT_ID");
+      env("FIREBASE_ADMIN_PROJECT_ID") ||
+      env("GCLOUD_PROJECT");
 
     const clientEmail =
+      serviceAccount?.client_email ||
+      serviceAccount?.clientEmail ||
       env("FIREBASE_CLIENT_EMAIL") ||
       env("FIREBASE_ADMIN_CLIENT_EMAIL");
 
-    const privateKey = (
+    let privateKey =
+      serviceAccount?.private_key ||
+      serviceAccount?.privateKey ||
       env("FIREBASE_PRIVATE_KEY") ||
-      env("FIREBASE_ADMIN_PRIVATE_KEY")
-    ).replace(/\\n/g, "\n");
+      env("FIREBASE_ADMIN_PRIVATE_KEY");
+
+    // Netlify values are commonly pasted with literal \n sequences and,
+    // occasionally, wrapping quote characters. Normalize both safely.
+    privateKey = String(privateKey || "").trim();
+    if ((privateKey.startsWith('"') && privateKey.endsWith('"')) ||
+        (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, "\n");
 
     if (!projectId || !clientEmail || !privateKey) {
       throw new Error(
-        "Firebase Admin environment variables are not configured."
+        "Firebase Admin environment variables are not configured. Add FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY (or FIREBASE_SERVICE_ACCOUNT_JSON) in Netlify."
       );
     }
 
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId,
-        clientEmail,
-        privateKey
-      })
+      credential: admin.credential.cert({ projectId, clientEmail, privateKey })
     });
   }
 
@@ -272,18 +301,18 @@ async function sendEmail({
   subject,
   html
 }) {
-  const apiKey = env("RESEND_API_KEY");
-  const from = env("EMAIL_FROM") || env("RESEND_FROM_EMAIL") || env("EMAIL_SENDER");
+  const apiKey = env("RESEND_API_KEY") || env("RESEND_KEY");
+  const from =
+    env("EMAIL_FROM") ||
+    env("RESEND_FROM_EMAIL") ||
+    env("RESEND_FROM") ||
+    env("EMAIL_SENDER") ||
+    env("MAIL_FROM") ||
+    "The Wholesale Ghana <orders@thewholesaleghana.com>";
 
   if (!apiKey) {
     throw new Error(
-      "Email service is not configured."
-    );
-  }
-
-  if (!from) {
-    throw new Error(
-      "Email sender is not configured."
+      "Email service is not configured. Add RESEND_API_KEY in Netlify Environment Variables and redeploy the site."
     );
   }
 
@@ -326,8 +355,11 @@ async function sendEmail({
       result
     );
 
+    const resendMessage = safeText(result?.message || result?.error || "", 220);
     throw new Error(
-      "We could not send the email right now. Please try again."
+      resendMessage
+        ? `Resend could not send this email: ${resendMessage}`
+        : "We could not send the email right now. Please try again."
     );
   }
 
@@ -1866,6 +1898,18 @@ export default async function handler(
           }
         }
       );
+    }
+
+
+    if (path === "/service-status" && method === "GET") {
+      const firebaseAdminConfigured = Boolean(
+        (env("FIREBASE_SERVICE_ACCOUNT") || env("FIREBASE_SERVICE_ACCOUNT_JSON") || env("FIREBASE_ADMIN_CREDENTIALS") || env("GOOGLE_SERVICE_ACCOUNT_JSON")) ||
+        ((env("FIREBASE_PROJECT_ID") || env("FIREBASE_ADMIN_PROJECT_ID")) &&
+         (env("FIREBASE_CLIENT_EMAIL") || env("FIREBASE_ADMIN_CLIENT_EMAIL")) &&
+         (env("FIREBASE_PRIVATE_KEY") || env("FIREBASE_ADMIN_PRIVATE_KEY")))
+      );
+      const emailConfigured = Boolean(env("RESEND_API_KEY") || env("RESEND_KEY"));
+      return json(200, { ok: true, firebaseAdminConfigured, emailConfigured });
     }
 
 
