@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /cart.html
+Disallow: /.netlify/
+Sitemap: https://thewholesaleghana.com/sitemap.xml

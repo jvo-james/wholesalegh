@@ -1,0 +1,10 @@
+{
+  "name":"the-wholesale-ghana",
+  "private":true,
+  "version":"2.0.0",
+  "description":"The Wholesale Ghana made-to-order storefront and production system",
+  "dependencies":{
+    "@netlify/aws-lambda-compat":"^2.0.0",
+    "firebase-admin":"^13.4.0"
+  }
+}
