@@ -308,7 +308,7 @@ async function sendEmail({
     env("RESEND_FROM") ||
     env("EMAIL_SENDER") ||
     env("MAIL_FROM") ||
-    "The Wholesale Ghana <orders@thewholesaleghana.com>";
+    "The Wholesale Ghana <onboarding@resend.dev>";
 
   if (!apiKey) {
     throw new Error(
@@ -1909,7 +1909,15 @@ export default async function handler(
          (env("FIREBASE_PRIVATE_KEY") || env("FIREBASE_ADMIN_PRIVATE_KEY")))
       );
       const emailConfigured = Boolean(env("RESEND_API_KEY") || env("RESEND_KEY"));
-      return json(200, { ok: true, firebaseAdminConfigured, emailConfigured });
+      const configuredSender =
+        env("EMAIL_FROM") ||
+        env("RESEND_FROM_EMAIL") ||
+        env("RESEND_FROM") ||
+        env("EMAIL_SENDER") ||
+        env("MAIL_FROM") ||
+        "The Wholesale Ghana <onboarding@resend.dev>";
+      const emailMode = /@resend\.dev[>\s]*$/i.test(configuredSender) ? "development" : "custom-domain";
+      return json(200, { ok: true, firebaseAdminConfigured, emailConfigured, emailMode, sender: configuredSender });
     }
 
 
