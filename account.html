@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en-GH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>My Account | The Wholesale Ghana</title>
+  <meta name="description" content="Sign in to The Wholesale Ghana to view your made-to-order clothing orders, production progress and delivery estimates.">
+  <meta name="robots" content="noindex,follow">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="account-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header solid" id="siteHeader">
+    <button class="icon-button menu-button" type="button" data-menu-open aria-label="Open menu"><span></span><span></span><span></span></button>
+    <nav class="desktop-nav"><a href="shop.html?mode=retail">Retail</a><a href="shop.html?mode=wholesale">Wholesale</a><button type="button" data-track-open>Track order</button></nav>
+    <a class="brand-wordmark" href="index.html"><span>THE WHOLESALE</span><strong>GHANA</strong></a>
+    <nav class="header-icons" aria-label="Store actions">
+      <a class="header-icon-link account-header-link" href="account.html" aria-label="My account"><span class="header-svg" data-icon="user"></span><small data-account-status hidden>Signed In</small></a>
+      <a class="header-icon-link bag-icon-link" href="cart.html" aria-label="Shopping bag"><span class="header-svg" data-icon="bag"></span><sup data-cart-count>0</sup></a>
+    </nav>
+  </header>
+
+  <main id="main" class="account-main">
+    <section class="account-auth-shell" data-auth-shell>
+      <div class="auth-visual">
+        <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1400&q=88" alt="Fashion clothing collection in neutral tones">
+        <div class="auth-visual-copy"><p class="eyebrow light">My account</p><h1>Your orders. Your progress. All in one place.</h1><p>Sign in to follow every made-to-order purchase from payment to delivery.</p></div>
+      </div>
+      <div class="auth-card-wrap">
+        <div class="auth-card" data-auth-view="signin">
+          <p class="eyebrow">Welcome back</p><h2>Sign in</h2><p class="auth-copy">Use the email and password connected to your account.</p>
+          <form class="stack-form spacious" data-signin-form>
+            <label>Email address<input name="email" type="email" autocomplete="email" required></label>
+            <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+            <button class="button button-dark full" type="submit">Sign in</button>
+          </form>
+          <div class="auth-inline-actions"><button class="auth-switch" type="button" data-show-auth="create">New here? <strong>Create an account</strong></button><button class="auth-switch auth-forgot" type="button" data-forgot-open>Forgot password?</button></div>
+          <p class="auth-message" data-signin-message aria-live="polite"></p>
+        </div>
+
+        <div class="auth-card" data-auth-view="create" hidden>
+          <button class="auth-back" type="button" data-show-auth="signin"><span data-icon="arrow" class="arrow-back-icon"></span> Back to sign in</button>
+          <p class="eyebrow">Create account</p><h2>Join The Wholesale Ghana</h2><p class="auth-copy">Create an account to keep your orders and production updates together.</p>
+          <form class="stack-form spacious" data-create-form>
+            <div class="field-grid">
+              <label>First name<input name="firstName" autocomplete="given-name" required></label>
+              <label>Last name<input name="lastName" autocomplete="family-name" required></label>
+              <label class="full-field">Email address<input name="email" type="email" autocomplete="email" required></label>
+              <label class="full-field">Phone number<input name="phone" type="tel" autocomplete="tel" required></label>
+              <label class="full-field">Password<input name="password" type="password" minlength="6" autocomplete="new-password" required><small>Use at least 6 characters.</small></label>
+            </div>
+            <button class="button button-dark full" type="submit">Create account</button>
+          </form>
+          <p class="auth-message" data-create-message aria-live="polite"></p>
+        </div>
+
+
+        <div class="auth-card" data-auth-view="forgot" hidden>
+          <button class="auth-back" type="button" data-show-auth="signin"><span data-icon="arrow" class="arrow-back-icon"></span> Back to sign in</button>
+          <p class="eyebrow">Account recovery</p><h2>Reset your password</h2><p class="auth-copy">Enter the email connected to your verified account. We’ll send a secure Firebase reset link.</p>
+          <form class="stack-form spacious" data-forgot-form>
+            <label>Email address<input name="email" type="email" autocomplete="email" required></label>
+            <button class="button button-dark full" type="submit">Send reset link</button>
+          </form>
+          <p class="auth-message auth-message-success" data-forgot-message aria-live="polite"></p>
+        </div>
+
+        <div class="auth-card verification-card" data-auth-view="verify" hidden>
+          <button class="auth-back verification-back" type="button" data-verification-back><span data-icon="arrow" class="arrow-back-icon"></span> Back to account details</button>
+          <div class="verification-mark">6</div>
+          <p class="eyebrow">Verify your email</p><h2>Enter your code</h2><p class="auth-copy">We sent a six-digit code to <strong data-verification-email></strong>. Enter it below to finish creating your account.</p>
+          <form class="stack-form spacious" data-verify-form>
+            <label>Verification code<input class="verification-input" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" required></label>
+            <button class="button button-dark full" type="submit">Verify account</button>
+          </form>
+          <button class="auth-switch" type="button" data-resend-code>Didn’t receive it? <strong>Send another code</strong></button>
+          <p class="auth-message" data-verify-message aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="account-dashboard" data-account-dashboard hidden>
+      <div class="account-welcome">
+        <div><p class="eyebrow">My account</p><h1>Welcome, <span data-account-first-name>there</span>.</h1><p>Everything about your orders lives here.</p></div>
+        <button class="button button-outline" type="button" data-account-signout>Sign out</button>
+      </div>
+      <div class="account-stat-strip"><article><span>Orders</span><strong data-account-stat-orders>0</strong></article><article><span>Pieces ordered</span><strong data-account-stat-pieces>0</strong></article><article><span>Active journeys</span><strong data-account-stat-active>0</strong></article><article class="account-stat-art"><svg viewBox="0 0 120 50" aria-hidden="true"><path d="M2 38C24 8 41 47 61 19s35 20 57-8"/></svg><span>Made in Ghana · tracked end to end</span></article></div>
+      <div class="account-dashboard-grid">
+        <aside class="account-profile-card">
+          <span class="profile-monogram" data-profile-monogram>W</span>
+          <h2 data-profile-name>Your account</h2>
+          <p data-profile-email></p>
+          <div class="profile-divider"></div>
+          <div class="profile-detail"><span>Phone</span><strong data-profile-phone>Not added</strong></div>
+          <div class="profile-detail"><span>Email status</span><strong class="verified-label">Verified</strong></div>
+          <a class="text-link" href="shop.html">Continue shopping <span data-icon="arrow"></span></a>
+        </aside>
+        <div class="account-orders-area">
+          <div class="account-section-head"><div><p class="eyebrow">Orders</p><h2>Your purchases</h2></div><button class="text-button" type="button" data-account-refresh>Refresh</button></div>
+          <div class="account-order-list" data-account-orders><div class="account-loading"><span class="page-spinner"></span><p>Loading your orders</p></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer premium-footer">
+    <div class="footer-service-row"><div><strong>Made to order</strong><span>Produced after purchase</span></div><div><strong>Weekly production</strong><span>Clear delivery estimates</span></div><div><strong>Order tracking</strong><span>Follow every major stage</span></div></div>
+    <div class="footer-main"><div class="footer-brand-large"><a class="brand-wordmark footer-mark" href="index.html"><span>THE WHOLESALE</span><strong>GHANA</strong></a><p>Made-to-order clothing for retail customers, boutiques and resellers.</p><div class="social-icons"><a href="https://instagram.com/" target="_blank" rel="noopener" aria-label="Instagram"><span data-icon="instagram"></span></a><a href="https://wa.me/233000000000" target="_blank" rel="noopener" aria-label="WhatsApp"><span data-icon="whatsapp"></span></a><a href="mailto:hello@thewholesaleghana.com" aria-label="Email"><span data-icon="mail"></span></a><a href="https://snapchat.com/" target="_blank" rel="noopener" aria-label="Snapchat"><span data-icon="snapchat"></span></a><a href="https://tiktok.com/" target="_blank" rel="noopener" aria-label="TikTok"><span data-icon="tiktok"></span></a></div></div><div class="footer-links"><div><h3>Shop</h3><a href="shop.html?mode=retail">Retail</a><a href="shop.html?mode=wholesale">Wholesale</a><a href="shop.html?category=new">New arrivals</a></div><div><h3>Orders</h3><button type="button" data-track-open>Track order</button><a href="account.html">My account</a><a href="cart.html">Shopping bag</a></div><div><h3>Help</h3><button type="button" data-panel-open="size">Size guide</button><button type="button" data-panel-open="faq">FAQ</button><button type="button" data-panel-open="policy">Policies</button></div></div></div>
+    <div class="footer-bottom"><span>© <span data-year></span> The Wholesale Ghana</span><span>Made in Ghana</span></div>
+  </footer>
+
+  <div class="drawer-backdrop" data-drawer-backdrop></div>
+  <aside class="mobile-drawer" data-menu-drawer aria-hidden="true"><button class="drawer-close" type="button" data-menu-close aria-label="Close menu">×</button><nav><a href="shop.html?mode=retail">Retail</a><a href="shop.html?mode=wholesale">Wholesale</a><a href="shop.html?category=new">New arrivals</a><a href="index.html#how-it-works">How it works</a><button type="button" data-track-open>Track order</button><a href="account.html">My account</a></nav></aside>
+  <aside class="side-panel" data-track-panel aria-hidden="true"><button class="drawer-close" type="button" data-track-close aria-label="Close tracking">×</button><p class="eyebrow">Order tracking</p><h2>See where your order is.</h2><form class="stack-form" data-track-form><label>Order number<input name="orderNumber" placeholder="WGH-001" required></label><label>Email address<input name="email" type="email" required></label><button class="button button-dark" type="submit">Track order</button></form><div class="tracking-result" data-tracking-result></div></aside>
+  <aside class="info-panel" data-info-panel aria-hidden="true"><button class="drawer-close" type="button" data-panel-close aria-label="Close information">×</button><div data-panel-content></div></aside>
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js" defer></script>
+  <script src="script.js" defer></script>
+  <script src="account.js" defer></script>
+</body>
+</html>
