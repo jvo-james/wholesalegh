@@ -386,191 +386,9 @@ async function sendTemplate(to, template) {
    product database is being populated.
    ========================================================= */
 
-const SERVER_CATALOG = {
-  "sculpt-column-dress": {
-    name: "Sculpt Column Dress",
-    retailPrice: 420,
-    wholesalePrice: 285,
-    moq: 6,
-    colours: [
-      "Black",
-      "Cocoa",
-      "Cream",
-      "Nude"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=1200&q=86"
-    ]
-  },
+const SERVER_CATALOG = {"drapped-halter-mini-dress":{"name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":null,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"],"images":["images/drapped-halter-mini-dress-dark-brown.jpeg","images/drapped-halter-mini-dress-grey.jpeg","images/drapped-halter-mini-dress-baby-blue.jpeg","images/drapped-halter-mini-dress-black.jpeg"]},"ruffle-asymmetric-mini-dress":{"name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"],"images":["images/ruffle-asymmetric-mini-dress-pink.jpeg","images/ruffle-asymmetric-mini-dress-white.jpeg","images/ruffle-asymmetric-mini-dress-black.jpeg"]},"ruche-wrap-mini-dress":{"name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"],"images":["images/ruche-wrap-mini-dress-black.jpeg","images/ruche-wrap-mini-dress-curry.jpeg","images/ruche-wrap-mini-dress-white.jpeg"]},"nael-mini-dress":{"name":"Naël Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Red","Orange","Black"],"sizes":["XS","S","M","L","XL","2XL"],"images":["images/nael-mini-dress-red.jpeg","images/nael-mini-dress-orange.jpeg","images/nael-mini-dress-black.jpeg"]},"dante-capri":{"name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"],"images":["images/dante-capri-army-green.jpeg","images/dante-capri-grey.jpeg","images/dante-capri-black.jpeg","images/dante-capri-brown.jpeg"]},"ruched-waist-pants":{"name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"],"images":["images/ruched-waist-pants-black.jpeg","images/ruched-waist-pants-red.jpeg","images/ruched-waist-pants-brown.jpeg"]},"foldover-waist-flare-pants":{"name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"],"images":["images/foldover-waist-flare-pants-brown.jpeg","images/foldover-waist-flare-pants-black.jpeg","images/foldover-waist-flare-pants-nude.jpeg","images/foldover-waist-flare-pants-pink.jpeg"]}};
 
-  "contour-button-top": {
-    name: "Contour Button Top",
-    retailPrice: 230,
-    wholesalePrice: 155,
-    moq: 6,
-    colours: [
-      "Black",
-      "Brown",
-      "Cream",
-      "Nude"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=86"
-    ]
-  },
-
-  "signature-two-piece": {
-    name: "Signature Two-Piece Set",
-    retailPrice: 510,
-    wholesalePrice: 345,
-    moq: 6,
-    colours: [
-      "Espresso",
-      "Sand",
-      "Black",
-      "Bone"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1200&q=86"
-    ]
-  },
-
-  "second-skin-tee": {
-    name: "Second Skin Tee",
-    retailPrice: 165,
-    wholesalePrice: 110,
-    moq: 6,
-    colours: [
-      "White",
-      "Black",
-      "Cocoa",
-      "Taupe"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=86"
-    ]
-  },
-
-  "tailored-flow-pants": {
-    name: "Tailored Flow Pants",
-    retailPrice: 290,
-    wholesalePrice: 195,
-    moq: 6,
-    colours: [
-      "Black",
-      "Espresso",
-      "Stone",
-      "Cream"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1506629082955-511b1aa562c8?auto=format&fit=crop&w=1200&q=86"
-    ]
-  },
-
-  "soft-drape-mini": {
-    name: "Soft Drape Mini Dress",
-    retailPrice: 350,
-    wholesalePrice: 235,
-    moq: 6,
-    colours: [
-      "Black",
-      "Mocha",
-      "Ivory",
-      "Dust"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=86"
-    ]
-  },
-
-  "clean-line-vest": {
-    name: "Clean Line Vest",
-    retailPrice: 195,
-    wholesalePrice: 130,
-    moq: 6,
-    colours: [
-      "Black",
-      "Cream",
-      "Camel",
-      "White"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=1200&q=86"
-    ]
-  },
-
-  "soft-knit-set": {
-    name: "Soft Knit Set",
-    retailPrice: 460,
-    wholesalePrice: 310,
-    moq: 6,
-    colours: [
-      "Oat",
-      "Cocoa",
-      "Black",
-      "Mushroom"
-    ],
-    sizes: [
-      "XS",
-      "S",
-      "M",
-      "L",
-      "XL"
-    ],
-    images: [
-      "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=86"
-    ]
-  }
-};
+const LEGACY_PRODUCT_IDS = new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);
 
 
 /* =========================================================
@@ -712,7 +530,10 @@ function serializeOrder(doc) {
 
     statusHistory: Array.isArray(order.statusHistory) ? order.statusHistory : [],
     adminNotes: Array.isArray(order.adminNotes) ? order.adminNotes : [],
-    delivery: order.delivery || {}
+    delivery: order.delivery || order.customer || {},
+    paymentReference: order.paymentReference || "",
+    paymentStatus: order.paymentStatus || "",
+    userId: order.userId || null
   };
 }
 
@@ -786,14 +607,15 @@ async function serverCart(
       80
     );
 
-    const productSnap = await db
-      .collection("products")
-      .doc(productId)
-      .get();
+    const [productSnap, overrideSnap] = await Promise.all([
+      db.collection("products").doc(productId).get(),
+      db.collection("productOverrides").doc(productId).get()
+    ]);
 
-    const product =
-      productSnap.exists
-        ? productSnap.data()
+    const product = productSnap.exists
+      ? productSnap.data()
+      : overrideSnap.exists
+        ? { ...(SERVER_CATALOG[productId] || {}), ...overrideSnap.data() }
         : SERVER_CATALOG[productId];
 
     if (!product) {
@@ -936,9 +758,7 @@ async function serverCart(
           })
         ),
 
-      image:
-        product.images?.[0] ||
-        ""
+      image: (() => { const src=product.images?.[0]||""; if(!src||/^https?:\/\//i.test(src))return src; const base=(env("SITE_URL")||"https://wholesalegh.netlify.app").replace(/\/$/,""); return `${base}/${String(src).replace(/^\//,"")}`; })()
     });
   }
 
@@ -1427,6 +1247,8 @@ async function completePaidOrder(
 
             customer:
               pending.customer,
+
+            delivery: pending.customer,
 
             items:
               pending.items,
@@ -2854,12 +2676,10 @@ export default async function handler(
             80
           ),
 
-        region:
-          safeText(
-            input.customer
-              ?.region,
-            80
-          )
+        region: safeText(input.customer?.region,80),
+        country: safeText(input.customer?.country || input.country,80) || "Ghana",
+        fulfilment: safeText(input.customer?.fulfilment || input.fulfilment,30) || "delivery",
+        address2: safeText(input.customer?.address2,180)
       };
 
 
@@ -3599,19 +3419,13 @@ export default async function handler(
           .get();
 
 
-      return json(
-        200,
-        snapshot.exists
-          ? snapshot.data()
-          : {
-              batchCapacity:
-                Number(
-                  env(
-                    "DEFAULT_BATCH_CAPACITY"
-                  ) || 150
-                )
-            }
-      );
+      const stored = snapshot.exists ? snapshot.data() : {};
+      const defaults = { businessName:"The Wholesale Ghana", whatsapp:"0533357961", instagram:"the.wholesalegh", pickupAddress:"Joy City & The Clock Bar", defaultMoq:6, batchCapacity:Number(env("DEFAULT_BATCH_CAPACITY")||150) };
+      const settings = { ...defaults, ...stored };
+      if (!stored.whatsapp || /000000/.test(String(stored.whatsapp))) settings.whatsapp = defaults.whatsapp;
+      if (!stored.instagram || String(stored.instagram).trim()==="https://instagram.com/") settings.instagram = defaults.instagram;
+      if (!stored.pickupAddress) settings.pickupAddress = defaults.pickupAddress;
+      return json(200, settings);
     }
 
 
@@ -3915,7 +3729,7 @@ export default async function handler(
     if (path === "/catalog" && method === "GET") {
       const db = getDb();
       const snap = await db.collection("productOverrides").get();
-      return json(200, snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      return json(200, snap.docs.filter(doc => !LEGACY_PRODUCT_IDS.has(doc.id)).map(doc => ({ id: doc.id, ...doc.data() })));
     }
 
     if (path === "/notify" && method === "POST") {
@@ -3936,7 +3750,7 @@ export default async function handler(
 
     if (path === "/admin/products" && method === "GET") {
       await requireAdmin(request); const db=getDb(); const snap=await db.collection("productOverrides").get();
-      return json(200,snap.docs.map(doc=>({id:doc.id,...doc.data()})));
+      return json(200,snap.docs.filter(doc=>!LEGACY_PRODUCT_IDS.has(doc.id)).map(doc=>({id:doc.id,...doc.data()})));
     }
     if (path === "/admin/product-save" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80);
@@ -3983,6 +3797,12 @@ export default async function handler(
       await requireAdmin(request); const input=await readBody(request); const payload={businessName:safeText(input.businessName,120),businessEmail:safeText(input.businessEmail,160),whatsapp:safeText(input.whatsapp,50),instagram:safeText(input.instagram,120),currency:safeText(input.currency,10)||"GHS",batchCapacity:Math.max(1,Number(input.batchCapacity||150)),defaultMoq:Math.max(1,Number(input.defaultMoq||6)),pickupAddress:safeText(input.pickupAddress,220),updatedAt:admin.firestore.FieldValue.serverTimestamp()};
       await getDb().collection("settings").doc("store").set(payload,{merge:true}); return json(200,{ok:true});
     }
+
+    if (path === "/admin/subscribers" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("mailingList").limit(1000).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt),updatedAt:timestampIso(d.data().updatedAt)}))); }
+    if (path === "/admin/reviews" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("reviews").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}))); }
+    if (path === "/admin/abandoned" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("abandonedCarts").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt),updatedAt:timestampIso(d.data().updatedAt)}))); }
+    if (path === "/admin/messages" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("messages").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}))); }
+
     /* ===============================================
        NOT FOUND
        =============================================== */
