@@ -55,7 +55,11 @@ WGH.friendlyError = error => {
   if(code.includes('auth/weak-password')) return 'Please choose a stronger password with at least 6 characters.';
   if(code.includes('auth/too-many-requests')) return 'There have been too many attempts. Please try again a little later.';
   if(code.includes('auth/network-request-failed')||/network|failed to fetch/i.test(raw)) return 'We could not connect right now. Please check your internet connection and try again.';
-  if(/Firebase Admin environment variables|Paystack environment variables|invalid order status|request failed|not configured/i.test(raw)) return 'This service is being set up right now. Please try again shortly.';
+  if(/Email service is not configured|RESEND_API_KEY/i.test(raw)) return 'Verification email is not connected on the deployed site yet. Add RESEND_API_KEY in Netlify Environment Variables, then redeploy.';
+  if(/Resend could not send this email/i.test(raw)) return raw;
+  if(/Firebase Admin environment variables|service-account JSON is invalid/i.test(raw)) return 'Account storage is not connected correctly on the deployed site. Check the Firebase Admin environment variables in Netlify, then redeploy.';
+  if(/Paystack environment variables/i.test(raw)) return 'Secure payment is not configured on the deployed site yet.';
+  if(/invalid order status|request failed/i.test(raw)) return 'We could not complete that request right now. Please try again.';
   return raw.replace(/^Firebase:\s*/i,'').replace(/\(auth\/[\w-]+\)\.?/g,'').trim();
 };
 
