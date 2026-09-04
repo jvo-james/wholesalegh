@@ -421,3 +421,80 @@ html body.product-page .info-panel details[open] summary::after{
     scroll-margin-top:calc(var(--header-h) + 8px)!important;
   }
 }
+
+/* ================================================================
+   PRODUCT PAGE FINAL MEDIA + ACCORDION HOTFIX
+   - Desktop product image fills the full left-column width naturally.
+   - Product accordion markers are pure CSS (no iOS/native emoji marker).
+   ================================================================ */
+@media (min-width:821px){
+  html body.product-page .product-gallery{
+    display:block!important;
+    align-self:start!important;
+    background:#f4f0ea!important;
+  }
+  html body.product-page .product-gallery .single-product-image{
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    aspect-ratio:auto!important;
+    display:block!important;
+    overflow:hidden!important;
+    margin:0!important;
+    background:#f7f4ef!important;
+  }
+  html body.product-page .product-gallery .single-product-image img{
+    display:block!important;
+    width:100%!important;
+    height:auto!important;
+    max-width:none!important;
+    max-height:none!important;
+    aspect-ratio:auto!important;
+    object-fit:contain!important;
+    object-position:center top!important;
+    background:#f7f4ef!important;
+  }
+}
+
+/* Actual product-page accordions (not the generic info drawer). */
+html body.product-page .product-sticky details > summary{
+  position:relative!important;
+  display:block!important;
+  list-style:none!important;
+  list-style-type:none!important;
+  padding-left:18px!important;
+  padding-right:28px!important;
+  -webkit-appearance:none!important;
+  appearance:none!important;
+}
+html body.product-page .product-sticky details > summary::-webkit-details-marker{
+  display:none!important;
+  width:0!important;
+  height:0!important;
+}
+html body.product-page .product-sticky details > summary::marker{
+  content:""!important;
+  font-size:0!important;
+}
+html body.product-page .product-sticky details > summary::before{
+  content:""!important;
+  position:absolute!important;
+  left:1px!important;
+  top:50%!important;
+  width:0!important;
+  height:0!important;
+  border-top:4px solid transparent!important;
+  border-bottom:4px solid transparent!important;
+  border-left:6px solid currentColor!important;
+  transform:translateY(-50%) rotate(0deg)!important;
+  transform-origin:3px 4px!important;
+  transition:transform .2s ease!important;
+}
+html body.product-page .product-sticky details[open] > summary::before{
+  transform:translateY(-50%) rotate(90deg)!important;
+}
+/* Prevent any older plus/chevron rule from adding another marker here. */
+html body.product-page .product-sticky details > summary::after{
+  content:none!important;
+  display:none!important;
+}
