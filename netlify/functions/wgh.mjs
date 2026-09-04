@@ -646,7 +646,11 @@ function serializeBatch(doc) {
       timestampIso(batch.startDate),
 
     closeDate:
-      timestampIso(batch.closeDate)
+      timestampIso(batch.closeDate),
+
+    locked: Boolean(batch.locked),
+    lockedBy: batch.lockedBy || "",
+    lockedAt: timestampIso(batch.lockedAt)
   };
 }
 
@@ -704,7 +708,11 @@ function serializeOrder(doc) {
       Number(order.total || 0),
 
     createdAt:
-      timestampIso(order.createdAt)
+      timestampIso(order.createdAt),
+
+    statusHistory: Array.isArray(order.statusHistory) ? order.statusHistory : [],
+    adminNotes: Array.isArray(order.adminNotes) ? order.adminNotes : [],
+    delivery: order.delivery || {}
   };
 }
 
@@ -1039,6 +1047,10 @@ async function findAvailableBatch(
         data.usedCapacity ||
         0
       );
+
+    if (data.locked === true) {
+      continue;
+    }
 
     if (
       usedCapacity +
@@ -1929,6 +1941,10 @@ export default async function handler(
        six-digit code has been verified successfully.
        =============================================== */
 
+    if (path === "/capacity-preview" && method === "POST") {
+      const input=await readBody(request);const pieces=Math.max(1,Number(input.pieces||1));const db=getDb();const batch=await findAvailableBatch(db,pieces);const remaining=Math.max(0,Number(batch.capacity||0)-Number(batch.usedCapacity||0)-pieces);const ratio=(Number(batch.usedCapacity||0)+pieces)/Math.max(1,Number(batch.capacity||1));return json(200,{ok:true,remaining,capacity:batch.capacity,usedCapacity:batch.usedCapacity,limited:ratio>=.75,veryLimited:ratio>=.9});
+    }
+
     if (path === "/account/begin-signup" && method === "POST") {
       const input = await readBody(request);
       const email = safeText(input.email, 160).toLowerCase();
@@ -2120,9 +2136,9 @@ export default async function handler(
       const existingSnap = await db.collection("users").doc(user.uid).get();
       const existing = existingSnap.exists ? existingSnap.data() : {};
       const profile = {
-        firstName: existing.firstName || safeText(input.firstName, 80),
-        lastName: existing.lastName || safeText(input.lastName, 80),
-        phone: existing.phone || safeText(input.phone, 40),
+        firstName: input.firstName !== undefined ? safeText(input.firstName, 80) : (existing.firstName || ""),
+        lastName: input.lastName !== undefined ? safeText(input.lastName, 80) : (existing.lastName || ""),
+        phone: input.phone !== undefined ? safeText(input.phone, 40) : (existing.phone || ""),
         email: String(user.email || "").toLowerCase(),
         address: input.address !== undefined ? safeText(input.address, 220) : (existing.address || ""),
         address2: input.address2 !== undefined ? safeText(input.address2, 220) : (existing.address2 || ""),
@@ -2569,6 +2585,38 @@ export default async function handler(
       );
     }
 
+
+
+    /* ===============================================
+       VERIFIED EMAIL CHANGE
+       =============================================== */
+    if (path === "/account/begin-email-change" && method === "POST") {
+      const user = await requireUser(request);
+      const input = await readBody(request);
+      const email = safeText(input.email,160).toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
+      if (email === String(user.email||"").toLowerCase()) throw new Error("That is already your account email.");
+      try { await admin.auth().getUserByEmail(email); throw new Error("That email is already connected to another account."); } catch (e) { if (e?.code !== "auth/user-not-found") throw e; }
+      const code=String(crypto.randomInt(100000,1000000)); const salt=crypto.randomBytes(16).toString("hex");
+      const hash=crypto.createHash("sha256").update(`${salt}:${code}`).digest("hex");
+      const expiresAt=new Date(Date.now()+10*60*1000);
+      await getDb().collection("emailChangeRequests").doc(user.uid).set({email,salt,hash,attempts:0,expiresAt:admin.firestore.Timestamp.fromDate(expiresAt),createdAt:admin.firestore.FieldValue.serverTimestamp()});
+      await sendTemplate(email,verificationEmail({firstName:"there",code}));
+      return json(200,{ok:true});
+    }
+    if (path === "/account/complete-email-change" && method === "POST") {
+      const user=await requireUser(request); const input=await readBody(request); const email=safeText(input.email,160).toLowerCase(); const code=safeText(input.code,6);
+      const ref=getDb().collection("emailChangeRequests").doc(user.uid); const snap=await ref.get(); if(!snap.exists) throw new Error("Request a new verification code first."); const data=snap.data();
+      if(data.expiresAt?.toMillis?.()<Date.now()) {await ref.delete(); throw new Error("That verification code has expired.");}
+      if(Number(data.attempts||0)>=5){await ref.delete();throw new Error("Too many attempts. Request a new code.");}
+      if(email!==data.email) throw new Error("Use the email address that received the verification code.");
+      const submitted=crypto.createHash("sha256").update(`${data.salt}:${code}`).digest("hex");
+      const a=Buffer.from(data.hash,"hex"),b=Buffer.from(submitted,"hex"); const ok=a.length===b.length&&crypto.timingSafeEqual(a,b);
+      if(!ok){await ref.update({attempts:admin.firestore.FieldValue.increment(1)});throw new Error("That code is not correct.");}
+      await admin.auth().updateUser(user.uid,{email,emailVerified:true});
+      await getDb().collection("users").doc(user.uid).set({email,emailVerified:true,emailVerifiedAt:admin.firestore.FieldValue.serverTimestamp(),updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      await ref.delete(); return json(200,{ok:true,email});
+    }
 
     /* ===============================================
        CUSTOMER ORDERS
@@ -3638,6 +3686,10 @@ export default async function handler(
       }
 
 
+      if (snapshot.data()?.locked === true) {
+        throw new Error("This batch is locked. Unlock it before changing production capacity.");
+      }
+
       const usedCapacity =
         Number(
           snapshot.data()
@@ -3684,7 +3736,7 @@ export default async function handler(
         "/admin/status" &&
       method === "POST"
     ) {
-      await requireAdmin(
+      const adminUser = await requireAdmin(
         request
       );
 
@@ -3791,7 +3843,8 @@ export default async function handler(
               status,
               at:
                 new Date()
-                  .toISOString()
+                  .toISOString(),
+              by: adminUser.email || adminUser.uid
             }),
 
         updatedAt:
@@ -3865,6 +3918,12 @@ export default async function handler(
       return json(200, snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }
 
+    if (path === "/notify" && method === "POST") {
+      const input=await readBody(request),email=safeText(input.email,160).toLowerCase(),productId=safeText(input.productId,80);
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Enter a valid email address."); if(!productId)throw new Error("Choose a product.");
+      const id=crypto.createHash("sha256").update(`${email}:${productId}`).digest("hex"); await getDb().collection("productNotifications").doc(id).set({email,productId,active:true,source:"notify-me",createdAt:admin.firestore.FieldValue.serverTimestamp(),updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});return json(200,{ok:true});
+    }
+
     if (path === "/newsletter" && method === "POST") {
       const input = await readBody(request);
       const email = safeText(input.email,160).toLowerCase();
@@ -3882,7 +3941,7 @@ export default async function handler(
     if (path === "/admin/product-save" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80);
       if(!id) throw new Error("Choose a product."); const db=getDb();
-      const payload={name:safeText(input.name,120),category:safeText(input.category,50),retailPrice:Number(input.retailPrice||0),wholesalePrice:Number(input.wholesalePrice||0),moq:Math.max(1,Number(input.moq||6)),description:safeText(input.description,800),details:safeText(input.details,1000),colours:Array.isArray(input.colours)?input.colours.map(x=>safeText(x,40)).filter(Boolean):[],sizes:Array.isArray(input.sizes)?input.sizes.map(x=>safeText(x,20)).filter(Boolean):[],images:Array.isArray(input.images)?input.images.map(x=>safeText(x,500)).filter(Boolean):[],colourImages:input.colourImages&&typeof input.colourImages==='object'?input.colourImages:{},isNew:Boolean(input.isNew),active:input.active!==false,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
+      const payload={name:safeText(input.name,120),category:safeText(input.category,50),retailPrice:Number(input.retailPrice||0),wholesalePrice:Number(input.wholesalePrice||0),moq:Math.max(1,Number(input.moq||6)),description:safeText(input.description,800),details:safeText(input.details,1000),colours:Array.isArray(input.colours)?input.colours.map(x=>safeText(x,40)).filter(Boolean):[],sizes:Array.isArray(input.sizes)?input.sizes.map(x=>safeText(x,20)).filter(Boolean):[],images:Array.isArray(input.images)?input.images.map(x=>safeText(x,500)).filter(Boolean):[],colourImages:input.colourImages&&typeof input.colourImages==='object'?input.colourImages:{},isNew:Boolean(input.isNew),available:input.available!==false,active:input.active!==false,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
       await db.collection("productOverrides").doc(id).set(payload,{merge:true}); return json(200,{ok:true,id});
     }
     if (path === "/admin/product-delete" && method === "POST") {
@@ -3890,6 +3949,40 @@ export default async function handler(
       await getDb().collection("productOverrides").doc(id).set({active:false,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true}); return json(200,{ok:true});
     }
 
+
+
+    if (path === "/admin/manual-order" && method === "POST") {
+      const adminUser=await requireAdmin(request); const input=await readBody(request); const db=getDb();
+      const productId=safeText(input.productId,80),quantity=Math.max(1,Number(input.quantity||1)),mode=input.mode==="wholesale"?"wholesale":"retail";
+      const overrideSnap=await db.collection("productOverrides").get(); const catalogMap=new Map(Object.entries(SERVER_CATALOG).map(([id,p])=>[id,{id,...p,active:true}])); overrideSnap.docs.forEach(doc=>catalogMap.set(doc.id,{...(catalogMap.get(doc.id)||{id:doc.id}),...doc.data()})); const product=[...catalogMap.values()].find(p=>p.id===productId&&p.active!==false); if(!product)throw new Error("Choose a valid product.");
+      const pieces=quantity,price=Number(mode==="wholesale"?product.wholesalePrice:product.retailPrice),subtotal=price*quantity,deliveryFee=Math.max(0,Number(input.deliveryFee||0)),total=subtotal+deliveryFee;
+      const batch=await findAvailableBatch(db,pieces); const counterRef=db.collection("counters").doc("orders"); const orderRefHolder={};
+      await db.runTransaction(async tx=>{const [counterSnap,batchSnap]=await Promise.all([tx.get(counterRef),tx.get(batch.ref)]);const counter=counterSnap.exists?counterSnap.data():{},batchData=batchSnap.exists?batchSnap.data():{};const orderSequence=Number(counter.orderSeq||0)+1;let batchSequence=Number(batchData.batchNumber||0);if(!batchSequence)batchSequence=Number(counter.batchCounter||0)+1;const orderNumber=`WGH-${String(orderSequence).padStart(3,"0")}`,batchName=`Batch ${String(batchSequence).padStart(2,"0")}`;const earliest=addDays(batch.close,Number(env("DELIVERY_MIN_DAYS")||14)),latest=addDays(batch.close,Number(env("DELIVERY_MAX_DAYS")||21)),estimatedDelivery=formatDeliveryRange(earliest,latest),nowIso=new Date().toISOString();const orderRef=db.collection("orders").doc(orderNumber);orderRefHolder.number=orderNumber;
+        tx.set(orderRef,{orderNumber,userId:null,batchId:batch.id,batchName,batchCloseDate:admin.firestore.Timestamp.fromDate(batch.close),estimatedDelivery,estimatedDeliveryStart:admin.firestore.Timestamp.fromDate(earliest),estimatedDeliveryEnd:admin.firestore.Timestamp.fromDate(latest),customer:{firstName:safeText(input.firstName,80),lastName:safeText(input.lastName,80),email:safeText(input.email,160).toLowerCase(),phone:safeText(input.phone,40)},items:[{id:product.id,name:product.name,image:product.images?.[0]||"",mode,totalQuantity:quantity,unitPrice:price,variants:[{colour:safeText(input.colour,40),size:safeText(input.size,20),quantity}]}],pieces,pieceCount:pieces,subtotal,processingFee:0,deliveryFee,total,paymentReference:"MANUAL",paymentStatus:"manual",status:"cycle_assigned",adminNotes:input.note?[{note:safeText(input.note,800),by:adminUser.email||adminUser.uid,at:nowIso}]:[],createdAt:admin.firestore.FieldValue.serverTimestamp(),statusHistory:[{status:"order_confirmed",at:nowIso},{status:"payment_received",at:nowIso},{status:"cycle_assigned",at:nowIso}]});
+        tx.set(batch.ref,{batchNumber:batchSequence,batchName,startDate:admin.firestore.Timestamp.fromDate(batch.start),closeDate:admin.firestore.Timestamp.fromDate(batch.close),capacity:batch.capacity,usedCapacity:Number(batchData.usedCapacity||0)+pieces,status:"OPEN",updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});tx.set(counterRef,{orderSeq:orderSequence,batchCounter:Math.max(Number(counter.batchCounter||0),batchSequence)},{merge:true});});
+      return json(200,{ok:true,orderNumber:orderRefHolder.number});
+    }
+
+    if (path === "/admin/cloudinary-signature" && method === "POST") {
+      await requireAdmin(request); const cloudName=env("CLOUDINARY_CLOUD_NAME"),apiKey=env("CLOUDINARY_API_KEY"),apiSecret=env("CLOUDINARY_API_SECRET");
+      if(!cloudName||!apiKey||!apiSecret) throw new Error("Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET in Netlify.");
+      const timestamp=Math.floor(Date.now()/1000),folder="wholesaleghana/products";
+      const signature=crypto.createHash("sha1").update(`folder=${folder}&timestamp=${timestamp}${apiSecret}`).digest("hex");
+      return json(200,{ok:true,cloudName,apiKey,timestamp,folder,signature});
+    }
+    if (path === "/admin/order-note" && method === "POST") {
+      const adminUser=await requireAdmin(request); const input=await readBody(request); const orderNumber=safeText(input.orderNumber,40).toUpperCase(),note=safeText(input.note,800); if(!orderNumber||!note)throw new Error("Add an internal note first.");
+      const ref=getDb().collection("orders").doc(orderNumber); const snap=await ref.get(); if(!snap.exists)throw new Error("Order not found.");
+      await ref.update({adminNotes:admin.firestore.FieldValue.arrayUnion({note,by:adminUser.email||adminUser.uid,at:new Date().toISOString()}),updatedAt:admin.firestore.FieldValue.serverTimestamp()}); return json(200,{ok:true});
+    }
+    if (path === "/admin/batch-lock" && method === "POST") {
+      const adminUser=await requireAdmin(request); const input=await readBody(request); const batchId=safeText(input.batchId,80); if(!batchId)throw new Error("Choose a batch."); const locked=Boolean(input.locked);
+      await getDb().collection("productionBatches").doc(batchId).set({locked,lockedBy:adminUser.email||adminUser.uid,lockedAt:locked?admin.firestore.FieldValue.serverTimestamp():null,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true}); return json(200,{ok:true,locked});
+    }
+    if (path === "/admin/settings-save" && method === "POST") {
+      await requireAdmin(request); const input=await readBody(request); const payload={businessName:safeText(input.businessName,120),businessEmail:safeText(input.businessEmail,160),whatsapp:safeText(input.whatsapp,50),instagram:safeText(input.instagram,120),currency:safeText(input.currency,10)||"GHS",batchCapacity:Math.max(1,Number(input.batchCapacity||150)),defaultMoq:Math.max(1,Number(input.defaultMoq||6)),pickupAddress:safeText(input.pickupAddress,220),updatedAt:admin.firestore.FieldValue.serverTimestamp()};
+      await getDb().collection("settings").doc("store").set(payload,{merge:true}); return json(200,{ok:true});
+    }
     /* ===============================================
        NOT FOUND
        =============================================== */

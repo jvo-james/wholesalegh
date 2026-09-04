@@ -399,7 +399,7 @@ export function customerOrderConfirmationEmail(order) {
       `,
 
       buttonText: "Track my order",
-      buttonUrl: `${BRAND.website}/track-order.html?order=${encodeURIComponent(orderNumber)}`
+      buttonUrl: `${BRAND.website}/tracking.html?order=${encodeURIComponent(orderNumber)}`
     })
   };
 }
@@ -527,7 +527,7 @@ function statusEmail({
       `,
 
       buttonText: "Track my order",
-      buttonUrl: `${BRAND.website}/track-order.html?order=${encodeURIComponent(order.orderNumber || "")}`
+      buttonUrl: `${BRAND.website}/tracking.html?order=${encodeURIComponent(order.orderNumber || "")}`
     })
   };
 }
