@@ -7,8 +7,8 @@ const BRAND = {
   muted: "#756D67",
   brown: "#6E5141",
   border: "#DDD5CC",
-  website: "https://YOUR-DOMAIN.com",
-  instagram: "https://instagram.com/YOUR_INSTAGRAM"
+  website: "https://wholesalegh.netlify.app",
+  instagram: "https://instagram.com/"
 };
 
 function escapeHtml(value = "") {

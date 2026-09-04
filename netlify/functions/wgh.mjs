@@ -340,7 +340,9 @@ async function sendEmail({
         from,
         to: recipients,
         subject,
-        html
+        html,
+        text: String(html||'').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim(),
+        ...(env('EMAIL_REPLY_TO') ? { reply_to: env('EMAIL_REPLY_TO') } : {})
       })
     }
   );
@@ -2051,6 +2053,7 @@ export default async function handler(
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
+      await db.collection("mailingList").doc(crypto.createHash("sha256").update(email).digest("hex")).set({email, source:"account-signup", subscribed:true, createdAt:admin.firestore.FieldValue.serverTimestamp(), updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
       await ref.delete();
       const customToken = await admin.auth().createCustomToken(created.uid);
       return json(200, { ok: true, customToken });
@@ -2114,34 +2117,19 @@ export default async function handler(
       const db =
         getDb();
 
+      const existingSnap = await db.collection("users").doc(user.uid).get();
+      const existing = existingSnap.exists ? existingSnap.data() : {};
       const profile = {
-        firstName:
-          safeText(
-            input.firstName,
-            80
-          ),
-
-        lastName:
-          safeText(
-            input.lastName,
-            80
-          ),
-
-        phone:
-          safeText(
-            input.phone,
-            40
-          ),
-
-        email:
-          String(
-            user.email ||
-            ""
-          ).toLowerCase(),
-
-        updatedAt:
-          admin.firestore.FieldValue
-            .serverTimestamp()
+        firstName: existing.firstName || safeText(input.firstName, 80),
+        lastName: existing.lastName || safeText(input.lastName, 80),
+        phone: existing.phone || safeText(input.phone, 40),
+        email: String(user.email || "").toLowerCase(),
+        address: input.address !== undefined ? safeText(input.address, 220) : (existing.address || ""),
+        address2: input.address2 !== undefined ? safeText(input.address2, 220) : (existing.address2 || ""),
+        city: input.city !== undefined ? safeText(input.city, 100) : (existing.city || ""),
+        region: input.region !== undefined ? safeText(input.region, 100) : (existing.region || ""),
+        country: input.country !== undefined ? safeText(input.country, 100) : (existing.country || "Ghana"),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };
 
       await db
@@ -3865,6 +3853,41 @@ export default async function handler(
         html: test.html.replace("246810", "EMAIL OK")
       });
       return json(200, { ok: true, id: result?.id || "", to });
+    }
+
+
+    /* ===============================================
+       CATALOG OVERRIDES + MAILING LIST
+       =============================================== */
+    if (path === "/catalog" && method === "GET") {
+      const db = getDb();
+      const snap = await db.collection("productOverrides").get();
+      return json(200, snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }
+
+    if (path === "/newsletter" && method === "POST") {
+      const input = await readBody(request);
+      const email = safeText(input.email,160).toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
+      const db=getDb();
+      const id=crypto.createHash("sha256").update(email).digest("hex");
+      await db.collection("mailingList").doc(id).set({email,subscribed:true,source:"storefront",updatedAt:admin.firestore.FieldValue.serverTimestamp(),createdAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return json(200,{ok:true});
+    }
+
+    if (path === "/admin/products" && method === "GET") {
+      await requireAdmin(request); const db=getDb(); const snap=await db.collection("productOverrides").get();
+      return json(200,snap.docs.map(doc=>({id:doc.id,...doc.data()})));
+    }
+    if (path === "/admin/product-save" && method === "POST") {
+      const adminUser=await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80);
+      if(!id) throw new Error("Choose a product."); const db=getDb();
+      const payload={name:safeText(input.name,120),category:safeText(input.category,50),retailPrice:Number(input.retailPrice||0),wholesalePrice:Number(input.wholesalePrice||0),moq:Math.max(1,Number(input.moq||6)),description:safeText(input.description,800),details:safeText(input.details,1000),colours:Array.isArray(input.colours)?input.colours.map(x=>safeText(x,40)).filter(Boolean):[],sizes:Array.isArray(input.sizes)?input.sizes.map(x=>safeText(x,20)).filter(Boolean):[],images:Array.isArray(input.images)?input.images.map(x=>safeText(x,500)).filter(Boolean):[],colourImages:input.colourImages&&typeof input.colourImages==='object'?input.colourImages:{},isNew:Boolean(input.isNew),active:input.active!==false,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
+      await db.collection("productOverrides").doc(id).set(payload,{merge:true}); return json(200,{ok:true,id});
+    }
+    if (path === "/admin/product-delete" && method === "POST") {
+      await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80); if(!id) throw new Error("Choose a product.");
+      await getDb().collection("productOverrides").doc(id).set({active:false,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true}); return json(200,{ok:true});
     }
 
     /* ===============================================
