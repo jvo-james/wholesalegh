@@ -1,0 +1,19 @@
+THE WHOLESALE GHANA — HOW TO CHANGE IMAGES
+
+Open: images.js
+
+That file is the single registry for the website's current static imagery:
+- homepage hero/editorial images
+- Unsplash images
+- account/admin login images
+- social-share image
+- all default product colour images
+
+Change the value after the relevant label. You can use either a local path such as:
+  images/my-photo.jpg
+or a complete image URL.
+
+For product colours, edit the URL/path inside that product's `colours` section.
+The product gallery array is generated automatically, so you do not need to edit script.js.
+
+Images uploaded later from Admin/Cloudinary are dynamic store data; those are intentionally managed in Admin rather than hardcoded into the repo.
