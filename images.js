@@ -77,6 +77,14 @@
           "Nude": ["images/foldover-waist-flare-pants-nude.jpeg"],
           "Pink": ["images/foldover-waist-flare-pants-pink.jpeg"]
         }
+      },
+      "ruffle-button-top": {
+        colours: {
+          "Black": ["images/ruffle-button-top-black.jpeg"],
+          "Pink": ["images/ruffle-button-top-pink.jpeg"],
+          "Brown": ["images/ruffle-button-top-brown.jpeg"],
+          "Cream": ["images/ruffle-button-top-cream.jpeg"]
+        }
       }
     }
   };
