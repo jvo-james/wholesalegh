@@ -9,17 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet"
-  />
-
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-  />
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css'">
 </head>
 <body class="cart-page">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -43,7 +33,7 @@
       <div class="summary-line"><span>Processing fee</span><strong data-processing-fee>GH₵0.00</strong></div>
       <div class="summary-line"><span>Delivery</span><strong data-delivery>Calculated at checkout</strong></div>
       <div class="summary-line total"><span>Total</span><strong data-total>GH₵0.00</strong></div>
-      <div class="production-preview"><span>Made to order</span><p>Your order will be placed into the next available weekly production cycle after payment is confirmed.</p><small data-delivery-preview>Estimated delivery will be shown before payment.</small></div>
+      <div class="cart-delivery-estimator"><label>Estimate delivery area<select data-cart-delivery-area><option value="">Choose an area</option><option value="accra">Accra / Greater Accra</option><option value="tema">Tema</option><option value="kumasi">Kumasi</option><option value="ghana">Other Ghana region</option><option value="international">International</option></select></label><div data-cart-delivery-estimate>Delivery pricing will be confirmed at checkout.</div></div><div class="production-preview"><span>Made to order</span><p>Your order will be placed into the next available weekly production cycle after payment is confirmed.</p><small data-delivery-preview>Estimated delivery will be shown before payment.</small></div>
       <a class="button button-dark full" href="checkout.html">Continue to checkout</a>
       <div class="secure-note"><span class="secure-dot"></span> Secure payment powered by Paystack</div>
     </aside>

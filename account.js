@@ -29,21 +29,16 @@
 
   async function waitForAuth(){
     if(!WGH.auth){setTimeout(waitForAuth,120);return;}
+    let restored=false;
     WGH.auth.onAuthStateChanged(async user=>{
+      restored=true;
       if(!user){document.body.classList.remove('account-authenticated');showAuth('signin');return;}
-      try{
-        await user.reload();
-        if(!user.emailVerified){
-          // Legacy unverified Firebase accounts are not treated as registered users.
-          await WGH.auth.signOut();
-          showAuth('create');
-          message('[data-create-message]','This email was never verified. Please complete signup again.');
-          return;
-        }
-        showDashboard();
-        await loadDashboard();
-      }catch(err){WGH.showToast(err);}
+      // Verified accounts are created only after the server-side code challenge succeeds.
+      // Never destroy a valid browser session because a reload/profile request is transient.
+      showDashboard();
+      try{ await loadDashboard(); }catch(err){ WGH.showToast(err); }
     });
+    setTimeout(()=>{ if(!restored && WGH.auth?.currentUser) showDashboard(); },2500);
   }
 
   document.querySelectorAll('[data-show-auth]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -58,14 +53,8 @@
     await WGH.withLoading(btn,async()=>{
       const data=Object.fromEntries(new FormData(e.currentTarget));
       try{
-        const result=await WGH.auth.signInWithEmailAndPassword(data.email.trim(),data.password);
-        await result.user.reload();
-        if(!result.user.emailVerified){
-          await result.user.delete().catch(()=>{});
-          await WGH.auth.signOut();
-          showView('create');
-          message('[data-create-message]','That signup was never verified, so it was cleared. Please create the account again.');
-        }
+        await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        await WGH.auth.signInWithEmailAndPassword(data.email.trim(),data.password);
       }catch(err){
         const friendly=WGH.friendlyError(err);message('[data-signin-message]',friendly);
         if(/create an account/i.test(friendly))setTimeout(()=>showView('create'),700);
@@ -159,7 +148,7 @@
     if(!orders?.length){list.innerHTML=`<div class="account-empty account-empty-premium"><div class="orbit-art"><i></i><i></i><i></i><span>W</span></div><h3>Your first order will live beautifully here.</h3><p>Every production milestone, delivery estimate and order detail will appear in one timeline.</p><a class="button button-dark" href="shop.html">Explore the collection</a></div>`;return;}
     list.innerHTML=orders.map(order=>{
       const current=Math.max(0,WGH.statuses.indexOf(order.status));
-      return `<article class="account-order-card premium-order-card"><div class="order-card-glow"></div><div class="account-order-top"><div><span>${order.orderNumber}</span><strong>${WGH.statusLabels[order.status]||'In progress'}</strong></div><span class="order-status-pill">${order.batchName||'Cycle assigned'}</span></div><div class="account-order-body"><div><small>Estimated delivery</small><strong>${order.estimatedDelivery||'Updating soon'}</strong></div><div><small>Pieces</small><strong>${order.pieces||0}</strong></div><div><small>Total</small><strong>${WGH.money(order.total||0)}</strong></div></div><div class="animated-progress" aria-label="Order progress"><b style="width:${((current+1)/WGH.statuses.length)*100}%"></b></div><div class="order-stage-dots">${WGH.statuses.map((s,i)=>`<span class="order-dot-wrap ${i<current?'done':i===current?'current':''}"><i title="${WGH.statusLabels[s]}"></i>${i===current?`<small>${WGH.statusLabels[s]}</small>`:''}</span>`).join('')}</div><div class="account-order-actions"><button class="text-link account-track-toggle" type="button" data-order-track="${order.orderNumber}">View progress <span data-icon="arrow">${WGH.icons.arrow}</span></button><a class="text-link subtle-track-link" href="tracking.html?order=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(WGH.auth.currentUser?.email||'')}">Open tracking</a><button class="text-link reorder-link" type="button" data-reorder="${order.orderNumber}">Reorder</button></div><div class="account-order-track" data-order-track-panel="${order.orderNumber}" hidden>${WGH.renderTracking(order)}</div></article>`
+      return `<article class="account-order-card premium-order-card"><div class="order-card-glow"></div><div class="account-order-top"><div><span>${order.orderNumber}</span><strong>${WGH.statusLabels[order.status]||'In progress'}</strong></div><span class="order-status-pill">${WGH.prettyBatch(order.batchName)||'Cycle assigned'}</span></div><div class="account-order-body"><div><small>Estimated delivery</small><strong>${order.estimatedDelivery||'Updating soon'}</strong></div><div><small>Pieces</small><strong>${order.pieces||0}</strong></div><div><small>Total</small><strong>${WGH.money(order.total||0)}</strong></div></div><div class="animated-progress" aria-label="Order progress"><b style="width:${((current+1)/WGH.statuses.length)*100}%"></b></div><div class="order-stage-dots">${WGH.statuses.map((s,i)=>`<span class="order-dot-wrap ${i<current?'done':i===current?'current':''}"><i title="${WGH.statusLabels[s]}"></i>${i===current?`<small>${WGH.statusLabels[s]}</small>`:''}</span>`).join('')}</div><div class="account-order-actions"><button class="text-link account-track-toggle" type="button" data-order-track="${order.orderNumber}">View progress <span data-icon="arrow">${WGH.icons.arrow}</span></button><a class="text-link subtle-track-link" href="tracking.html?order=${encodeURIComponent(order.orderNumber)}&email=${encodeURIComponent(WGH.auth.currentUser?.email||'')}">Open tracking</a><button class="text-link reorder-link" type="button" data-reorder="${order.orderNumber}">Reorder</button></div><div class="account-order-track" data-order-track-panel="${order.orderNumber}" hidden>${WGH.renderTracking(order)}</div></article>`
     }).join('');
     list.querySelectorAll('[data-order-track]').forEach(btn=>btn.addEventListener('click',()=>{const p=list.querySelector(`[data-order-track-panel="${btn.dataset.orderTrack}"]`);p.hidden=!p.hidden;btn.firstChild.textContent=p.hidden?'View progress ':'Hide progress '}));list.querySelectorAll('[data-reorder]').forEach(btn=>btn.addEventListener('click',()=>{const o=orders.find(x=>x.orderNumber===btn.dataset.reorder);if(!o?.items?.length)return;WGH.saveCart(o.items.map(i=>({...i})));WGH.showToast('Previous items added to your bag.','success');setTimeout(()=>location.href='cart.html',350)}));
   }

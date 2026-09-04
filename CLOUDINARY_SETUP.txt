@@ -1,0 +1,11 @@
+THE WHOLESALE GHANA — CLOUDINARY ADMIN UPLOADS
+
+Add these environment variables in Netlify → Site configuration → Environment variables:
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+Do not put the API secret in browser JavaScript. The site requests a short-lived signed upload signature from the Netlify backend, then uploads the selected/pasted/dropped image directly to Cloudinary.
+
+After changing environment variables, redeploy the site.

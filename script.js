@@ -97,7 +97,7 @@ WGH.openLayer = el => {if(!el)return;document.body.classList.add('no-scroll');do
 WGH.closeLayers = () => {document.body.classList.remove('no-scroll');document.querySelector('[data-drawer-backdrop]')?.classList.remove('active');document.querySelectorAll('.mobile-drawer,.side-panel,.info-panel').forEach(el=>{el.classList.remove('active');el.setAttribute('aria-hidden','true')})};
 WGH.api = async (path,body,options={}) => {
   const headers={'Content-Type':'application/json',...(options.headers||{})};
-  if(options.auth&&WGH.auth?.currentUser)headers.Authorization=`Bearer ${await WGH.auth.currentUser.getIdToken()}`;
+  if(options.auth&&WGH.auth?.currentUser){const token=await WGH.auth.currentUser.getIdToken(false);headers.Authorization=`Bearer ${token}`;}
   const response=await fetch(`${WGH.API_BASE}${path}`,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body)});
   let data={};try{data=await response.json()}catch{}
   if(!response.ok)throw new Error(WGH.friendlyError(data.error||'We could not complete that request. Please try again.'));
@@ -108,7 +108,13 @@ WGH.statuses=['order_confirmed','payment_received','cycle_assigned','cycle_close
 WGH.statusLabels={order_confirmed:'Order Confirmed',payment_received:'Payment Received',cycle_assigned:'Order Cycle Assigned',cycle_closed:'Order Cycle Closed',production:'Production',quality_control:'Quality Control',packaging:'Packaging',ready_dispatch:'Ready for Dispatch',dispatched:'Dispatched',delivered:'Delivered'};
 WGH.renderTracking = order => {
   const current=Math.max(0,WGH.statuses.indexOf(order.status));
-  return `<div class="track-card"><div class="track-card-head"><span>${order.orderNumber}</span><strong>${order.batchName||'Production cycle assigned'}</strong></div><div class="track-estimate"><span>Estimated delivery</span><strong>${order.estimatedDelivery||'We will update this shortly'}</strong></div><ol class="tracking-timeline">${WGH.statuses.map((s,i)=>`<li class="${i<current?'done':i===current?'current':''}"><span class="timeline-dot"></span><div><strong>${WGH.statusLabels[s]}</strong>${i===current?'<small>Current stage</small>':''}</div></li>`).join('')}</ol></div>`;
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return `<section class="drawer-track-premium">
+    <div class="drawer-track-hero"><div><span class="mini-label">${esc(order.orderNumber||'Your order')}</span><h3>${esc(WGH.statusLabels[order.status]||'In progress')}</h3><p>${order.estimatedDelivery?`Estimated delivery ${esc(order.estimatedDelivery)}`:'Your delivery estimate will update as production moves forward.'}</p></div><div class="track-cycle-badge"><span>Production cycle</span><strong>${esc(WGH.prettyBatch(order.batchName)||'Assigned')}</strong></div></div>
+    <div class="drawer-stage-progress"><i style="width:${Math.max(5,((current+1)/WGH.statuses.length)*100)}%"></i></div>
+    <div class="drawer-track-steps">${WGH.statuses.map((stage,i)=>`<div class="drawer-track-step ${i<current?'done':i===current?'current':''}"><span class="drawer-step-dot">${i<current?'<i class="fa-solid fa-check"></i>':''}</span><div><strong>${esc(WGH.statusLabels[stage])}</strong>${i===current?'<small>Current stage</small>':i<current?'<small>Completed</small>':''}</div></div>`).join('')}</div>
+    <a class="drawer-track-open" href="tracking.html?order=${encodeURIComponent(order.orderNumber||'')}">Open full tracking <i class="fa-solid fa-arrow-right"></i></a>
+  </section>`;
 };
 
 async function initFirebase(){
@@ -119,10 +125,11 @@ async function initFirebase(){
       WGH.auth=firebase.auth();
       await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       WGH.db=firebase.firestore?.();
-      WGH.auth.onAuthStateChanged(user=>{
+      WGH.auth.onIdTokenChanged(user=>{
         WGH.currentUser=user||null;
-        document.querySelectorAll('[data-account-status]').forEach(el=>{const verified=!!user?.emailVerified;el.textContent=verified?'Signed In':'';el.hidden=!verified});
-        document.body.classList.toggle('user-signed-in',!!user?.emailVerified);window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user}}));
+        document.querySelectorAll('[data-account-status]').forEach(el=>{el.textContent=user?'Signed In':'';el.hidden=!user});
+        document.body.classList.toggle('user-signed-in',!!user);
+        window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user}}));
       });
     }
   }catch(err){console.warn('Account services are not available yet.');}
@@ -155,11 +162,19 @@ function initDrawers(){
 
 function initTracking(){
   document.querySelectorAll('[data-track-form]').forEach(form=>form.addEventListener('submit',async e=>{
-    e.preventDefault();const btn=form.querySelector('button[type="submit"]');const out=form.parentElement.querySelector('[data-tracking-result]');
+    e.preventDefault();const btn=form.querySelector('button[type="submit"]');const panel=form.closest('[data-track-panel]')||form.parentElement;const out=panel.querySelector('[data-tracking-result]');
+    panel.classList.add('tracking-loading');
     await WGH.withLoading(btn,async()=>{
       const values=Object.fromEntries(new FormData(form));
-      try{const order=await WGH.api('/track',values);out.innerHTML=WGH.renderTracking(order)}catch(err){out.innerHTML=`<div class="friendly-message"><strong>We could not find that order.</strong><p>Check the order number and the email used at checkout, then try again.</p></div>`}
+      try{
+        const order=await WGH.api('/track',values);
+        form.hidden=true; panel.querySelectorAll(':scope > .eyebrow,:scope > h2').forEach(el=>el.hidden=true);
+        out.innerHTML=WGH.renderTracking(order);out.classList.add('loaded');
+        out.insertAdjacentHTML('afterbegin','<button class="track-drawer-back" type="button" data-track-drawer-back><i class="fa-solid fa-arrow-left"></i> Track another order</button>');
+        out.querySelector('[data-track-drawer-back]').onclick=()=>{out.innerHTML='';out.classList.remove('loaded');form.hidden=false;panel.querySelectorAll(':scope > .eyebrow,:scope > h2').forEach(el=>el.hidden=false)};
+      }catch(err){out.innerHTML=`<div class="friendly-message"><strong>We could not find that order.</strong><p>Check the order number and the email used at checkout, then try again.</p></div>`}
     },'Finding your order');
+    panel.classList.remove('tracking-loading');
   }));
 }
 
@@ -186,7 +201,36 @@ function initIcons(){
   document.querySelectorAll('[data-icon="tiktok"]').forEach(el=>el.innerHTML='<i class="fa-brands fa-tiktok"></i>');
 }
 
+
+function initAccountMenu(){
+  document.querySelectorAll('.account-header-link').forEach(link=>{
+    if(link.closest('.account-menu-wrap'))return;
+    const wrap=document.createElement('div');wrap.className='account-menu-wrap';link.parentNode.insertBefore(wrap,link);wrap.appendChild(link);
+    const toggle=document.createElement('button');toggle.type='button';toggle.className='account-menu-mobile-toggle';toggle.setAttribute('aria-label','Account options');toggle.innerHTML='<i class="fa-solid fa-chevron-down"></i>';wrap.appendChild(toggle);
+    const menu=document.createElement('div');menu.className='account-hover-menu';menu.innerHTML='<a href="account.html"><i class="fa-regular fa-user"></i><span>My account</span></a><button type="button" data-edit-account-global><i class="fa-regular fa-pen-to-square"></i><span>Edit account details</span></button><button type="button" data-header-signout><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sign out</span></button>';wrap.appendChild(menu);
+    toggle.onclick=e=>{e.preventDefault();wrap.classList.toggle('open')};
+    menu.querySelector('[data-header-signout]').onclick=async()=>{if(WGH.auth?.currentUser)await WGH.auth.signOut();location.href='account.html'};
+    menu.querySelector('[data-edit-account-global]').onclick=()=>openAccountEditor();
+    const sync=()=>{const signed=!!WGH.auth?.currentUser;toggle.hidden=!signed;menu.querySelector('[data-header-signout]').hidden=!signed;menu.querySelector('[data-edit-account-global]').hidden=!signed;if(!signed)wrap.classList.remove('open')};
+    sync();window.addEventListener('wgh:auth',sync);
+  });
+}
+
+async function openAccountEditor(){
+  if(!WGH.auth?.currentUser){location.href='account.html';return;}
+  let drawer=document.querySelector('[data-account-editor-global]');
+  if(!drawer){
+    drawer=document.createElement('aside');drawer.className='side-panel account-editor-global';drawer.dataset.accountEditorGlobal='';drawer.setAttribute('aria-hidden','true');drawer.innerHTML=`<button class="drawer-close" type="button" data-account-editor-close>×</button><p class="eyebrow">Account details</p><h2>Keep your details current.</h2><p class="account-editor-intro">Your saved delivery details prefill future checkouts. Changing your email requires a six-digit verification code.</p><form class="stack-form" data-global-profile-form><div class="field-grid"><label>First name<input name="firstName" required></label><label>Last name<input name="lastName" required></label><label class="full-field">Phone<input name="phone" required></label><label class="full-field">Default address<input name="address"></label><label>City<input name="city"></label><label>Region<input name="region"></label><label class="full-field">Country<input name="country" value="Ghana"></label></div><button class="button button-dark full" type="submit">Save account details</button></form><div class="account-email-change"><span class="mini-label">Sign-in email</span><strong data-current-account-email></strong><button class="text-link" type="button" data-start-email-change>Change email</button><form class="stack-form email-change-form" data-email-change-form hidden><label>New email<input type="email" name="email" required></label><button class="button button-outline full" type="submit">Send verification code</button></form><form class="stack-form email-code-form" data-email-code-form hidden><label>Verification code<input name="code" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" required></label><button class="button button-dark full" type="submit">Verify & change email</button></form><p class="auth-message" data-account-editor-message></p></div>`;document.body.appendChild(drawer);
+    drawer.querySelector('[data-account-editor-close]').onclick=WGH.closeLayers;
+    drawer.querySelector('[data-start-email-change]').onclick=()=>drawer.querySelector('[data-email-change-form]').hidden=false;
+    drawer.querySelector('[data-global-profile-form]').onsubmit=async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button');await WGH.withLoading(btn,async()=>{try{await WGH.api('/account/profile',Object.fromEntries(new FormData(e.currentTarget)),{auth:true});WGH.showToast('Account details saved.','success');window.dispatchEvent(new Event('wgh:profile-updated'))}catch(err){WGH.showToast(err)}},'Saving')};
+    drawer.querySelector('[data-email-change-form]').onsubmit=async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button'),email=new FormData(e.currentTarget).get('email');await WGH.withLoading(btn,async()=>{try{await WGH.api('/account/begin-email-change',{email},{auth:true});drawer.dataset.pendingEmail=email;drawer.querySelector('[data-email-code-form]').hidden=false;drawer.querySelector('[data-account-editor-message]').textContent=`Code sent to ${email}.`}catch(err){drawer.querySelector('[data-account-editor-message]').textContent=WGH.friendlyError(err)}},'Sending code')};
+    drawer.querySelector('[data-email-code-form]').onsubmit=async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button'),code=new FormData(e.currentTarget).get('code');await WGH.withLoading(btn,async()=>{try{await WGH.api('/account/complete-email-change',{email:drawer.dataset.pendingEmail,code},{auth:true});await WGH.auth.currentUser.getIdToken(true);await WGH.auth.currentUser.reload().catch(()=>{});drawer.querySelector('[data-current-account-email]').textContent=drawer.dataset.pendingEmail;drawer.querySelector('[data-account-editor-message]').textContent='Email changed and verified.';WGH.showToast('Email address updated.','success')}catch(err){drawer.querySelector('[data-account-editor-message]').textContent=WGH.friendlyError(err)}},'Verifying')};
+  }
+  try{const p=await WGH.api('/account/profile',undefined,{auth:true});const f=drawer.querySelector('[data-global-profile-form]');['firstName','lastName','phone','address','city','region','country'].forEach(k=>{if(f.elements[k])f.elements[k].value=p[k]||''});drawer.querySelector('[data-current-account-email]').textContent=WGH.auth.currentUser.email||p.email||'';}catch{}
+  WGH.openLayer(drawer);
+}
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-year]').forEach(el=>el.textContent=new Date().getFullYear());
-  WGH.updateCartCount();initIcons();initHeader();initDrawers();initTracking();initNewsletter();initHome();initFirebase();
+  WGH.updateCartCount();initIcons();initHeader();initDrawers();initTracking();initNewsletter();initHome();initAccountMenu();initFirebase();
 });
