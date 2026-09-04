@@ -395,7 +395,8 @@ const SERVER_CATALOG = {
   "dante-capri": {"name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
   "ruched-waist-pants": {"name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
   "foldover-waist-flare-pants": {"name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ruffle-button-top": {"name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"]}
+  "ruffle-button-top": {"name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ribbed-contrast-top": {"name":"Ribbed Contrast Top","category":"tops","retailPrice":90,"wholesalePrice":55,"moq":6,"colours":["Black","White","Flamingo","Chartreuse"],"sizes":["XS","S","M","L","XL","2XL"]}
 };
 // Keep the default server catalogue in sync with the one image registry.
 for (const [productId, product] of Object.entries(SERVER_CATALOG)) {
