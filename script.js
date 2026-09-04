@@ -30,6 +30,16 @@ WGH.products = [
 ];
 
 WGH.money = amount => new Intl.NumberFormat('en-GH',{style:'currency',currency:'GHS',minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(amount||0));
+WGH.prettyBatch = value => {
+  const raw=String(value||'').trim();
+  if(!raw)return '';
+  const match=raw.match(/^(?:batch\s*)?0*(\d+)$/i) || raw.match(/^batch\s*0*(\d+)(.*)$/i);
+  if(match){
+    const suffix=(match[2]||'').trim();
+    return `Batch ${Number(match[1])}${suffix?` ${suffix}`:''}`;
+  }
+  return raw.replace(/\bBatch\s+0+(\d+)/gi,(_,n)=>`Batch ${Number(n)}`);
+};
 WGH.getCart = () => { try{return JSON.parse(localStorage.getItem(WGH.CART_KEY))||[]}catch{return[]} };
 WGH.saveCart = cart => { localStorage.setItem(WGH.CART_KEY,JSON.stringify(cart)); WGH.updateCartCount(); };
 WGH.cartPieces = () => WGH.getCart().reduce((sum,item)=>sum+Number(item.totalQuantity||1),0);
@@ -125,11 +135,23 @@ async function initFirebase(){
       WGH.auth=firebase.auth();
       await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
       WGH.db=firebase.firestore?.();
-      WGH.auth.onIdTokenChanged(user=>{
+      WGH.auth.onIdTokenChanged(async user=>{
         WGH.currentUser=user||null;
-        document.querySelectorAll('[data-account-status]').forEach(el=>{el.textContent=user?'Signed In':'';el.hidden=!user});
         document.body.classList.toggle('user-signed-in',!!user);
-        window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user}}));
+        const labels=[...document.querySelectorAll('[data-account-status]')];
+        if(!user){
+          WGH.currentProfile=null;
+          labels.forEach(el=>{el.textContent='';el.hidden=true});
+          window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user:null,profile:null}}));
+          return;
+        }
+        let profile=null;
+        try{profile=await WGH.api('/account/profile',undefined,{auth:true});}catch{}
+        WGH.currentProfile=profile||null;
+        const fallback=String(user.displayName||user.email||'Account').trim().split(/[\s@]+/)[0];
+        const firstName=String(profile?.firstName||fallback||'Account').trim().split(/\s+/)[0];
+        labels.forEach(el=>{el.textContent=firstName;el.hidden=false;el.setAttribute('aria-label',`Signed in as ${firstName}`)});
+        window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user,profile}}));
       });
     }
   }catch(err){console.warn('Account services are not available yet.');}
@@ -142,7 +164,7 @@ function initHeader(){
     const y=Math.max(0,window.scrollY),delta=y-lastY;
     if(header){
       header.classList.toggle('scrolled',y>24||document.body.classList.contains('shop-page')||document.body.classList.contains('product-page'));
-      document.body.classList.toggle('at-page-top',y<120);
+      document.body.classList.toggle('at-page-top',y<8);
       if(y<20){document.body.classList.remove('scroll-down');document.body.classList.add('scroll-up');}
       else if(delta>5){document.body.classList.add('scroll-down');document.body.classList.remove('scroll-up');}
       else if(delta<-5){document.body.classList.add('scroll-up');document.body.classList.remove('scroll-down');}
