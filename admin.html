@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en-GH">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Admin Dashboard | The Wholesale Ghana</title><meta name="robots" content="noindex,nofollow">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Libre+Caslon+Display&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"><link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-shell">
+  <section class="admin-login-screen" data-admin-login>
+    <div class="admin-login-visual"><img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1400&q=86" alt="Clothing production workspace"><div><p class="eyebrow light">The Wholesale Ghana</p><h1>Production starts here.</h1><p>Manage orders, weekly batches and customer progress from one place.</p></div></div>
+    <div class="admin-login-card"><a class="brand-wordmark admin-login-brand" href="index.html"><span>THE WHOLESALE</span><strong>GHANA</strong></a><div><p class="eyebrow">Private access</p><h2>Admin sign in</h2><p>Use an approved admin account to continue.</p><form class="stack-form spacious" data-admin-login-form><label>Email address<input name="email" type="email" autocomplete="email" required></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><button class="button button-dark full" type="submit">Sign in</button></form><p class="auth-message" data-admin-message></p></div></div>
+  </section>
+
+  <div class="admin-app-shell" data-admin-app hidden>
+    <aside class="admin-sidebar">
+      <a class="brand-wordmark admin-brand" href="index.html"><span>THE WHOLESALE</span><strong>GHANA</strong></a>
+      <nav class="admin-nav"><button class="active" data-admin-view="overview"><i class="fa-solid fa-gauge-high"></i><span>01</span> Overview</button><button data-admin-view="batches"><i class="fa-solid fa-layer-group"></i><span>02</span> Production batches</button><button data-admin-view="orders"><i class="fa-solid fa-bag-shopping"></i><span>03</span> Orders</button><button data-admin-view="customers"><i class="fa-solid fa-users"></i><span>04</span> Customers</button><button data-admin-view="analytics"><i class="fa-solid fa-chart-line"></i><span>05</span> Analytics</button><button data-admin-view="alerts"><i class="fa-solid fa-bell"></i><span>06</span> Notifications</button><button data-admin-view="settings"><i class="fa-solid fa-sliders"></i><span>07</span> Store controls</button></nav>
+      <div class="admin-sidebar-foot"><a href="shop.html" target="_blank">Open storefront <span data-icon="arrow"></span></a><button type="button" data-admin-signout>Sign out</button></div>
+    </aside>
+    <header class="admin-mobile-head"><button type="button" data-admin-menu aria-label="Open admin menu"><span></span><span></span><span></span></button><a class="brand-wordmark" href="index.html"><span>THE WHOLESALE</span><strong>GHANA</strong></a><span class="admin-online-dot">Live</span></header>
+
+    <main class="admin-content">
+      <section class="admin-view active" data-view-panel="overview">
+        <div class="admin-page-head"><div><p class="eyebrow">Today</p><h1>Production overview</h1><p>See what needs attention across orders and weekly production.</p></div><button class="admin-refresh" type="button" data-refresh-overview>Refresh</button></div>
+        <div class="admin-metric-grid" data-overview-metrics></div>
+        <div class="admin-overview-grid"><div class="admin-card"><div class="admin-card-head"><div><p class="eyebrow">Production</p><h2>Recent batches</h2></div><button class="text-button" data-jump-view="batches">View all</button></div><div data-overview-batches></div></div><div class="admin-card"><div class="admin-card-head"><div><p class="eyebrow">Orders</p><h2>Latest orders</h2></div><button class="text-button" data-jump-view="orders">View all</button></div><div data-overview-orders></div></div></div>
+      </section>
+
+      <section class="admin-view" data-view-panel="batches" hidden>
+        <div class="admin-page-head"><div><p class="eyebrow">Production</p><h1>Weekly batches</h1><p>Open a batch to see capacity, pieces, colour and size totals.</p></div><button class="admin-refresh" type="button" data-refresh-batches>Refresh</button></div>
+        <div class="admin-batch-layout"><aside class="admin-card admin-batch-list" data-batch-list></aside><section class="admin-card admin-batch-detail" data-batch-detail><div class="admin-empty"><span>02</span><h3>Choose a production batch</h3><p>The full production sheet will appear here.</p></div></section></div>
+      </section>
+
+      <section class="admin-view" data-view-panel="orders" hidden>
+        <div class="admin-page-head"><div><p class="eyebrow">Orders</p><h1>All orders</h1><p>Search by customer or order number and update production stages.</p></div><button class="admin-refresh" type="button" data-refresh-orders>Refresh</button></div>
+        <div class="admin-toolbar"><label class="admin-search"><span>Search</span><input type="search" data-order-search placeholder="Order number, name or email"></label><label><span>Status</span><select data-order-filter><option value="all">All statuses</option><option value="cycle_assigned">Cycle assigned</option><option value="production">Production</option><option value="quality_control">Quality control</option><option value="packaging">Packaging</option><option value="ready_dispatch">Ready for dispatch</option><option value="dispatched">Dispatched</option><option value="delivered">Delivered</option></select></label></div>
+        <div class="admin-card admin-table-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Order</th><th>Customer</th><th>Batch</th><th>Pieces</th><th>Total</th><th>Delivery</th><th>Status</th></tr></thead><tbody data-orders-table></tbody></table></div><div class="admin-mobile-list" data-orders-mobile></div></div>
+      </section>
+
+      <section class="admin-view" data-view-panel="customers" hidden>
+        <div class="admin-page-head"><div><p class="eyebrow">Customers</p><h1>Customer view</h1><p>See order count, pieces ordered and total spend in one place.</p></div><button class="admin-refresh" type="button" data-refresh-customers>Refresh</button></div>
+        <div class="admin-card admin-table-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Customer</th><th>Phone</th><th>Orders</th><th>Pieces</th><th>Total spend</th><th>Last order</th></tr></thead><tbody data-customers-table></tbody></table></div><div class="admin-mobile-list" data-customers-mobile></div></div>
+      </section>
+
+      <section class="admin-view" data-view-panel="analytics" hidden><div class="admin-page-head"><div><p class="eyebrow">Performance</p><h1>Sales & production analytics</h1><p>A live operational readout from your current order data.</p></div><button class="admin-refresh" data-refresh-analytics>Refresh</button></div><div class="admin-metric-grid" data-analytics-metrics></div><div class="admin-card"><div class="admin-card-head"><div><p class="eyebrow">Status mix</p><h2>Where orders are now</h2></div></div><div class="admin-status-bars" data-status-bars></div></div></section>
+      <section class="admin-view" data-view-panel="alerts" hidden><div class="admin-page-head"><div><p class="eyebrow">Live attention</p><h1>Notifications</h1><p>Automatically generated operational alerts based on orders and production capacity.</p></div><button class="admin-refresh" data-refresh-alerts>Refresh</button></div><div class="admin-card notification-feed" data-admin-alerts></div></section>
+      <section class="admin-view" data-view-panel="settings" hidden><div class="admin-page-head"><div><p class="eyebrow">Control room</p><h1>Store controls</h1><p>Production defaults and email delivery diagnostics.</p></div><button class="admin-refresh" data-refresh-settings>Refresh</button></div><div class="admin-overview-grid"><div class="admin-card"><p class="eyebrow">Production default</p><h2>Batch capacity</h2><div data-admin-settings></div></div><div class="admin-card"><p class="eyebrow">Email diagnostics</p><h2>Test transactional email</h2><p class="admin-card-copy">Send a real test through the same Resend pipeline used for verification and order updates.</p><form class="stack-form" data-email-test-form><label>Recipient email<input name="email" type="email" required></label><button class="button button-dark" type="submit">Send test email</button></form><p class="auth-message" data-email-test-message></p></div></div></section>
+    </main>
+  </div>
+
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js" defer></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js" defer></script><script src="script.js" defer></script><script src="admin.js" defer></script>
+</body></html>
