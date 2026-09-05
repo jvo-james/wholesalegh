@@ -1,96 +1,58 @@
-WHOLESALE GHANA — CATEGORY / CHECKOUT / NEW PRODUCTS PATCH
+WHOLESALE GHANA — NEW HUGGER PRODUCTS PATCH
 
-Replace the matching files in your current repo with the files in this ZIP.
-Do NOT delete your other files.
+Replace/copy ONLY the files in this ZIP into the matching locations in your current repo.
 
 ROOT FILES TO REPLACE
-- style.css
-- script.js
 - images.js
-- index.html
-- shop.html
+- script.js
+- product.js
 - shop.js
-- checkout.html
-- checkout.js
-- cart.html
-- cart.js
+- style.css
+- account.html
 - admin.html
-- netlify.toml
+- cart.html
+- checkout.html
+- confirmation.html
+- index.html
+- product.html
+- saved.html
+- shop.html
+- tracking.html
 
-NETLIFY FUNCTION TO REPLACE
+NETLIFY
 - netlify/functions/wgh.mjs
 
-NEW IMAGE FILES TO COPY INTO /images
-- nunu-tie-waist-skirt-set-black.jpeg
-- nunu-tie-waist-skirt-set-olive.jpeg
-- tube-top-set-yellow.jpeg
-- tube-top-set-black.jpeg
-- tube-top-set-grey.jpeg
-- halter-neck-top-white.jpeg
-- halter-neck-top-blue-black.jpeg
-- halter-neck-top-nude.jpeg
+IMAGES
+Copy all files inside /images into your existing /images folder.
 
-WHAT CHANGED
-1. Added homepage/shop category: Two-pieces.
-   Desktop homepage collection = 4 cards on one row.
-   Mobile homepage collection = 2 x 2.
-   Tops category now uses a real top image.
+NEW PRODUCTS
+1. Sculpted High Neck Hugger Dress
+   Retail GH₵300 | Wholesale GH₵150 | MOQ 6
+   Black, Brown, Red, Army Green
+   Special behavior: Black card image alternates between product-only and on-model image without changing the Black swatch. Black product page shows both images.
 
-2. Shop filters now include:
-   All / New arrivals / Dresses / Tops / Pants / Two-pieces.
+2. S.S. Hugger Dress
+   Retail GH₵300 | Wholesale GH₵150 | MOQ 6
+   Black, Brown, Nude, Army Green, Gray
 
-3. Shop product-card hover no longer changes colour.
-   Swatches remain clickable/tappable.
-   The single most-visible shop card can still auto-cycle slowly,
-   with the active swatch always matching the displayed colour.
-   Auto-cycle pauses while scrolling and stops for a card after interaction.
+3. LS HUGGER DRESS
+   Retail GH₵350 | Wholesale GH₵160 | MOQ 6
+   Grey, Emerald Green, Red, Black
 
-4. Delivery fee is NOT charged in the Paystack amount and is NOT part of
-   the receipt total. Checkout/cart now clearly say that the delivery fee
-   will be communicated after the order is confirmed.
+4. Thin Strap Hugger Dress
+   Retail GH₵250 | Wholesale GH₵120 | MOQ 6
+   Brown, Black, Nude, Pink, Grey, Royal Blue, Burgundy
 
-5. Checkout was visually rebuilt:
-   - clearer Delivery vs Pickup cards
-   - all-country selector with flags (BandFactory-style country-select)
-   - clearer production journey
-   - cleaner made-to-order checkbox
-   - redesigned mobile Order Review
-   - responsive compact mobile header
-   - non-sticky Paystack button
-   - payment button stays disabled until required fields are complete
-   - clearer international-order messaging
+All use sizes XS, S, M, L, XL, 2XL, matching the rest of the catalogue.
 
-6. Checkout FAQ disclosure arrows are CSS-drawn chevrons.
-   Native mobile/browser emoji-style markers are force-hidden.
+HOMEPAGE / SHOP
+- Sculpted High Neck Hugger Dress is first in New Arrivals.
+- It is also first in the default Shop ordering.
+- Desktop hover swaps Black product shot -> Black on-model shot without changing swatch.
+- Mobile automatically alternates those two Black images without changing swatch.
+- If another colour is selected manually, the Black/model special effect stops.
 
-7. Added products:
-   Nunu Tie-waist Skirt Set
-   - Black, Olive
-   - Retail GH₵300
-   - Wholesale GH₵160
-   - MOQ 6
-
-   Tube Top Set
-   - Yellow, Black, Grey
-   - Retail GH₵200
-   - Wholesale GH₵140
-   - MOQ 6
-
-   Halter Neck Top
-   - White, Blue Black, Nude
-   - Retail GH₵100
-   - Wholesale GH₵70
-   - MOQ 6
-
-   All use XS, S, M, L, XL, 2XL.
-
-8. Admin product category selector now supports Two-pieces.
-
-IMPORTANT
-The new country selector uses jQuery + country-select-js from cdnjs.
-netlify.toml was updated so Netlify's Content-Security-Policy allows those assets.
-
-After replacement:
-1. Commit/push or deploy to Netlify.
-2. Trigger a fresh deploy.
-3. Hard-refresh the browser so old style.css/script.js are not cached.
+FAVICON
+Every HTML page now contains exactly:
+<link rel="icon" type="image/jpg" href="logo.jpg" />
+Make sure your existing logo.jpg remains in the repo root.

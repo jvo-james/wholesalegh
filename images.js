@@ -109,6 +109,43 @@
           "Grey": ["images/tube-top-set-grey.jpeg"]
         }
       },
+      "sculpted-high-neck-hugger-dress": {
+        cardFeatureAlt: "images/sculpted-high-neck-hugger-dress-black-model.jpeg",
+        colours: {
+          "Black": ["images/sculpted-high-neck-hugger-dress-black.jpeg", "images/sculpted-high-neck-hugger-dress-black-model.jpeg"],
+          "Brown": ["images/sculpted-high-neck-hugger-dress-brown.jpeg"],
+          "Red": ["images/sculpted-high-neck-hugger-dress-red.jpeg"],
+          "Army Green": ["images/sculpted-high-neck-hugger-dress-army-green.jpeg"]
+        }
+      },
+      "ss-hugger-dress": {
+        colours: {
+          "Black": ["images/ss-hugger-dress-black.jpeg"],
+          "Brown": ["images/ss-hugger-dress-brown.jpeg"],
+          "Nude": ["images/ss-hugger-dress-nude.jpg"],
+          "Army Green": ["images/ss-hugger-dress-army-green.jpeg"],
+          "Gray": ["images/ss-hugger-dress-gray.jpeg"]
+        }
+      },
+      "ls-hugger-dress": {
+        colours: {
+          "Grey": ["images/ls-hugger-dress-grey.jpeg"],
+          "Emerald Green": ["images/ls-hugger-dress-emerald-green.jpeg"],
+          "Red": ["images/ls-hugger-dress-red.jpeg"],
+          "Black": ["images/ls-hugger-dress-black.jpeg"]
+        }
+      },
+      "thin-strap-hugger-dress": {
+        colours: {
+          "Brown": ["images/thin-strap-hugger-dress-brown.jpeg"],
+          "Black": ["images/thin-strap-hugger-dress-black.jpeg"],
+          "Nude": ["images/thin-strap-hugger-dress-nude.jpeg"],
+          "Pink": ["images/thin-strap-hugger-dress-pink.jpeg"],
+          "Grey": ["images/thin-strap-hugger-dress-grey.jpeg"],
+          "Royal Blue": ["images/thin-strap-hugger-dress-royal-blue.jpeg"],
+          "Burgundy": ["images/thin-strap-hugger-dress-burgundy.jpeg"]
+        }
+      },
       "halter-neck-top": {
         colours: {
           "White": ["images/halter-neck-top-white.jpeg"],

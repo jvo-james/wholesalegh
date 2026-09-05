@@ -43,7 +43,7 @@
     },{threshold:[.72,.85,.95]});
     grid.querySelectorAll('[data-product-card]').forEach(c=>obs.observe(c));
     cycleTimer=setInterval(()=>{
-      if(scrolling||!activeCard||activeCard._wghTouched?.())return;
+      if(scrolling||!activeCard||activeCard._wghTouched?.()||activeCard.dataset.featureAlt==='1')return;
       const btns=[...activeCard.querySelectorAll('[data-card-colour]')];
       if(btns.length<2)return;
       let i=btns.findIndex(b=>b.classList.contains('active'));
