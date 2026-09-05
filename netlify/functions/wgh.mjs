@@ -406,6 +406,10 @@ async function sendTemplate(to, template) {
    ========================================================= */
 
 const SERVER_CATALOG = {
+  "sculpted-high-neck-hugger-dress": {"name":"Sculpted High Neck Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Red","Army Green"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ss-hugger-dress": {"name":"S.S. Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Nude","Army Green","Gray"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ls-hugger-dress": {"name":"LS HUGGER DRESS","category":"dresses","retailPrice":350,"wholesalePrice":160,"moq":6,"colours":["Grey","Emerald Green","Red","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "thin-strap-hugger-dress": {"name":"Thin Strap Hugger Dress","category":"dresses","retailPrice":250,"wholesalePrice":120,"moq":6,"colours":["Brown","Black","Nude","Pink","Grey","Royal Blue","Burgundy"],"sizes":["XS","S","M","L","XL","2XL"]},
   "drapped-halter-mini-dress": {"name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"]},
   "ruffle-asymmetric-mini-dress": {"name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
   "ruche-wrap-mini-dress": {"name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"]},
