@@ -802,7 +802,7 @@ async function serverCart(
           })
         ),
 
-      image: (() => { const src=product.images?.[0]||""; if(!src||/^https?:\/\//i.test(src))return src; const base=(env("SITE_URL")||"https://wholesalegh.netlify.app").replace(/\/$/,""); return `${base}/${String(src).replace(/^\//,"")}`; })()
+      image: (() => { const src=product.images?.[0]||""; if(!src||/^https?:\/\//i.test(src))return src; const base=(env("SITE_URL")||"https://thewholesalegh.shop").replace(/\/$/,""); return `${base}/${String(src).replace(/^\//,"")}`; })()
     });
   }
 
@@ -1817,6 +1817,7 @@ export default async function handler(
       const firstName = safeText(input.firstName, 80);
       const lastName = safeText(input.lastName, 80);
       const phone = safeText(input.phone, 40);
+      const marketingConsent = input.marketingConsent === true;
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         throw new Error("Enter a valid email address.");
@@ -1851,7 +1852,7 @@ export default async function handler(
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
       await ref.set({
-        email, firstName, lastName, phone, hash, salt, attempts: 0,
+        email, firstName, lastName, phone, marketingConsent, hash, salt, attempts: 0,
         expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
@@ -1871,6 +1872,7 @@ export default async function handler(
       const email = safeText(input.email, 160).toLowerCase();
       const code = safeText(input.code, 6);
       const password = String(input.password || "");
+      const marketingConsent = input.marketingConsent === true;
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address.");
       if (!/^\d{6}$/.test(code)) throw new Error("Enter the six-digit code from your email.");
@@ -1931,11 +1933,15 @@ export default async function handler(
         email,
         emailVerified: true,
         emailVerifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+        marketingConsent: Boolean(data.marketingConsent ?? marketingConsent),
+        marketingConsentAt: (data.marketingConsent ?? marketingConsent) ? admin.firestore.FieldValue.serverTimestamp() : null,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
 
-      await db.collection("mailingList").doc(crypto.createHash("sha256").update(email).digest("hex")).set({email,firstName:safeText(data.firstName,80),lastName:safeText(data.lastName,80),name:`${safeText(data.firstName,80)} ${safeText(data.lastName,80)}`.trim(),source:"account-signup", subscribed:true, createdAt:admin.firestore.FieldValue.serverTimestamp(), updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      if (data.marketingConsent ?? marketingConsent) {
+        await db.collection("mailingList").doc(crypto.createHash("sha256").update(email).digest("hex")).set({email,firstName:safeText(data.firstName,80),lastName:safeText(data.lastName,80),name:`${safeText(data.firstName,80)} ${safeText(data.lastName,80)}`.trim(),source:"account-signup-opt-in", subscribed:true, consentedAt:admin.firestore.FieldValue.serverTimestamp(), createdAt:admin.firestore.FieldValue.serverTimestamp(), updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      }
       await ref.delete();
       const customToken = await admin.auth().createCustomToken(created.uid);
       return json(200, { ok: true, customToken });
@@ -3857,11 +3863,10 @@ export default async function handler(
     }
 
     if (path === "/admin/subscribers" && method === "GET") {
-      await requireAdmin(request); const db=getDb(); const [mailSnap,userSnap]=await Promise.all([db.collection("mailingList").limit(1500).get(),db.collection("users").limit(1500).get()]);
-      const merged=new Map();
-      mailSnap.docs.forEach(d=>{const x=d.data(),email=String(x.email||'').trim().toLowerCase();if(email)merged.set(email,{id:d.id,...x,email,createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),source:x.source||'newsletter'})});
-      userSnap.docs.forEach(d=>{const x=d.data(),email=String(x.email||'').trim().toLowerCase();if(!email)return;const prev=merged.get(email)||{};merged.set(email,{...prev,id:prev.id||d.id,email,name:prev.name||[x.firstName,x.lastName].filter(Boolean).join(' '),firstName:x.firstName||prev.firstName||'',lastName:x.lastName||prev.lastName||'',subscribed:prev.subscribed!==false,source:prev.source||'account',createdAt:prev.createdAt||timestampIso(x.createdAt),updatedAt:prev.updatedAt||timestampIso(x.updatedAt)})});
-      return json(200,[...merged.values()].sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))));
+      await requireAdmin(request);
+      const mailSnap=await getDb().collection("mailingList").limit(1500).get();
+      const subscribers=mailSnap.docs.map(d=>{const x=d.data();return {id:d.id,...x,email:String(x.email||'').trim().toLowerCase(),createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),source:x.source||'newsletter'}}).filter(x=>x.email&&x.subscribed!==false);
+      return json(200,subscribers.sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))));
     }
     if (path === "/admin/reviews" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("reviews").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}))); }
     if (path === "/admin/abandoned" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("abandonedCarts").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt),updatedAt:timestampIso(d.data().updatedAt)}))); }
@@ -3877,7 +3882,7 @@ export default async function handler(
 
     if (path === "/admin/broadcast" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request),subject=safeText(input.subject,140),message=safeText(input.message,5000); if(!subject||!message)throw new Error("Add an email subject and message first.");
-      const db=getDb(),[mailSnap,userSnap]=await Promise.all([db.collection("mailingList").limit(1500).get(),db.collection("users").limit(1500).get()]); const optedOut=new Set(mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed===false).map(x=>String(x.email||'').trim().toLowerCase()).filter(Boolean)); const emails=[...new Set([...mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed!==false).map(x=>String(x.email||'').trim().toLowerCase()),...userSnap.docs.map(d=>String(d.data().email||'').trim().toLowerCase())].filter(email=>email&&!optedOut.has(email)))]; let sent=0,failed=0;
+      const db=getDb(),mailSnap=await db.collection("mailingList").limit(1500).get(); const emails=[...new Set(mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed!==false).map(x=>String(x.email||'').trim().toLowerCase()).filter(Boolean))]; let sent=0,failed=0;
       const escapedSubject=subject.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       const escapedMessage=message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       const site=(env("SITE_URL")||"https://thewholesalegh.shop").replace(/\/+$/,""), html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f4f0ea;font-family:Arial,Helvetica,sans-serif;color:#171412"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:28px 14px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#fff;border:1px solid #ded7d0"><tr><td style="padding:26px 30px;border-bottom:1px solid #ded7d0;font-size:16px;font-weight:700;letter-spacing:.13em">THE WHOLESALE GHANA</td></tr><tr><td style="padding:34px 30px"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#725545">Subscriber update</div><h1 style="font-family:Georgia,serif;font-weight:400;font-size:30px;line-height:1.15;margin:12px 0 18px">${escapedSubject}</h1><div style="font-size:15px;line-height:1.7;white-space:pre-line;color:#514b47">${escapedMessage}</div><p style="margin:26px 0 0;padding-top:18px;border-top:1px solid #ded7d0;font-size:11px;line-height:1.65;color:#6f6862">The Wholesale Ghana · Joy City & The Clock Bar · 0533357961 · @the.wholesalegh<br><a href="${site}" style="color:#171412">${site.replace(/^https?:\/\//,"")}</a></p></td></tr></table></td></tr></table></body></html>`;
