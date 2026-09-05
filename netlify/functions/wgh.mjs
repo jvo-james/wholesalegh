@@ -396,7 +396,10 @@ const SERVER_CATALOG = {
   "ruched-waist-pants": {"name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
   "foldover-waist-flare-pants": {"name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"]},
   "ruffle-button-top": {"name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ribbed-contrast-top": {"name":"Ribbed Contrast Top","category":"tops","retailPrice":90,"wholesalePrice":55,"moq":6,"colours":["Black","White","Flamingo","Chartreuse"],"sizes":["XS","S","M","L","XL","2XL"]}
+  "ribbed-contrast-top": {"name":"Ribbed Contrast Top","category":"tops","retailPrice":90,"wholesalePrice":55,"moq":6,"colours":["Black","White","Flamingo","Chartreuse"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "nunu-tie-waist-skirt-set": {"name":"Nunu Tie-waist Skirt Set","category":"two-pieces","retailPrice":300,"wholesalePrice":160,"moq":6,"colours":["Black","Olive"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "tube-top-set": {"name":"Tube Top Set","category":"two-pieces","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Yellow","Black","Grey"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "halter-neck-top": {"name":"Halter Neck Top","category":"tops","retailPrice":100,"wholesalePrice":70,"moq":6,"colours":["White","Blue Black","Nude"],"sizes":["XS","S","M","L","XL","2XL"]}
 };
 // Keep the default server catalogue in sync with the one image registry.
 for (const [productId, product] of Object.entries(SERVER_CATALOG)) {
@@ -2630,19 +2633,16 @@ export default async function handler(
 
 
       /*
-        Delivery remains zero until client's
-        delivery fees are supplied.
+        Delivery is quoted after the order. It is intentionally
+        excluded from the Paystack charge and customer receipt.
       */
-
-      const deliveryFee = 0;
-
+      const deliveryFee = null;
 
       const total =
         Math.round(
           (
             subtotal +
-            fee +
-            deliveryFee
+            fee
           ) * 100
         ) / 100;
 
