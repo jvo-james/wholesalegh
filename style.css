@@ -1779,3 +1779,81 @@ body.modern-checkout .checkout-trust span{color:#777069!important;}
   50%,88%{opacity:0}
   96%,100%{opacity:1}
 }
+
+
+/* =========================================================
+   SCULPTED HIGH NECK — CORRECTED EDITORIAL GALLERY
+   Desktop: two compact images side-by-side.
+   Mobile: one image per viewport with native swipe + quiet dots.
+   ========================================================= */
+.product-gallery .special-black-gallery{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:14px!important;
+  background:transparent!important;
+  padding:20px!important;
+  align-items:start;
+}
+.product-gallery .special-black-gallery .single-product-image{
+  min-height:0!important;
+  margin:0!important;
+  aspect-ratio:3/4;
+  overflow:hidden;
+  background:#f5f1eb!important;
+}
+.product-gallery .special-black-gallery .single-product-image img{
+  width:100%!important;
+  height:100%!important;
+  max-height:none!important;
+  object-fit:contain!important;
+  display:block;
+}
+.special-gallery-pagination{display:none}
+
+@media (max-width:820px){
+  .product-gallery .special-black-gallery{
+    display:flex!important;
+    grid-template-columns:none!important;
+    gap:0!important;
+    padding:0!important;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scroll-snap-type:x mandatory;
+    scroll-behavior:smooth;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .product-gallery .special-black-gallery::-webkit-scrollbar{display:none}
+  .product-gallery .special-black-gallery .single-product-image{
+    flex:0 0 100%;
+    width:100%;
+    aspect-ratio:4/5;
+    scroll-snap-align:start;
+    scroll-snap-stop:always;
+  }
+  .product-gallery .special-black-gallery .single-product-image img{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+  }
+  .special-gallery-pagination{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:8px;
+    padding:11px 0 4px;
+  }
+  .special-gallery-pagination button{
+    width:22px;
+    height:2px;
+    padding:0;
+    border:0;
+    background:rgba(19,18,16,.22);
+    transition:width .25s ease,background .25s ease;
+  }
+  .special-gallery-pagination button.active{
+    width:38px;
+    background:var(--ink);
+  }
+}
