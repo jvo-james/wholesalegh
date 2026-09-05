@@ -68,7 +68,7 @@
     message('[data-create-message]','');
     await WGH.withLoading(btn,async()=>{
       const data=Object.fromEntries(new FormData(e.currentTarget));
-      const payload={firstName:data.firstName.trim(),lastName:data.lastName.trim(),phone:data.phone.trim(),email:data.email.trim().toLowerCase()};
+      const payload={firstName:data.firstName.trim(),lastName:data.lastName.trim(),phone:data.phone.trim(),email:data.email.trim().toLowerCase(),marketingConsent:data.marketingConsent==='yes'};
       try{
         await WGH.api('/account/begin-signup',payload);
         storePending({...payload,password:data.password});
@@ -80,8 +80,8 @@
 
   async function resendPendingCode(){
     if(!pendingSignup)throw new Error('Please start signup again.');
-    const {firstName,lastName,phone,email}=pendingSignup;
-    await WGH.api('/account/begin-signup',{firstName,lastName,phone,email});
+    const {firstName,lastName,phone,email,marketingConsent}=pendingSignup;
+    await WGH.api('/account/begin-signup',{firstName,lastName,phone,email,marketingConsent:Boolean(marketingConsent)});
   }
 
   document.querySelector('[data-resend-code]')?.addEventListener('click',async e=>{
@@ -94,6 +94,7 @@
     if(pendingSignup){
       const f=createForm;
       ['firstName','lastName','phone','email'].forEach(k=>{if(f?.elements[k])f.elements[k].value=pendingSignup[k]||''});
+      if(f?.elements.marketingConsent)f.elements.marketingConsent.checked=Boolean(pendingSignup.marketingConsent);
     }
   });
 
@@ -103,7 +104,7 @@
       if(!pendingSignup){message('[data-verify-message]','Please go back and start signup again.');return;}
       const code=new FormData(e.currentTarget).get('code');
       try{
-        const result=await WGH.api('/account/complete-signup',{email:pendingSignup.email,password:pendingSignup.password,code});
+        const result=await WGH.api('/account/complete-signup',{email:pendingSignup.email,password:pendingSignup.password,code,marketingConsent:Boolean(pendingSignup.marketingConsent)});
         await WGH.auth.signInWithCustomToken(result.customToken);
         storePending(null);
         showDashboard();

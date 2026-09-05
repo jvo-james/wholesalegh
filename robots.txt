@@ -1,5 +1,11 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /account.html
 Disallow: /cart.html
+Disallow: /checkout.html
+Disallow: /confirmation.html
+Disallow: /saved.html
+Disallow: /tracking.html
 Disallow: /.netlify/
-Sitemap: https://wholesalegh.netlify.app/sitemap.xml
+Sitemap: https://thewholesalegh.shop/sitemap.xml

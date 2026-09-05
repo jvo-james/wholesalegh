@@ -1,12 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://wholesalegh.netlify.app/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/shop.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/product.html?id=drapped-halter-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/product.html?id=ruffle-asymmetric-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/product.html?id=ruche-wrap-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/product.html?id=nael-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/product.html?id=dante-capri</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/product.html?id=ruched-waist-pants</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://wholesalegh.netlify.app/product.html?id=foldover-waist-flare-pants</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://thewholesalegh.shop/shop.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=drapped-halter-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=ruffle-asymmetric-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=ruche-wrap-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=nael-mini-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=dante-capri</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=ruched-waist-pants</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=foldover-waist-flare-pants</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=ruffle-button-top</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=ribbed-contrast-top</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=nunu-tie-waist-skirt-set</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=tube-top-set</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=halter-neck-top</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=sculpted-high-neck-hugger-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=ss-hugger-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=ls-hugger-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thewholesalegh.shop/product.html?id=thin-strap-hugger-dress</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
 </urlset>
