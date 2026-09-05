@@ -1,32 +1,32 @@
-THE WHOLESALE GHANA — FAVICON ONLY PATCH
+THE WHOLESALE GHANA — ACCOUNT CHECKBOX + FAVICON PATCH
 
-Replace the HTML files in your repo with the versions in this ZIP.
+Replace only the files in this ZIP.
 
-Every page now contains exactly:
+WHAT CHANGED
 
-<link rel="icon" type="image/jpg" href="logo.jpg" />
+1. ACCOUNT SIGN-UP CHECKBOX
+- Fixes the oversized/awkward "Keep me in the loop" checkbox.
+- The checkbox is now a compact 18px square aligned beside the copy.
+- It no longer inherits the 51px height used by normal account text inputs.
+- Checked state is black with a clean white tick.
+- Mobile styling is also tightened.
 
-inside its <head>.
+2. COPY
+Changed:
+"Optional — account and order emails are sent regardless."
 
-FILES INCLUDED
-- account.html
-- admin.html
-- cart.html
-- checkout.html
-- confirmation.html
-- index.html
-- product.html
-- saved.html
-- shop.html
-- tracking.html
+To:
+"Optional. Account and order emails are sent regardless."
+
+3. FAVICON
+Every HTML page now uses:
+
+<link rel="icon" type="image/jpeg" href="/logo.jpg?v=4" />
+
+The root-relative path works consistently across pages, and ?v=4 helps bypass old favicon caching.
 
 IMPORTANT
-Keep logo.jpg in the ROOT of the repo, alongside index.html.
-
-No CSS, JavaScript, Netlify functions, product data, checkout logic, or admin logic
-has been changed by this patch.
-
-After replacing the HTML files:
-1. Redeploy Netlify.
-2. Hard-refresh the browser.
-3. If the old/no favicon remains, clear the browser favicon cache or test in a private window.
+- Keep logo.jpg in the root of the repo.
+- No JavaScript, backend functions, checkout logic, admin logic, or product data was changed.
+- After replacing the files, redeploy Netlify.
+- Then hard-refresh or open the site in a private/incognito window to verify the favicon.
