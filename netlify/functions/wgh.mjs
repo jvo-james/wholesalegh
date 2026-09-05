@@ -300,7 +300,10 @@ async function requireAdmin(request) {
 async function sendEmail({
   to,
   subject,
-  html
+  html,
+  text = "",
+  replyTo = "",
+  headers = {}
 }) {
   const apiKey = env("RESEND_API_KEY") || env("RESEND_KEY");
   const from =
@@ -334,7 +337,8 @@ async function sendEmail({
 
       headers: {
         Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "User-Agent": "WholesaleGhana/1.0"
       },
 
       body: JSON.stringify({
@@ -342,8 +346,19 @@ async function sendEmail({
         to: recipients,
         subject,
         html,
-        text: String(html||'').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').replace(/\s+/g,' ').trim(),
-        ...(env('EMAIL_REPLY_TO') ? { reply_to: env('EMAIL_REPLY_TO') } : {})
+        text: text || String(html || "")
+          .replace(/<style[\s\S]*?<\/style>/gi, " ")
+          .replace(/<[^>]+>/g, " ")
+          .replace(/&nbsp;/g, " ")
+          .replace(/&amp;/g, "&")
+          .replace(/&#039;/g, "'")
+          .replace(/&quot;/g, '"')
+          .replace(/\s+/g, " ")
+          .trim(),
+        ...(replyTo || env("EMAIL_REPLY_TO") || env("ADMIN_EMAIL")
+          ? { reply_to: replyTo || env("EMAIL_REPLY_TO") || env("ADMIN_EMAIL") }
+          : {}),
+        ...(headers && Object.keys(headers).length ? { headers } : {})
       })
     }
   );
@@ -374,7 +389,10 @@ async function sendTemplate(to, template) {
   return sendEmail({
     to,
     subject: template.subject,
-    html: template.html
+    html: template.html,
+    text: template.text || "",
+    replyTo: template.replyTo || "",
+    headers: template.headers || {}
   });
 }
 
@@ -3856,8 +3874,11 @@ export default async function handler(
     if (path === "/admin/broadcast" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request),subject=safeText(input.subject,140),message=safeText(input.message,5000); if(!subject||!message)throw new Error("Add an email subject and message first.");
       const db=getDb(),[mailSnap,userSnap]=await Promise.all([db.collection("mailingList").limit(1500).get(),db.collection("users").limit(1500).get()]); const optedOut=new Set(mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed===false).map(x=>String(x.email||'').trim().toLowerCase()).filter(Boolean)); const emails=[...new Set([...mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed!==false).map(x=>String(x.email||'').trim().toLowerCase()),...userSnap.docs.map(d=>String(d.data().email||'').trim().toLowerCase())].filter(email=>email&&!optedOut.has(email)))]; let sent=0,failed=0;
-      const html=`<!doctype html><html><body style="margin:0;background:#f2eee8;font-family:Arial,sans-serif;color:#171412"><div style="max-width:620px;margin:0 auto;padding:34px 18px"><div style="background:#171412;color:#fff;padding:28px;text-align:center"><div style="font-family:Georgia,serif;font-size:24px">THE WHOLESALE</div><div style="font-size:10px;letter-spacing:.42em;margin-top:7px">GHANA</div></div><div style="background:#fff;padding:38px 34px;border:1px solid #ddd5cc"><div style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#765b4d">Subscriber update</div><h1 style="font-family:Georgia,serif;font-weight:400;font-size:38px;line-height:1;margin:14px 0 20px">${subject.replace(/[<>&]/g,'')}</h1><div style="font-size:15px;line-height:1.75;white-space:pre-line">${message.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><div style="margin-top:32px;padding-top:18px;border-top:1px solid #ddd5cc;font-size:11px;color:#746d66">The Wholesale Ghana · Joy City & The Clock Bar · 0533357961 · @the.wholesalegh</div></div></div></body></html>`;
-      for(const email of emails){try{await sendEmail({to:email,subject,html});sent++}catch(err){failed++;console.error("Broadcast failed",email,err)}} return json(200,{ok:true,total:emails.length,sent,failed});
+      const escapedSubject=subject.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const escapedMessage=message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const site=(env("SITE_URL")||"https://thewholesalegh.shop").replace(/\/+$/,""), html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f4f0ea;font-family:Arial,Helvetica,sans-serif;color:#171412"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:28px 14px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#fff;border:1px solid #ded7d0"><tr><td style="padding:26px 30px;border-bottom:1px solid #ded7d0;font-size:16px;font-weight:700;letter-spacing:.13em">THE WHOLESALE GHANA</td></tr><tr><td style="padding:34px 30px"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#725545">Subscriber update</div><h1 style="font-family:Georgia,serif;font-weight:400;font-size:30px;line-height:1.15;margin:12px 0 18px">${escapedSubject}</h1><div style="font-size:15px;line-height:1.7;white-space:pre-line;color:#514b47">${escapedMessage}</div><p style="margin:26px 0 0;padding-top:18px;border-top:1px solid #ded7d0;font-size:11px;line-height:1.65;color:#6f6862">The Wholesale Ghana · Joy City & The Clock Bar · 0533357961 · @the.wholesalegh<br><a href="${site}" style="color:#171412">${site.replace(/^https?:\/\//,"")}</a></p></td></tr></table></td></tr></table></body></html>`;
+      const broadcastText=`${subject}\n\n${message}\n\nThe Wholesale Ghana\nJoy City & The Clock Bar · 0533357961 · @the.wholesalegh\n${site}`;
+      for(const email of emails){try{await sendEmail({to:email,subject,html,text:broadcastText});sent++}catch(err){failed++;console.error("Broadcast failed",email,err)}} return json(200,{ok:true,total:emails.length,sent,failed});
     }
 
     /* ===============================================
