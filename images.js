@@ -10,7 +10,9 @@
       wholesaleCampaign: "images/wholesale.jpg",
       productionBanner: "images/prod.jpg",
       categoryDresses: "images/ruffle-asymmetric-mini-dress-black.jpeg",
-      categoryTops: "images/drapped-halter-mini-dress-baby-blue.jpeg",
+      categoryTops: "images/ruffle-button-top-black.jpeg",
+      categoryPants: "images/foldover-waist-flare-pants-brown.jpeg",
+      categoryTwoPieces: "images/nunu-tie-waist-skirt-set-olive.jpeg",
       categorySets: "images/foldover-waist-flare-pants-brown.jpeg",
       wholesaleStory: "images/story.jpg",
 
@@ -92,6 +94,26 @@
           "White": ["images/ribbed-contrast-top-white.jpeg"],
           "Flamingo": ["images/ribbed-contrast-top-flamingo.jpeg"],
           "Chartreuse": ["images/ribbed-contrast-top-chartreuse.jpeg"]
+        }
+      },
+      "nunu-tie-waist-skirt-set": {
+        colours: {
+          "Black": ["images/nunu-tie-waist-skirt-set-black.jpeg"],
+          "Olive": ["images/nunu-tie-waist-skirt-set-olive.jpeg"]
+        }
+      },
+      "tube-top-set": {
+        colours: {
+          "Yellow": ["images/tube-top-set-yellow.jpeg"],
+          "Black": ["images/tube-top-set-black.jpeg"],
+          "Grey": ["images/tube-top-set-grey.jpeg"]
+        }
+      },
+      "halter-neck-top": {
+        colours: {
+          "White": ["images/halter-neck-top-white.jpeg"],
+          "Blue Black": ["images/halter-neck-top-blue-black.jpeg"],
+          "Nude": ["images/halter-neck-top-nude.jpeg"]
         }
       }
     }
