@@ -1857,3 +1857,118 @@ body.modern-checkout .checkout-trust span{color:#777069!important;}
     background:var(--ink);
   }
 }
+
+
+/* Marketing consent / "Keep me in the loop" */
+.marketing-consent {
+  margin-top: 1.4rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(17, 17, 17, 0.12);
+}
+
+.marketing-consent__label {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  cursor: pointer;
+}
+
+.marketing-consent__label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  border: 1px solid #111;
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.marketing-consent__label input[type="checkbox"]::before {
+  content: "";
+  width: 9px;
+  height: 5px;
+  border-left: 1.5px solid #fff;
+  border-bottom: 1.5px solid #fff;
+  transform: rotate(-45deg) scale(0);
+  transform-origin: center;
+  transition: transform 0.16s ease;
+  margin-top: -1px;
+}
+
+.marketing-consent__label input[type="checkbox"]:checked {
+  background: #111;
+}
+
+.marketing-consent__label input[type="checkbox"]:checked::before {
+  transform: rotate(-45deg) scale(1);
+}
+
+.marketing-consent__label input[type="checkbox"]:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+}
+
+.marketing-consent__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.marketing-consent__title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: #111;
+}
+
+.marketing-consent__text {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  color: rgba(17, 17, 17, 0.64);
+  max-width: 34rem;
+}
+
+.marketing-consent__optional {
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  line-height: 1.45;
+  color: rgba(17, 17, 17, 0.46);
+}
+
+@media (max-width: 640px) {
+  .marketing-consent {
+    margin-top: 1.2rem;
+    padding-top: 1rem;
+  }
+
+  .marketing-consent__label {
+    grid-template-columns: 17px 1fr;
+    gap: 0.7rem;
+  }
+
+  .marketing-consent__label input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+  }
+
+  .marketing-consent__title {
+    font-size: 0.8rem;
+  }
+
+  .marketing-consent__text {
+    font-size: 0.74rem;
+    line-height: 1.5;
+  }
+
+  .marketing-consent__optional {
+    font-size: 0.68rem;
+  }
+}
