@@ -1089,3 +1089,532 @@ html body.product-page .product-sticky details > summary::after{
   .modern-checkout .checkout-step{padding:18px 12px!important}
   .modern-checkout .step-content>h2{font-size:24px}
 }
+
+/* ======================================================================
+   CHECKOUT — EDITORIAL FLAT LAYOUT HOTFIX
+   Deliberately overrides the earlier card-heavy checkout treatment.
+   ====================================================================== */
+body.modern-checkout{
+  --checkout-ink:#171412;
+  --checkout-muted:#766f68;
+  --checkout-rule:#d9d2ca;
+  --checkout-paper:#f7f3ed;
+  --checkout-soft:#eee8df;
+  background:var(--checkout-paper)!important;
+}
+body.modern-checkout .checkout-layout{
+  width:min(1420px,100%)!important;
+  max-width:1420px!important;
+  margin:0 auto!important;
+  padding:64px clamp(26px,6vw,88px) 110px!important;
+  grid-template-columns:minmax(0,1fr) minmax(330px,.58fr)!important;
+  gap:clamp(70px,8vw,140px)!important;
+}
+body.modern-checkout .checkout-form-column{
+  max-width:760px!important;
+  width:100%;
+}
+body.modern-checkout .checkout-form-column>h1{
+  max-width:650px;
+  margin:10px 0 14px!important;
+}
+body.modern-checkout .checkout-intro{
+  max-width:590px!important;
+  margin:0 0 50px!important;
+}
+body.modern-checkout .checkout-form{
+  display:block!important;
+}
+
+/* Flat sections: no cards, no shadows, no boxed containers. */
+body.modern-checkout .checkout-step,
+body.modern-checkout .checkout-step:first-child{
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr)!important;
+  gap:18px!important;
+  margin:0!important;
+  padding:34px 0 38px!important;
+  border:0!important;
+  border-top:1px solid var(--checkout-rule)!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body.modern-checkout .checkout-step:last-of-type{
+  border-bottom:1px solid var(--checkout-rule)!important;
+}
+body.modern-checkout .step-number{
+  width:auto!important;
+  height:auto!important;
+  border-radius:0!important;
+  display:block!important;
+  place-items:unset!important;
+  background:transparent!important;
+  color:var(--checkout-muted)!important;
+  font-size:9px!important;
+  font-weight:600!important;
+  letter-spacing:.14em!important;
+  padding-top:7px;
+}
+body.modern-checkout .step-number::before{content:"STEP ";}
+body.modern-checkout .step-content>h2{
+  font-size:clamp(30px,3vw,42px)!important;
+  margin-bottom:9px!important;
+}
+body.modern-checkout .step-copy{margin-bottom:28px!important;}
+
+/* Inputs are integrated into the page instead of looking like little cards. */
+body.modern-checkout .step-content input:not([type=radio]):not([type=checkbox]),
+body.modern-checkout .step-content select,
+body.modern-checkout .step-content textarea{
+  min-height:54px!important;
+  border:0!important;
+  border-bottom:1px solid #bdb5ac!important;
+  background:transparent!important;
+  padding:13px 2px!important;
+  box-shadow:none!important;
+}
+body.modern-checkout .step-content textarea{
+  min-height:110px!important;
+  padding-top:16px!important;
+}
+body.modern-checkout .step-content input:focus,
+body.modern-checkout .step-content textarea:focus{
+  border-bottom-color:var(--checkout-ink)!important;
+  box-shadow:none!important;
+}
+body.modern-checkout .locked-field{
+  background:transparent!important;
+  color:#777069!important;
+}
+body.modern-checkout .saved-profile-note{
+  margin-top:2px!important;
+  padding:10px 0!important;
+  border:0!important;
+  background:transparent!important;
+  color:#625b54;
+}
+body.modern-checkout .saved-profile-note i{margin-right:7px;}
+
+/* Fulfilment: two clean editorial choices, not cards. */
+body.modern-checkout .fulfilment-options{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:28px!important;
+  margin:28px 0 38px!important;
+}
+body.modern-checkout .fulfilment-card{
+  min-height:0!important;
+  grid-template-columns:28px 1fr!important;
+  gap:12px!important;
+  padding:0 0 17px!important;
+  border:0!important;
+  border-bottom:1px solid #bbb2a9!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+}
+body.modern-checkout .fulfilment-card:hover{
+  transform:none!important;
+  border-bottom-color:var(--checkout-ink)!important;
+}
+body.modern-checkout .fulfilment-card:has(input:checked){
+  border:0!important;
+  border-bottom:2px solid var(--checkout-ink)!important;
+  box-shadow:none!important;
+}
+body.modern-checkout .fulfilment-icon{
+  width:24px!important;
+  height:24px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--checkout-ink)!important;
+  font-size:14px!important;
+  place-items:start center!important;
+  padding-top:2px;
+}
+body.modern-checkout .fulfilment-card:has(input:checked) .fulfilment-icon{
+  background:transparent!important;
+  color:var(--checkout-ink)!important;
+  border:0!important;
+}
+body.modern-checkout .fulfilment-card strong{
+  font-size:12px!important;
+  letter-spacing:.04em;
+}
+body.modern-checkout .fulfilment-card small{font-size:10px!important;}
+body.modern-checkout .fulfilment-card:has(input:checked) strong::after{
+  content:"  ·  Selected";
+  color:#8a7e72;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+/* Country selector should feel like another field, not an inset panel. */
+body.modern-checkout .checkout-country-block{
+  margin:0 0 22px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+}
+body.modern-checkout .checkout-field-heading{margin-bottom:5px!important;}
+body.modern-checkout .country-select input#checkoutCountry{
+  background:transparent!important;
+  border:0!important;
+  border-bottom:1px solid #bdb5ac!important;
+  padding-left:48px!important;
+}
+
+/* Delivery / pickup messages are quiet inline notes. */
+body.modern-checkout .international-note,
+body.modern-checkout .pickup-panel{
+  grid-template-columns:24px 1fr!important;
+  gap:12px!important;
+  padding:14px 0 18px!important;
+  border:0!important;
+  border-bottom:1px solid var(--checkout-rule)!important;
+  background:transparent!important;
+  margin:8px 0 22px!important;
+}
+body.modern-checkout .international-note>i,
+body.modern-checkout .pickup-mark{
+  width:auto!important;
+  height:auto!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--checkout-ink)!important;
+  display:block!important;
+  font-size:14px!important;
+  padding-top:2px;
+}
+
+/* Production & order note — editorial journey with naked line icons. */
+body.modern-checkout .batch-soft-note{
+  grid-template-columns:26px 1fr!important;
+  gap:13px!important;
+  padding:0 0 20px!important;
+  border:0!important;
+  border-bottom:1px solid var(--checkout-rule)!important;
+  background:transparent!important;
+  margin:26px 0 24px!important;
+}
+body.modern-checkout .batch-soft-note>i{
+  width:auto!important;
+  height:auto!important;
+  display:block!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--checkout-ink)!important;
+  font-size:15px!important;
+  padding-top:2px;
+}
+body.modern-checkout .batch-soft-note.limited>i{color:#8b5d27!important;}
+body.modern-checkout .checkout-order-timeline{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  margin:32px 0 30px!important;
+  padding:15px 0 0!important;
+  overflow:visible!important;
+}
+body.modern-checkout .checkout-order-timeline::before{
+  top:4px!important;
+  left:6%!important;
+  right:6%!important;
+  background:#c8beb4!important;
+}
+body.modern-checkout .checkout-order-timeline span{
+  font-size:8px!important;
+  line-height:1.25;
+  color:#746c64!important;
+}
+body.modern-checkout .checkout-order-timeline span::before{
+  width:7px!important;
+  height:7px!important;
+  margin:-14px auto 11px!important;
+  background:var(--checkout-paper)!important;
+  border:1px solid var(--checkout-ink)!important;
+}
+body.modern-checkout .checkout-order-timeline span:first-child::before{
+  background:var(--checkout-ink)!important;
+}
+body.modern-checkout .cycle-preview{
+  grid-template-columns:27px 1fr!important;
+  gap:12px!important;
+  padding:18px 0!important;
+  margin:0 0 20px!important;
+  border:0!important;
+  border-top:1px solid var(--checkout-rule)!important;
+  border-bottom:1px solid var(--checkout-rule)!important;
+  background:transparent!important;
+  color:var(--checkout-ink)!important;
+}
+body.modern-checkout .cycle-preview>i{
+  width:auto!important;
+  height:auto!important;
+  display:block!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--checkout-ink)!important;
+  font-size:15px!important;
+  padding-top:2px;
+}
+body.modern-checkout .cycle-preview span{
+  color:#80776f!important;
+  font-size:8px!important;
+}
+body.modern-checkout .cycle-preview strong{
+  color:var(--checkout-ink)!important;
+  font-size:14px!important;
+}
+body.modern-checkout .checkout-confirm{
+  grid-template-columns:20px 1fr!important;
+  gap:12px!important;
+  padding:16px 0!important;
+  margin:18px 0 0!important;
+  border:0!important;
+  border-top:1px solid var(--checkout-rule)!important;
+  background:transparent!important;
+}
+body.modern-checkout .checkout-confirm .custom-check{
+  width:18px!important;
+  height:18px!important;
+}
+
+/* FAQs are just fine rules and text. */
+body.modern-checkout .checkout-faq-snippets{
+  margin:28px 0 26px!important;
+  border:0!important;
+  border-top:1px solid var(--checkout-rule)!important;
+  background:transparent!important;
+}
+body.modern-checkout .checkout-faq-snippets details{
+  border-bottom:1px solid var(--checkout-rule)!important;
+}
+body.modern-checkout .checkout-faq-snippets summary{
+  padding:16px 34px 16px 0!important;
+}
+body.modern-checkout .checkout-faq-snippets summary::after{right:4px!important;}
+body.modern-checkout .checkout-faq-snippets p{
+  padding:0 34px 18px 0!important;
+  max-width:620px;
+}
+
+/* CTA: simple, decisive, full width, never sticky. */
+body.modern-checkout .checkout-submit{
+  min-height:72px!important;
+  margin-top:4px!important;
+  padding:14px 20px!important;
+  box-shadow:none!important;
+}
+body.modern-checkout .paystack-symbol{
+  width:28px!important;
+  background:transparent!important;
+}
+
+/* Desktop review: a quiet sticky column, not a boxed black card. */
+body.modern-checkout .checkout-review{
+  position:sticky!important;
+  top:92px!important;
+  background:transparent!important;
+  color:var(--checkout-ink)!important;
+  border:0!important;
+  border-left:1px solid var(--checkout-rule)!important;
+  padding:0 0 0 clamp(30px,4vw,58px)!important;
+  overflow:visible!important;
+}
+body.modern-checkout .order-review-toggle{display:none!important;}
+body.modern-checkout .order-review-panel{
+  padding:0!important;
+  background:transparent!important;
+}
+body.modern-checkout .checkout-review .eyebrow.light{color:#81786f!important;}
+body.modern-checkout .checkout-review h2{color:var(--checkout-ink)!important;}
+body.modern-checkout .checkout-line-item{
+  border-bottom:1px solid var(--checkout-rule)!important;
+}
+body.modern-checkout .checkout-line-item strong,
+body.modern-checkout .checkout-line-item b{color:var(--checkout-ink)!important;}
+body.modern-checkout .checkout-line-item span,
+body.modern-checkout .checkout-line-item small{color:#756d65!important;}
+body.modern-checkout .checkout-review-totals{
+  border-top:0!important;
+  margin-top:20px!important;
+  padding-top:0!important;
+}
+body.modern-checkout .checkout-review-totals span{color:#756d65!important;}
+body.modern-checkout .checkout-review-totals strong{color:var(--checkout-ink)!important;}
+body.modern-checkout .checkout-review-totals .delivery-pending-row strong{color:#7b5a2d!important;}
+body.modern-checkout .checkout-review-totals .delivery-pending-note{
+  grid-template-columns:18px 1fr!important;
+  padding:14px 0!important;
+  background:transparent!important;
+  border-top:1px solid var(--checkout-rule)!important;
+  border-bottom:1px solid var(--checkout-rule)!important;
+  color:#6f675f!important;
+}
+body.modern-checkout .delivery-pending-note span{color:#6f675f!important;}
+body.modern-checkout .checkout-review-grand{
+  border-top:0!important;
+  padding-top:8px!important;
+}
+body.modern-checkout .checkout-review-grand span,
+body.modern-checkout .checkout-review-grand strong{color:var(--checkout-ink)!important;}
+body.modern-checkout .checkout-trust{
+  border-top:1px solid var(--checkout-rule)!important;
+}
+body.modern-checkout .checkout-trust span{color:#777069!important;}
+
+/* Mobile: full-width, calm, almost no boxes. */
+@media(max-width:800px){
+  body.modern-checkout .checkout-layout{
+    padding:0 18px 62px!important;
+    gap:0!important;
+  }
+  body.modern-checkout .checkout-form-column{
+    padding-top:34px!important;
+  }
+  body.modern-checkout .checkout-form-column>h1{
+    font-size:clamp(40px,12vw,56px)!important;
+    margin-top:8px!important;
+  }
+  body.modern-checkout .checkout-intro{
+    margin-bottom:34px!important;
+  }
+
+  /* Review becomes an elegant disclosure strip, not a black card. */
+  body.modern-checkout .checkout-review{
+    order:-1!important;
+    position:relative!important;
+    top:auto!important;
+    width:calc(100% + 36px)!important;
+    margin:0 -18px!important;
+    padding:0!important;
+    border:0!important;
+    border-bottom:1px solid var(--checkout-rule)!important;
+    background:#eee7dd!important;
+    color:var(--checkout-ink)!important;
+  }
+  body.modern-checkout .order-review-toggle{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:24px!important;
+    min-height:64px!important;
+    padding:15px 18px!important;
+    background:transparent!important;
+    color:var(--checkout-ink)!important;
+    border:0!important;
+  }
+  body.modern-checkout .order-review-toggle>span:first-child{
+    gap:9px!important;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  body.modern-checkout .order-review-toggle>span:last-child{
+    gap:13px!important;
+    padding-left:18px;
+  }
+  body.modern-checkout .order-review-toggle strong{
+    font-size:14px!important;
+    color:var(--checkout-ink)!important;
+  }
+  body.modern-checkout .order-review-panel{
+    padding:3px 18px 24px!important;
+  }
+  body.modern-checkout .checkout-review:not(.open) .order-review-panel{display:none!important;}
+  body.modern-checkout .checkout-review .eyebrow.light{display:none;}
+  body.modern-checkout .checkout-review h2{display:none;}
+
+  body.modern-checkout .checkout-step,
+  body.modern-checkout .checkout-step:first-child{
+    grid-template-columns:1fr!important;
+    gap:6px!important;
+    padding:30px 0 34px!important;
+  }
+  body.modern-checkout .step-number{
+    padding:0!important;
+    font-size:8px!important;
+    margin-bottom:3px;
+  }
+  body.modern-checkout .step-content>h2{
+    font-size:32px!important;
+  }
+  body.modern-checkout .checkout-grid.two{grid-template-columns:1fr!important;gap:0!important;}
+  body.modern-checkout .fulfilment-options{
+    grid-template-columns:1fr 1fr!important;
+    gap:18px!important;
+    margin:25px 0 32px!important;
+  }
+  body.modern-checkout .fulfilment-card{
+    grid-template-columns:24px 1fr!important;
+    gap:9px!important;
+    padding-bottom:14px!important;
+  }
+  body.modern-checkout .fulfilment-card small{
+    font-size:9px!important;
+    line-height:1.45!important;
+  }
+  body.modern-checkout .checkout-field-heading{
+    display:block!important;
+    margin-bottom:4px!important;
+  }
+  body.modern-checkout .checkout-field-heading small{
+    display:block;
+    margin-top:3px;
+  }
+  body.modern-checkout .country-select .country-list{
+    left:-2px!important;
+    width:calc(100vw - 36px)!important;
+  }
+
+  /* Mobile production journey: no horizontal scroller, compact 3x2 grid. */
+  body.modern-checkout .checkout-order-timeline{
+    grid-template-columns:repeat(3,1fr)!important;
+    row-gap:30px!important;
+    column-gap:12px!important;
+    margin:30px 0!important;
+    padding-top:0!important;
+    overflow:visible!important;
+  }
+  body.modern-checkout .checkout-order-timeline::before{display:none!important;}
+  body.modern-checkout .checkout-order-timeline span{
+    text-align:left!important;
+    padding-top:14px;
+    border-top:1px solid #c8beb4;
+  }
+  body.modern-checkout .checkout-order-timeline span::before{
+    margin:0!important;
+    position:absolute;
+    left:0;
+    top:-4px;
+  }
+  body.modern-checkout .batch-soft-note,
+  body.modern-checkout .cycle-preview,
+  body.modern-checkout .international-note,
+  body.modern-checkout .pickup-panel{
+    grid-template-columns:22px 1fr!important;
+  }
+  body.modern-checkout .batch-soft-note>i,
+  body.modern-checkout .cycle-preview>i,
+  body.modern-checkout .international-note>i,
+  body.modern-checkout .pickup-mark{
+    font-size:14px!important;
+  }
+  body.modern-checkout .checkout-confirm{padding-bottom:2px!important;}
+  body.modern-checkout .checkout-submit{
+    min-height:70px!important;
+    margin-top:20px!important;
+  }
+}
+
+@media(max-width:390px){
+  body.modern-checkout .checkout-layout{padding-inline:14px!important;}
+  body.modern-checkout .checkout-review{
+    width:calc(100% + 28px)!important;
+    margin-inline:-14px!important;
+  }
+  body.modern-checkout .order-review-toggle{padding-inline:14px!important;gap:12px!important;}
+  body.modern-checkout .order-review-toggle>span:last-child{padding-left:8px;gap:8px!important;}
+  body.modern-checkout .fulfilment-options{grid-template-columns:1fr!important;gap:14px!important;}
+  body.modern-checkout .fulfilment-card{padding-bottom:12px!important;}
+}
