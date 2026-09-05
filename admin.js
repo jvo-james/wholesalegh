@@ -98,10 +98,17 @@
     <div class="production-tab-panel" data-production-panel="orders" hidden><div class="batch-orders-section"><div class="admin-card-head"><div><p class="eyebrow">Orders</p><h2>${batchOrders.length} orders in this batch</h2></div></div>${batchOrders.map(o=>orderAdminCard(o)).join('')||empty('No orders','')}</div></div>`;
     detail.querySelectorAll('[data-production-tab]').forEach(btn=>btn.onclick=()=>{detail.querySelectorAll('[data-production-tab]').forEach(x=>x.classList.toggle('active',x===btn));detail.querySelectorAll('[data-production-panel]').forEach(panel=>{const on=panel.dataset.productionPanel===btn.dataset.productionTab;panel.hidden=!on;panel.classList.toggle('active',on)})});
     detail.querySelector('[data-save-capacity]')?.addEventListener('click',async e=>WGH.withLoading(e.currentTarget,async()=>{await adminApi('/capacity',{batchId:b.id,capacity:Number(detail.querySelector('[data-capacity-input]').value)});WGH.showToast('Batch capacity updated.','success');batches=await adminApi('/batches');await openBatch(b.id)},'Saving'));
-    detail.querySelector('[data-export-batch]')?.addEventListener('click',e=>{WGH.setLoading(e.currentTarget,true,'Preparing file');setTimeout(()=>{exportCsv(b,batchOrders);WGH.setLoading(e.currentTarget,false)},220)});detail.querySelector('[data-print-batch]')?.addEventListener('click',()=>window.print());detail.querySelector('[data-lock-batch]')?.addEventListener('click',async e=>WGH.withLoading(e.currentTarget,async()=>{await adminApi('/batch-lock',{batchId:b.id,locked:!b.locked});WGH.showToast(b.locked?'Batch unlocked.':'Batch locked.','success');batches=await adminApi('/batches');await openBatch(b.id)},b.locked?'Unlocking':'Locking'));
+    detail.querySelector('[data-export-batch]')?.addEventListener('click',e=>{WGH.setLoading(e.currentTarget,true,'Preparing file');setTimeout(()=>{exportCsv(b,batchOrders);WGH.setLoading(e.currentTarget,false)},220)});detail.querySelector('[data-print-batch]')?.addEventListener('click',()=>printProductionSheet(b,batchOrders));detail.querySelector('[data-lock-batch]')?.addEventListener('click',async e=>WGH.withLoading(e.currentTarget,async()=>{await adminApi('/batch-lock',{batchId:b.id,locked:!b.locked});WGH.showToast(b.locked?'Batch unlocked.':'Batch locked.','success');batches=await adminApi('/batches');await openBatch(b.id)},b.locked?'Unlocking':'Locking'));
     detail.querySelectorAll('[data-order-detail]').forEach(btn=>btn.onclick=()=>openOrderDetail(btn.dataset.orderDetail));bindStatus(detail,batchOrders);
   }
-  function productionTable(name,p){const rows=[];Object.entries(p.colours).forEach(([colour,sizes])=>Object.entries(sizes).forEach(([size,qty])=>rows.push(`<tr><td>${escape(colour)}</td><td>${escape(size)}</td><td>${qty}</td></tr>`)));return `<section class="production-product"><div><h3>${escape(name)}</h3><strong>${p.total} pieces</strong></div><div class="admin-table-wrap"><table class="production-table"><thead><tr><th>Colour</th><th>Size</th><th>Quantity</th></tr></thead><tbody>${rows.join('')}</tbody></table></div></section>`}
+  function productionTable(name,p){
+    const colourBlocks=Object.entries(p.colours).map(([colour,sizes])=>{
+      const colourTotal=Object.values(sizes).reduce((sum,n)=>sum+Number(n||0),0);
+      const sizeRows=Object.entries(sizes).filter(([,qty])=>Number(qty)>0).map(([size,qty])=>`<div class="production-size-chip"><span>${escape(size)}</span><strong>${qty}</strong></div>`).join('');
+      return `<section class="production-colour-card"><div class="production-colour-head"><div><span class="production-swatch" style="--swatch:${WGH.colourValue(colour)}"></span><strong>${escape(colour)}</strong></div><b>${colourTotal} piece${colourTotal===1?'':'s'}</b></div><div class="production-size-breakdown">${sizeRows||'<span class="muted-copy">No size quantities recorded.</span>'}</div></section>`;
+    }).join('');
+    return `<details class="production-product production-product-expandable"><summary><div><span class="production-product-kicker">Product breakdown</span><h3>${escape(name)}</h3></div><div class="production-product-total"><strong>${p.total}</strong><span>pieces</span><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></div></summary><div class="production-product-body">${colourBlocks||'<p class="muted-copy">No colour breakdown recorded.</p>'}</div></details>`;
+  }
   function orderAdminCard(o){return `<article class="batch-order-card"><div><strong>${escape(o.orderNumber)}</strong><span>${escape(o.customerName||o.customerEmail)}</span><small>${o.pieces} pieces · ${escape(o.estimatedDelivery)}</small></div><select data-status-order="${escape(o.orderNumber)}">${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${labels[s]}</option>`).join('')}</select></article>`}
   function bindStatus(root,source){root.querySelectorAll('[data-status-order]').forEach(select=>select.addEventListener('change',async()=>{select.disabled=true;const original=source.find(o=>o.orderNumber===select.dataset.statusOrder)?.status;try{await adminApi('/status',{orderNumber:select.dataset.statusOrder,status:select.value});WGH.showToast('Order stage updated and the customer will be notified.','success');const target=source.find(o=>o.orderNumber===select.dataset.statusOrder);if(target)target.status=select.value;}catch(err){select.value=original||select.value;WGH.showToast(err)}finally{select.disabled=false}}));}
 
@@ -115,6 +122,45 @@
   function renderCustomers(){document.querySelector('[data-customers-table]').innerHTML=customers.map((c,i)=>`<tr class="admin-click-row" data-customer-index="${i}"><td><strong>${escape(c.name||'Customer')}</strong><small>${escape(c.email)}</small></td><td>${escape(c.phone)}</td><td>${c.orders}</td><td>${c.pieces}</td><td>${WGH.money(c.spent)}</td><td>${date(c.lastOrder)}</td></tr>`).join('')||`<tr><td colspan="6">No customer orders yet.</td></tr>`;document.querySelector('[data-customers-mobile]').innerHTML=customers.map((c,i)=>`<article class="admin-mobile-card admin-click-row" data-customer-index="${i}"><div><strong>${escape(c.name||'Customer')}</strong><span>${escape(c.email)}</span></div><p>${c.orders} orders · ${c.pieces} pieces · ${WGH.money(c.spent)}</p></article>`).join('');document.querySelectorAll('[data-customer-index]').forEach(el=>el.onclick=()=>openCustomerDetail(customers[+el.dataset.customerIndex]))}
   const date=v=>v?new Date(v).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
   function exportCsv(b,batchOrders){const lines=[['Batch','Order','Customer','Product','Colour','Size','Quantity']];batchOrders.forEach(o=>(o.items||[]).forEach(item=>(item.variants||[]).forEach(v=>lines.push([b.batchName,o.orderNumber,o.customerName,item.name,v.colour,v.size,v.quantity]))));const csv=lines.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`${(b.batchName||b.id).replace(/\s+/g,'-').toLowerCase()}-production-sheet.csv`;a.click();URL.revokeObjectURL(url)}
+
+  function printProductionSheet(b,batchOrders){
+    const agg=aggregate(batchOrders),pieces=batchOrders.reduce((sum,o)=>sum+Number(o.pieces||0),0),sizeOrder=['XXS','XS','S','M','L','XL','2XL','3XL'];
+    const seenSizes=new Set(batchOrders.flatMap(o=>(o.items||[]).flatMap(i=>(i.variants||[]).map(v=>v.size)).filter(Boolean)));
+    const sizes=[...sizeOrder.filter(z=>seenSizes.has(z)),...[...seenSizes].filter(z=>!sizeOrder.includes(z))];
+    const products=Object.entries(agg).sort((a,b)=>b[1].total-a[1].total);
+    const productSections=products.map(([name,p])=>{
+      const rows=Object.entries(p.colours).map(([colour,sizeMap])=>{
+        const total=Object.values(sizeMap).reduce((sum,n)=>sum+Number(n||0),0);
+        return `<tr><td><span class="swatch" style="background:${WGH.colourValue(colour)}"></span><b>${escape(colour)}</b></td>${sizes.map(z=>`<td>${Number(sizeMap[z]||0)||'—'}</td>`).join('')}<td><strong>${total}</strong></td></tr>`;
+      }).join('');
+      return `<section class="product-sheet"><div class="product-title"><div><small>STYLE</small><h2>${escape(name)}</h2></div><strong>${p.total} PIECES</strong></div><table><thead><tr><th>Colour</th>${sizes.map(z=>`<th>${z}</th>`).join('')}<th>Total</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+    }).join('');
+    const colourCount=new Set(batchOrders.flatMap(o=>(o.items||[]).flatMap(i=>(i.variants||[]).map(v=>v.colour))).filter(Boolean)).size;
+    const win=open('','_blank');
+    if(!win)return WGH.showToast('Please allow pop-ups so the production sheet can open.');
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${escape(WGH.prettyBatch(b.batchName||b.id))} · Production Sheet</title><style>
+      @page{size:A4 landscape;margin:10mm}
+      *{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;color:#15130f;background:#fff;font-size:10px}
+      .sheet{width:100%}.sheet-head{display:flex;justify-content:space-between;gap:24px;padding-bottom:12px;border-bottom:2px solid #15130f}
+      .brand{font-size:17px;font-weight:900;letter-spacing:.08em}.meta{text-align:right}.meta small,.product-title small{display:block;font-size:7px;letter-spacing:.16em;color:#777067;margin-bottom:4px}
+      .meta strong{display:block;font-size:17px}.meta span{display:block;margin-top:3px;color:#5e584f}
+      .summary{display:grid;grid-template-columns:repeat(5,1fr);border-bottom:1px solid #bbb3a8;margin-bottom:14px}
+      .summary div{padding:10px 12px 10px 0}.summary span{display:block;font-size:7px;letter-spacing:.12em;color:#777067;text-transform:uppercase;margin-bottom:4px}.summary strong{font-size:15px}
+      .product-sheet{break-inside:avoid;margin:0 0 14px}.product-title{display:flex;align-items:end;justify-content:space-between;gap:20px;padding:6px 0;border-bottom:1px solid #15130f}
+      .product-title h2{margin:0;font-size:14px}.product-title>strong{font-size:10px;letter-spacing:.08em}
+      table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border-bottom:1px solid #ded9d1;padding:6px 5px;text-align:center;vertical-align:middle}
+      th{font-size:7px;letter-spacing:.08em;text-transform:uppercase;background:#f5f2ed}th:first-child,td:first-child{text-align:left;width:22%}
+      td:first-child{display:flex;align-items:center;gap:6px}.swatch{width:9px;height:9px;border:1px solid #aaa;display:inline-block;flex:0 0 auto}
+      .foot{margin-top:18px;padding-top:8px;border-top:1px solid #15130f;display:flex;justify-content:space-between;color:#777067;font-size:7px}
+      @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+    </style></head><body><main class="sheet">
+      <header class="sheet-head"><div><div class="brand">THE WHOLESALE GHANA</div><p>Production sheet · cut, count and prepare by product, colour and size.</p></div><div class="meta"><small>PRODUCTION CYCLE</small><strong>${escape(WGH.prettyBatch(b.batchName||b.id))}</strong><span>${date(b.startDate)} – ${date(b.closeDate)}</span></div></header>
+      <section class="summary"><div><span>Orders</span><strong>${batchOrders.length}</strong></div><div><span>Total pieces</span><strong>${pieces}</strong></div><div><span>Styles</span><strong>${products.length}</strong></div><div><span>Colours</span><strong>${colourCount}</strong></div><div><span>Capacity</span><strong>${Number(b.usedCapacity||0)} / ${Number(b.capacity||0)}</strong></div></section>
+      ${productSections||'<p>No production quantities recorded.</p>'}
+      <footer class="foot"><span>Generated ${new Date().toLocaleString('en-GB')}</span><span>THE WHOLESALE GHANA · INTERNAL PRODUCTION DOCUMENT</span></footer>
+    </main><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),120))<\/script></body></html>`);
+    win.document.close();
+  }
 
   let productOverrides=[];
   async function loadProducts(){productOverrides=await adminApi('/products');await WGH.loadProducts();const root=document.querySelector('[data-admin-products]');if(!root)return;root.innerHTML=WGH.products.map(p=>`<article class="admin-product-card"><div class="admin-product-image"><img src="${escape(p.images?.[0]||'')}" alt=""><span>${p.active===false?'Hidden':'Active'}</span></div><div><p class="eyebrow">${escape(p.category||'Collection')}</p><h3>${escape(p.name)}</h3><span>${WGH.money(p.retailPrice)} retail · ${Number(p.wholesalePrice)>0?WGH.money(p.wholesalePrice)+' wholesale':'wholesale price pending'}</span><small>${(p.colours||[]).length} colours · ${(p.sizes||[]).length} sizes · MOQ ${p.moq||6}</small><button class="button button-outline" type="button" data-edit-product="${escape(p.id)}"><i class="fa-regular fa-pen-to-square"></i> Edit product</button></div></article>`).join('')||empty('No products','Add your first product.');root.querySelectorAll('[data-edit-product]').forEach(b=>b.addEventListener('click',()=>openProduct(b.dataset.editProduct)));hydrateManualProducts()}
