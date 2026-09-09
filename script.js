@@ -18,7 +18,7 @@ WGH.icons = {
   tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4v10.1a4.1 4.1 0 1 1-3.2-4V13a1.8 1.8 0 1 0 .7 1.4V4h2.5c.4 2.2 1.7 3.6 4 4v2.5c-1.5-.2-2.8-.8-4-1.7"/></svg>'
 };
 
-WGH.products = [{"id":"drapped-halter-mini-dress","name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A sculpted halter mini with soft draping through the bodice and a ruched, figure-skimming skirt.","details":"Halter neckline. Draped overlay. Ruched mini silhouette. Made to order.","care":"Gentle wash. Do not bleach. Steam on low heat and store hanging."},{"id":"ruffle-asymmetric-mini-dress","name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A playful asymmetric mini framed with cascading ruffles and delicate shoulder ties.","details":"Asymmetric hem. Ruffle trim. Adjustable tie straps. Made to order.","care":"Cold gentle wash. Do not bleach. Hang or lay flat to dry."},{"id":"ruche-wrap-mini-dress","name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A deep wrap-front mini with gathered ruching that shapes the waist and hip.","details":"Deep V neckline. Wrap-effect front. Ruched mini skirt. Made to order.","care":"Gentle wash with similar colours. Avoid harsh bleach. Steam lightly."},{"id":"nael-mini-dress","name":"Naël Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Red","Orange","Black"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A clean strappy mini cut close to the body with a softly ruched skirt.","details":"Slim straps. V neckline. Body-skimming fit. Ruched mini length. Made to order.","care":"Cold gentle wash. Do not bleach. Dry away from direct heat."},{"id":"dante-capri","name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A sporty capri trouser with a high waist, cropped flare and contrast side stripes.","details":"High rise. Capri length. Flared hem. Contrast side stripes. Made to order.","care":"Wash inside out on a gentle cycle. Do not bleach. Air dry."},{"id":"ruched-waist-pants","name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"Fluid flare pants finished with a gathered drawstring waist for a sculpted, adjustable fit.","details":"Ruched waist. Adjustable side ties. Wide flare leg. Made to order.","care":"Cold gentle wash. Tie drawstrings loosely before washing. Air dry."},{"id":"foldover-waist-flare-pants","name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A soft foldover-waist pant with a cropped, flowing flare that moves easily.","details":"Foldover waistband. Cropped flare leg. Soft stretch feel. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."},{"id":"ruffle-button-top","name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A fitted long-sleeve top framed with soft ruffles, a deep V neckline and polished button detailing.","details":"Ruffle-trim neckline. Front button closure. Fluted cuffs and hem. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."},{"id":"ribbed-contrast-top","name":"Ribbed Contrast Top","category":"tops","retailPrice":90,"wholesalePrice":55,"moq":6,"colours":["Black","White","Flamingo","Chartreuse"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A close-fitting ribbed top finished with crisp contrast binding for a clean, graphic edge.","details":"Soft ribbed knit. Contrast neckline, sleeve and hem binding. Short sleeves. Made to order.","care":"Cold gentle wash. Wash with similar colours. Do not bleach. Reshape and air dry."},{"id":"nunu-tie-waist-skirt-set","name":"Nunu Tie-waist Skirt Set","category":"two-pieces","retailPrice":300,"wholesalePrice":160,"moq":6,"colours":["Black","Olive"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A coordinated tie-waist skirt set designed as an easy statement piece.","details":"Two-piece set. Tie-waist skirt. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"tube-top-set","name":"Tube Top Set","category":"two-pieces","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Yellow","Black","Grey"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A clean tube-top set with a streamlined, coordinated silhouette.","details":"Two-piece set. Strapless tube top. Coordinated bottoms. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"halter-neck-top","name":"Halter Neck Top","category":"tops","retailPrice":100,"wholesalePrice":70,"moq":6,"colours":["White","Blue Black","Nude"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A minimal halter-neck top with a close, clean fit for everyday styling.","details":"Halter neckline. Fitted silhouette. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"sculpted-high-neck-hugger-dress","name":"Sculpted High Neck Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Red","Army Green"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A floor-skimming high-neck hugger dress sculpted close through the body for a clean, elongated silhouette.","details":"High neckline. Sleeveless cut. Full-length fitted silhouette. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."},{"id":"ss-hugger-dress","name":"S.S. Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Nude","Army Green","Gray"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A short-sleeve maxi hugger dress with a softly flared hem and a smooth, body-defining fit.","details":"Crew neckline. Short sleeves. Sculpted maxi fit. Soft flare hem. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"ls-hugger-dress","name":"LS HUGGER DRESS","category":"dresses","retailPrice":350,"wholesalePrice":160,"moq":6,"colours":["Grey","Emerald Green","Red","Black"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A long-sleeve hugger dress with a clean neckline, elongated fit and softly flared finish.","details":"Long sleeves. Full-length silhouette. Sculpted fit. Flared hem. Made to order.","care":"Cold gentle wash. Wash with similar colours. Do not bleach. Air dry."},{"id":"thin-strap-hugger-dress","name":"Thin Strap Hugger Dress","category":"dresses","retailPrice":250,"wholesalePrice":120,"moq":6,"colours":["Brown","Black","Nude","Pink","Grey","Royal Blue","Burgundy"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A minimal thin-strap hugger dress cut close through the body before opening into a soft floor-length flare.","details":"Thin shoulder straps. Square-soft neckline. Full-length fitted silhouette. Flared hem. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."}];
+WGH.products = [{"id":"drapped-halter-mini-dress","featuredColour":"Grey","name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A sculpted halter mini with soft draping through the bodice and a ruched, figure-skimming skirt.","details":"Halter neckline. Draped overlay. Ruched mini silhouette. Made to order.","care":"Gentle wash. Do not bleach. Steam on low heat and store hanging."},{"id":"ruffle-asymmetric-mini-dress","name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A playful asymmetric mini framed with cascading ruffles and delicate shoulder ties.","details":"Asymmetric hem. Ruffle trim. Adjustable tie straps. Made to order.","care":"Cold gentle wash. Do not bleach. Hang or lay flat to dry."},{"id":"ruche-wrap-mini-dress","name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A deep wrap-front mini with gathered ruching that shapes the waist and hip.","details":"Deep V neckline. Wrap-effect front. Ruched mini skirt. Made to order.","care":"Gentle wash with similar colours. Avoid harsh bleach. Steam lightly."},{"id":"nael-mini-dress","name":"Naël Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Red","Orange","Black"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A clean strappy mini cut close to the body with a softly ruched skirt.","details":"Slim straps. V neckline. Body-skimming fit. Ruched mini length. Made to order.","care":"Cold gentle wash. Do not bleach. Dry away from direct heat."},{"id":"dante-capri","name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A sporty capri trouser with a high waist, cropped flare and contrast side stripes.","details":"High rise. Capri length. Flared hem. Contrast side stripes. Made to order.","care":"Wash inside out on a gentle cycle. Do not bleach. Air dry."},{"id":"ruched-waist-pants","featuredColour":"Brown","name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"Fluid flare pants finished with a gathered drawstring waist for a sculpted, adjustable fit.","details":"Ruched waist. Adjustable side ties. Wide flare leg. Made to order.","care":"Cold gentle wash. Tie drawstrings loosely before washing. Air dry."},{"id":"foldover-waist-flare-pants","name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A soft foldover-waist pant with a cropped, flowing flare that moves easily.","details":"Foldover waistband. Cropped flare leg. Soft stretch feel. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."},{"id":"ruffle-button-top","featuredColour":"Pink","name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A fitted long-sleeve top framed with soft ruffles, a deep V neckline and polished button detailing.","details":"Ruffle-trim neckline. Front button closure. Fluted cuffs and hem. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."},{"id":"ribbed-contrast-top","name":"Ribbed Contrast Top","category":"tops","retailPrice":90,"wholesalePrice":55,"moq":6,"colours":["Black","White","Flamingo","Chartreuse"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A close-fitting ribbed top finished with crisp contrast binding for a clean, graphic edge.","details":"Soft ribbed knit. Contrast neckline, sleeve and hem binding. Short sleeves. Made to order.","care":"Cold gentle wash. Wash with similar colours. Do not bleach. Reshape and air dry."},{"id":"nunu-tie-waist-skirt-set","featuredColour":"Olive","name":"Nunu Tie-waist Skirt Set","category":"two-pieces","retailPrice":300,"wholesalePrice":160,"moq":6,"colours":["Black","Olive"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A coordinated tie-waist skirt set designed as an easy statement piece.","details":"Two-piece set. Tie-waist skirt. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"tube-top-set","name":"Tube Top Set","category":"two-pieces","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Yellow","Black","Grey"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A clean tube-top set with a streamlined, coordinated silhouette.","details":"Two-piece set. Strapless tube top. Coordinated bottoms. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"halter-neck-top","name":"Halter Neck Top","category":"tops","retailPrice":100,"wholesalePrice":70,"moq":6,"colours":["White","Blue Black","Nude"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A minimal halter-neck top with a close, clean fit for everyday styling.","details":"Halter neckline. Fitted silhouette. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"sculpted-high-neck-hugger-dress","name":"Sculpted High Neck Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Red","Army Green"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A floor-skimming high-neck hugger dress sculpted close through the body for a clean, elongated silhouette.","details":"High neckline. Sleeveless cut. Full-length fitted silhouette. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."},{"id":"ss-hugger-dress","name":"S.S. Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Nude","Army Green","Gray"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A short-sleeve maxi hugger dress with a softly flared hem and a smooth, body-defining fit.","details":"Crew neckline. Short sleeves. Sculpted maxi fit. Soft flare hem. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape and air dry."},{"id":"ls-hugger-dress","name":"LS HUGGER DRESS","category":"dresses","retailPrice":350,"wholesalePrice":160,"moq":6,"colours":["Grey","Emerald Green","Red","Black"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A long-sleeve hugger dress with a clean neckline, elongated fit and softly flared finish.","details":"Long sleeves. Full-length silhouette. Sculpted fit. Flared hem. Made to order.","care":"Cold gentle wash. Wash with similar colours. Do not bleach. Air dry."},{"id":"thin-strap-hugger-dress","name":"Thin Strap Hugger Dress","category":"dresses","retailPrice":250,"wholesalePrice":120,"moq":6,"colours":["Brown","Black","Nude","Pink","Grey","Royal Blue","Burgundy"],"sizes":["XS","S","M","L","XL","2XL"],"isNew":true,"available":true,"description":"A minimal thin-strap hugger dress cut close through the body before opening into a soft floor-length flare.","details":"Thin shoulder straps. Square-soft neckline. Full-length fitted silhouette. Flared hem. Made to order.","care":"Cold gentle wash. Do not bleach. Reshape while damp and air dry."}];
 
 // Product imagery comes only from images.js. Edit filenames/URLs there, not here.
 WGH.products.forEach(product => {
@@ -93,70 +93,87 @@ WGH.withLoading = async (button,fn,label='Please wait') => {
 };
 
 WGH.colourValue = name => ({black:'#151515',white:'#f7f5ef',cream:'#e8dfcf',ivory:'#eee9df',bone:'#ddd3c3',nude:'#d3b69c',brown:'#65402f','dark brown':'#4b2d23',cocoa:'#593d32',mocha:'#806451',espresso:'#3d2b24',sand:'#c9b79c',stone:'#999186',taupe:'#9b8b79',camel:'#b98b63',oat:'#d9ccb6',mushroom:'#988979',dust:'#bea99d',grey:'#8f9297',gray:'#8f9297','baby blue':'#b8d8ef',pink:'#ed8db2',flamingo:'#f45b8c',chartreuse:'#b7d92f',red:'#bd1725',orange:'#e66524',curry:'#d99a18','army green':'#626747',olive:'#6f7638','blue black':'#171b2b','emerald green':'#0c6b4f','royal blue':'#2452a4',burgundy:'#6d1733',yellow:'#f2cf63'}[String(name||'').toLowerCase()]||'#b7aea5');
-WGH.productCard = (p,mode='retail') => { const colours=(p.colours||[]); const imageMap=p.colourImages||{}; const wholesaleReady=Number(p.wholesalePrice)>0; const priceLabel=mode==='wholesale'?(wholesaleReady?WGH.money(p.wholesalePrice):'Wholesale price pending'):WGH.money(p.retailPrice); return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a href="product.html?id=${encodeURIComponent(p.id)}&mode=${mode}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${p.images?.[0]||''}" alt="${p.name}" loading="lazy"><img class="hover-image" src="${p.cardFeatureAlt||p.images?.[1]||p.images?.[0]||''}" alt="${p.name} alternate colour" loading="lazy"></div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?'MOQ '+p.moq+' · mix colours & sizes':'Made to order'}</p></div><strong>${priceLabel}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map((c,i)=>`<button type="button" data-card-colour="${c}" data-card-src="${(imageMap[c]||[])[0]||p.images?.[i]||p.images?.[0]||''}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name}"><i class="fa-regular fa-heart"></i></button></article>` };
+WGH.colourSlug = value => String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+WGH.productCard = (p,mode='retail') => {
+  const rawColours=(p.colours||[]);
+  const preferred=rawColours.includes(p.featuredColour)?p.featuredColour:rawColours[0];
+  const colours=preferred?[preferred,...rawColours.filter(c=>c!==preferred)]:rawColours;
+  const imageMap=p.colourImages||{};
+  const firstImage=(imageMap[preferred]||[])[0]||p.images?.[0]||'';
+  const wholesaleReady=Number(p.wholesalePrice)>0;
+  const priceLabel=mode==='wholesale'?(wholesaleReady?WGH.money(p.wholesalePrice):'Wholesale price pending'):WGH.money(p.retailPrice);
+  const baseHref=`product.html?id=${encodeURIComponent(p.id)}&mode=${mode}${preferred?`&colour=${encodeURIComponent(WGH.colourSlug(preferred))}`:''}`;
+  const hoverDefault=colours.length>1?colours[1]:preferred;
+  const hoverSrc=p.cardFeatureAlt||(imageMap[hoverDefault]||[])[0]||firstImage;
+  const hoverColour=p.cardFeatureAlt?preferred:hoverDefault;
+  return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a data-card-link href="${baseHref}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${firstImage}" alt="${p.name}" loading="lazy"><img class="hover-image" data-hover-colour="${hoverColour||''}" src="${hoverSrc}" alt="${p.name} alternate view" loading="${p.cardFeatureAlt?'eager':'lazy'}"></div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?'MOQ '+p.moq+' · mix colours & sizes':'Made to order'}</p></div><strong>${priceLabel}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map(c=>`<button type="button" data-card-colour="${c}" data-card-src="${(imageMap[c]||[])[0]||firstImage}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${preferred||colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name} to wishlist" title="Save to wishlist"><i class="fa-regular fa-heart"></i><span>Save</span></button></article>`;
+};
 WGH.loadProducts = async()=>{try{const data=await WGH.api('/catalog');if(Array.isArray(data)&&data.length){const legacy=new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);const base=new Map(WGH.products.map(p=>[p.id,p]));data.filter(o=>!legacy.has(o.id)).forEach(o=>{const prev=base.get(o.id)||{};base.set(o.id,{...prev,...o})});WGH.products=[...base.values()].filter(p=>p.active!==false)}}catch{}return WGH.products};
 WGH.bindProductCards = root=>{
   (root||document).querySelectorAll('[data-product-card]').forEach(card=>{
     const img=card.querySelector('[data-card-image]'),
           hover=card.querySelector('.hover-image'),
           name=card.querySelector('[data-card-colour-name]'),
-          gallery=card.querySelector('[data-card-gallery]');
+          gallery=card.querySelector('[data-card-gallery]'),
+          link=card.querySelector('[data-card-link]');
     let touched=false,startX=0,manualIndex=0;
     const buttons=[...card.querySelectorAll('[data-card-colour]')];
     const shopPage=document.body.classList.contains('shop-page');
     const featureAlt=card.dataset.featureAlt==='1';
     const featureAltSrc=featureAlt&&hover?hover.getAttribute('src'):'';
+    const baseUrl=()=>new URL(link?.getAttribute('href')||'product.html',location.href);
+    const setLinkColour=colour=>{if(!link||!colour)return;const u=baseUrl();u.searchParams.set('colour',WGH.colourSlug(colour));link.setAttribute('href',`${u.pathname.split('/').pop()}?${u.searchParams.toString()}`)};
+    const markHoverLoaded=()=>hover?.classList.add('is-loaded');
+    if(hover){if(hover.complete&&hover.naturalWidth)markHoverLoaded();else hover.addEventListener('load',markHoverLoaded,{once:true})}
 
     const set=(b,{instant=false}={})=>{
       if(!b||!img)return;
       const index=Math.max(0,buttons.indexOf(b));
       manualIndex=index;
-      card.dataset.activeColour=b.dataset.cardColour||'';
+      const selected=b.dataset.cardColour||'';
+      card.dataset.activeColour=selected;
+      setLinkColour(selected);
       buttons.forEach(x=>x.classList.toggle('active',x===b));
-      if(name)name.textContent=b.dataset.cardColour||'';
+      if(name)name.textContent=selected;
       const swap=()=>{
         img.src=b.dataset.cardSrc||img.src;
         if(hover){
-          if(featureAlt&&b.dataset.cardColour==='Black'&&featureAltSrc){
+          hover.classList.remove('is-loaded');
+          if(featureAlt&&selected==='Black'&&featureAltSrc){
             hover.src=featureAltSrc;
+            hover.dataset.hoverColour=selected;
           }else{
             const next=buttons[(index+1)%Math.max(buttons.length,1)];
             hover.src=next?.dataset.cardSrc||b.dataset.cardSrc||hover.src;
+            hover.dataset.hoverColour=next?.dataset.cardColour||selected;
           }
+          if(hover.complete&&hover.naturalWidth)markHoverLoaded();
         }
       };
       if(instant){swap();return;}
-      img.classList.add('is-changing');
-      setTimeout(()=>{swap();img.classList.remove('is-changing')},110);
+      // Keep the old image visible until the replacement is ready; no empty flash.
+      const nextSrc=b.dataset.cardSrc;
+      if(nextSrc&&nextSrc!==img.src){const pre=new Image();pre.onload=()=>swap();pre.onerror=()=>swap();pre.src=nextSrc}else swap();
     };
 
     buttons.forEach(b=>{
       if(!shopPage)b.addEventListener('mouseenter',()=>set(b));
-      b.addEventListener('click',e=>{
-        e.preventDefault();e.stopPropagation();touched=true;set(b);
-      });
+      b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();touched=true;set(b)});
+    });
+
+    // A click while the alternate image is visibly hovered opens that visible colour.
+    link?.addEventListener('click',()=>{
+      if(gallery?.matches(':hover')&&hover?.classList.contains('is-loaded')&&hover.dataset.hoverColour){setLinkColour(hover.dataset.hoverColour)}
+      else if(card.dataset.activeColour)setLinkColour(card.dataset.activeColour);
     });
 
     if(!shopPage&&!featureAlt){
-      gallery?.addEventListener('mouseenter',()=>{
-        if(touched||buttons.length<2)return;
-        set(buttons[(manualIndex+1)%buttons.length]);
-      });
-      gallery?.addEventListener('mouseleave',()=>{
-        if(touched||!buttons.length)return;
-        set(buttons[0]);
-      });
+      gallery?.addEventListener('mouseenter',()=>{if(touched||buttons.length<2)return;set(buttons[(manualIndex+1)%buttons.length])});
+      gallery?.addEventListener('mouseleave',()=>{if(touched||!buttons.length)return;set(buttons[0])});
     }
 
     gallery?.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
-    gallery?.addEventListener('touchend',e=>{
-      const dx=e.changedTouches[0].clientX-startX;
-      if(Math.abs(dx)<35||!buttons.length)return;
-      touched=true;
-      let i=Math.max(0,buttons.findIndex(b=>b.classList.contains('active')));
-      i=(i+(dx<0?1:-1)+buttons.length)%buttons.length;
-      set(buttons[i]);
-    },{passive:true});
+    gallery?.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-startX;if(Math.abs(dx)<35||!buttons.length)return;touched=true;let i=Math.max(0,buttons.findIndex(b=>b.classList.contains('active')));i=(i+(dx<0?1:-1)+buttons.length)%buttons.length;set(buttons[i])},{passive:true});
 
     if(buttons[0])set(buttons[0],{instant:true});
     card._wghSetColour=set;
@@ -165,16 +182,9 @@ WGH.bindProductCards = root=>{
 
   (root||document).querySelectorAll('[data-wishlist]').forEach(btn=>{
     const read=()=>{try{return JSON.parse(localStorage.getItem('wgh_wishlist')||'[]')}catch{return[]}},
-          sync=()=>{const on=read().includes(btn.dataset.wishlist);btn.classList.toggle('saved',on);btn.innerHTML=`<i class="fa-${on?'solid':'regular'} fa-heart"></i>`};
+          sync=()=>{const on=read().includes(btn.dataset.wishlist);btn.classList.toggle('saved',on);const label=btn.classList.contains('product-save')?(on?'Saved to wishlist':'Save to wishlist'):(on?'Saved':'Save');btn.setAttribute('aria-label',`${label} ${btn.dataset.wishlist||''}`.trim());btn.setAttribute('title',label);btn.innerHTML=`<i class="fa-${on?'solid':'regular'} fa-heart"></i><span>${label}</span>`};
     sync();
-    btn.onclick=e=>{
-      e.preventDefault();e.stopPropagation();
-      let a=read();
-      a=a.includes(btn.dataset.wishlist)?a.filter(x=>x!==btn.dataset.wishlist):[...a,btn.dataset.wishlist];
-      localStorage.setItem('wgh_wishlist',JSON.stringify(a));
-      sync();
-      WGH.showToast(a.includes(btn.dataset.wishlist)?'Saved for later.':'Removed from saved items.','success');
-    };
+    btn.onclick=e=>{e.preventDefault();e.stopPropagation();let a=read();a=a.includes(btn.dataset.wishlist)?a.filter(x=>x!==btn.dataset.wishlist):[...a,btn.dataset.wishlist];localStorage.setItem('wgh_wishlist',JSON.stringify(a));sync();WGH.showToast(a.includes(btn.dataset.wishlist)?'Saved to your wishlist.':'Removed from your wishlist.','success')};
   });
 };
 
@@ -317,15 +327,26 @@ function initIcons(){
 
 
 function initAccountMenu(){
+  document.querySelectorAll('[data-menu-drawer] nav').forEach(nav=>{
+    if(!nav.querySelector('a[href="saved.html"]')){
+      const a=document.createElement('a');a.href='saved.html';a.className='mobile-wishlist-link';a.innerHTML='<i class="fa-regular fa-heart"></i><span>Wishlist</span>';
+      const account=nav.querySelector('a[href="account.html"]');account?nav.insertBefore(a,account):nav.appendChild(a);
+    }
+  });
+
   document.querySelectorAll('.account-header-link').forEach(link=>{
     if(link.closest('.account-menu-wrap'))return;
     const wrap=document.createElement('div');wrap.className='account-menu-wrap';link.parentNode.insertBefore(wrap,link);wrap.appendChild(link);
-    const toggle=document.createElement('button');toggle.type='button';toggle.className='account-menu-mobile-toggle';toggle.setAttribute('aria-label','Account options');toggle.innerHTML='<i class="fa-solid fa-chevron-down"></i>';wrap.appendChild(toggle);
-    const menu=document.createElement('div');menu.className='account-hover-menu';menu.innerHTML='<a href="account.html"><i class="fa-regular fa-user"></i><span>My account</span></a><a href="saved.html"><i class="fa-regular fa-heart"></i><span>Saved pieces</span></a><button type="button" data-edit-account-global><i class="fa-regular fa-pen-to-square"></i><span>Edit account details</span></button><button type="button" data-header-signout><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sign out</span></button>';wrap.appendChild(menu);
-    toggle.onclick=e=>{e.preventDefault();wrap.classList.toggle('open')};
+    const menu=document.createElement('div');menu.className='account-hover-menu';menu.setAttribute('role','menu');menu.innerHTML='<div class="account-menu-intro"><span>Account</span><strong data-account-menu-name>Your space</strong></div><a href="account.html"><i class="fa-regular fa-user"></i><span>My account</span></a><a href="saved.html"><i class="fa-regular fa-heart"></i><span>Wishlist</span></a><button type="button" data-edit-account-global><i class="fa-regular fa-pen-to-square"></i><span>Edit account details</span></button><button type="button" data-header-signout><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sign out</span></button>';wrap.appendChild(menu);
+    const close=()=>wrap.classList.remove('open');
+    link.addEventListener('click',e=>{
+      const mobile=matchMedia('(max-width:820px)').matches;
+      if(mobile&&WGH.auth?.currentUser){e.preventDefault();e.stopPropagation();wrap.classList.toggle('open')}
+    });
+    document.addEventListener('click',e=>{if(!wrap.contains(e.target))close()});
     menu.querySelector('[data-header-signout]').onclick=async()=>{if(WGH.auth?.currentUser)await WGH.auth.signOut();location.href='account.html'};
-    menu.querySelector('[data-edit-account-global]').onclick=()=>openAccountEditor();
-    const sync=()=>{const signed=!!WGH.auth?.currentUser;toggle.hidden=!signed;menu.querySelector('[data-header-signout]').hidden=!signed;menu.querySelector('[data-edit-account-global]').hidden=!signed;if(!signed)wrap.classList.remove('open')};
+    menu.querySelector('[data-edit-account-global]').onclick=()=>{close();openAccountEditor()};
+    const sync=()=>{const signed=!!WGH.auth?.currentUser;menu.querySelector('[data-header-signout]').hidden=!signed;menu.querySelector('[data-edit-account-global]').hidden=!signed;const first=WGH.currentProfile?.firstName||String(WGH.auth?.currentUser?.displayName||'').split(' ')[0];menu.querySelector('[data-account-menu-name]').textContent=signed?(first?`Hi, ${first}`:'Your account'):'Welcome';if(!signed)close()};
     sync();window.addEventListener('wgh:auth',sync);
   });
 }
