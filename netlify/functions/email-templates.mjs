@@ -138,8 +138,11 @@ function orderItemsText(items = []) {
   }).join("\n");
 }
 
-function trackingUrl(orderNumber = "") {
-  return `${siteUrl()}/tracking.html?order=${encodeURIComponent(orderNumber)}`;
+function trackingUrl(orderNumber = "", email = "") {
+  const params = new URLSearchParams();
+  params.set("order", clean(orderNumber));
+  if (clean(email)) params.set("email", clean(email).toLowerCase());
+  return `${siteUrl()}/tracking.html?${params.toString()}`;
 }
 
 export function verificationEmail({ firstName = "", code }) {
@@ -197,7 +200,7 @@ export function customerOrderConfirmationEmail(order = {}) {
       "Your pieces:",
       orderItemsText(order.items),
       "",
-      `Track your order: ${trackingUrl(orderNumber)}`,
+      `Track your order: ${trackingUrl(orderNumber, order.customer?.email || order.customerEmail || order.email || "")}`,
       "",
       `${BRAND.name} · ${BRAND.phone} · @the.wholesalegh`
     ),
@@ -221,7 +224,7 @@ export function customerOrderConfirmationEmail(order = {}) {
         <div style="margin-top:26px;font-size:10px;line-height:1.4;letter-spacing:.13em;text-transform:uppercase;color:${BRAND.accent};">Your pieces</div>
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${orderItems(order.items)}</table>`,
       buttonText: "Track order",
-      buttonUrl: trackingUrl(orderNumber),
+      buttonUrl: trackingUrl(orderNumber, order.customer?.email || order.customerEmail || order.email || ""),
       footerNote: "Made-to-order pieces are produced after purchase. We’ll email you as your order moves through production and dispatch."
     })
   };
@@ -324,7 +327,7 @@ function statusEmail({ order = {}, eyebrow, title, message }) {
       order.batchName && `Production batch: ${order.batchName}`,
       order.estimatedDelivery && `Estimated delivery: ${order.estimatedDelivery}`,
       "",
-      `Track your order: ${trackingUrl(orderNumber)}`,
+      `Track your order: ${trackingUrl(orderNumber, order.customer?.email || order.customerEmail || order.email || "")}`,
       "",
       `${BRAND.name} · ${BRAND.phone}`
     ),
@@ -339,7 +342,7 @@ function statusEmail({ order = {}, eyebrow, title, message }) {
           ${infoRow("Estimated delivery", order.estimatedDelivery || "")}
         </table>`,
       buttonText: "Track order",
-      buttonUrl: trackingUrl(orderNumber)
+      buttonUrl: trackingUrl(orderNumber, order.customer?.email || order.customerEmail || order.email || "")
     })
   };
 }
