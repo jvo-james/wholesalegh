@@ -2112,3 +2112,27 @@ body.modern-checkout .checkout-trust span{color:#777069!important;}
   .wishlist-card-button{min-width:32px;width:32px;height:32px;padding:0}
   .wishlist-card-button span{display:none!important}
 }
+
+/* ===== Fast, exact storefront colour swatch previews =====
+   A swatch preview/selection always wins over the card's alternate hover image,
+   so the visible garment cannot disagree with the highlighted colour. */
+html body .product-card[data-swatch-preview="1"] .hover-image,
+html body .product-card[data-colour-selected="1"] .hover-image,
+html body .product-card[data-swatch-preview="1"]:hover .hover-image,
+html body .product-card[data-colour-selected="1"]:hover .hover-image{
+  opacity:0!important;
+}
+html body .product-card[data-swatch-preview="1"] .primary-image,
+html body .product-card[data-colour-selected="1"] .primary-image,
+html body .product-card[data-swatch-preview="1"]:hover .primary-image,
+html body .product-card[data-colour-selected="1"]:hover .primary-image{
+  opacity:1!important;
+}
+/* The Sculpted editorial/model alternate must also stay out of the way while
+   someone is actively previewing or has deliberately selected a colour. */
+html body .product-card[data-feature-alt="1"][data-swatch-preview="1"] .hover-image,
+html body .product-card[data-feature-alt="1"][data-colour-selected="1"] .hover-image{
+  opacity:0!important;
+  animation:none!important;
+}
+html body .card-colours button{touch-action:manipulation}

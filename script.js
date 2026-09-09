@@ -99,14 +99,19 @@ WGH.productCard = (p,mode='retail') => {
   const preferred=rawColours.includes(p.featuredColour)?p.featuredColour:rawColours[0];
   const colours=preferred?[preferred,...rawColours.filter(c=>c!==preferred)]:rawColours;
   const imageMap=p.colourImages||{};
-  const firstImage=(imageMap[preferred]||[])[0]||p.images?.[0]||'';
+  const colourImagesFor=colour=>{
+    const wanted=String(colour||'').trim().toLowerCase();
+    const key=Object.keys(imageMap).find(k=>String(k).trim().toLowerCase()===wanted);
+    return (key&&imageMap[key])||[];
+  };
+  const firstImage=colourImagesFor(preferred)[0]||p.images?.[0]||'';
   const wholesaleReady=Number(p.wholesalePrice)>0;
   const priceLabel=mode==='wholesale'?(wholesaleReady?WGH.money(p.wholesalePrice):'Wholesale price pending'):WGH.money(p.retailPrice);
   const baseHref=`product.html?id=${encodeURIComponent(p.id)}&mode=${mode}${preferred?`&colour=${encodeURIComponent(WGH.colourSlug(preferred))}`:''}`;
   const hoverDefault=colours.length>1?colours[1]:preferred;
-  const hoverSrc=p.cardFeatureAlt||(imageMap[hoverDefault]||[])[0]||firstImage;
+  const hoverSrc=p.cardFeatureAlt||colourImagesFor(hoverDefault)[0]||firstImage;
   const hoverColour=p.cardFeatureAlt?preferred:hoverDefault;
-  return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a data-card-link href="${baseHref}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${firstImage}" alt="${p.name}" loading="lazy"><img class="hover-image" data-hover-colour="${hoverColour||''}" src="${hoverSrc}" alt="${p.name} alternate view" loading="${p.cardFeatureAlt?'eager':'lazy'}"></div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?'MOQ '+p.moq+' · mix colours & sizes':'Made to order'}</p></div><strong>${priceLabel}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map(c=>`<button type="button" data-card-colour="${c}" data-card-src="${(imageMap[c]||[])[0]||firstImage}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${preferred||colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name} to wishlist" title="Save to wishlist"><i class="fa-regular fa-heart"></i><span>Save</span></button></article>`;
+  return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a data-card-link href="${baseHref}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${firstImage}" alt="${p.name}" loading="lazy"><img class="hover-image" data-hover-colour="${hoverColour||''}" src="${hoverSrc}" alt="${p.name} alternate view" loading="${p.cardFeatureAlt?'eager':'lazy'}"></div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?'MOQ '+p.moq+' · mix colours & sizes':'Made to order'}</p></div><strong>${priceLabel}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map(c=>`<button type="button" data-card-colour="${c}" data-card-src="${colourImagesFor(c)[0]||firstImage}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${preferred||colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name} to wishlist" title="Save to wishlist"><i class="fa-regular fa-heart"></i><span>Save</span></button></article>`;
 };
 WGH.loadProducts = async()=>{try{const data=await WGH.api('/catalog');if(Array.isArray(data)&&data.length){const legacy=new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);const base=new Map(WGH.products.map(p=>[p.id,p]));data.filter(o=>!legacy.has(o.id)).forEach(o=>{const prev=base.get(o.id)||{};base.set(o.id,{...prev,...o})});WGH.products=[...base.values()].filter(p=>p.active!==false)}}catch{}return WGH.products};
 WGH.bindProductCards = root=>{
@@ -126,6 +131,18 @@ WGH.bindProductCards = root=>{
     const markHoverLoaded=()=>hover?.classList.add('is-loaded');
     if(hover){if(hover.complete&&hover.naturalWidth)markHoverLoaded();else hover.addEventListener('load',markHoverLoaded,{once:true})}
 
+    // Warm every colour thumbnail immediately so swatch previews feel instant.
+    // Keep strong references on the card until loading settles so browsers do not
+    // deprioritize the requests during fast pointer movement.
+    card._wghPreloads=buttons.map(b=>{
+      const src=b.dataset.cardSrc;
+      if(!src)return null;
+      const pre=new Image();
+      pre.decoding='async';
+      pre.src=src;
+      return pre;
+    }).filter(Boolean);
+
     const set=(b,{instant=false}={})=>{
       if(!b||!img)return;
       const index=Math.max(0,buttons.indexOf(b));
@@ -136,7 +153,8 @@ WGH.bindProductCards = root=>{
       buttons.forEach(x=>x.classList.toggle('active',x===b));
       if(name)name.textContent=selected;
       const swap=()=>{
-        img.src=b.dataset.cardSrc||img.src;
+        const requested=b.dataset.cardSrc||img.src;
+        if(requested&&img.getAttribute('src')!==requested)img.src=requested;
         if(hover){
           hover.classList.remove('is-loaded');
           if(featureAlt&&selected==='Black'&&featureAltSrc){
@@ -150,15 +168,28 @@ WGH.bindProductCards = root=>{
           if(hover.complete&&hover.naturalWidth)markHoverLoaded();
         }
       };
-      if(instant){swap();return;}
-      // Keep the old image visible until the replacement is ready; no empty flash.
-      const nextSrc=b.dataset.cardSrc;
-      if(nextSrc&&nextSrc!==img.src){const pre=new Image();pre.onload=()=>swap();pre.onerror=()=>swap();pre.src=nextSrc}else swap();
+      // Swatch interactions should react immediately. The images are proactively
+      // preloaded above; assigning src now also avoids an artificial wait on a
+      // second Image.onload handler when the browser cache is already warm.
+      swap();
     };
 
     buttons.forEach(b=>{
-      if(!shopPage)b.addEventListener('mouseenter',()=>set(b));
-      b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();touched=true;set(b)});
+      b.addEventListener('mouseenter',()=>{
+        card.dataset.swatchPreview='1';
+        set(b,{instant:true});
+      });
+      b.addEventListener('focus',()=>{
+        card.dataset.swatchPreview='1';
+        set(b,{instant:true});
+      });
+      b.addEventListener('click',e=>{
+        e.preventDefault();e.stopPropagation();
+        touched=true;
+        card.dataset.colourSelected='1';
+        card.dataset.swatchPreview='1';
+        set(b,{instant:true});
+      });
     });
 
     // A click while the alternate image is visibly hovered opens that visible colour.
@@ -168,9 +199,17 @@ WGH.bindProductCards = root=>{
     });
 
     if(!shopPage&&!featureAlt){
-      gallery?.addEventListener('mouseenter',()=>{if(touched||buttons.length<2)return;set(buttons[(manualIndex+1)%buttons.length])});
-      gallery?.addEventListener('mouseleave',()=>{if(touched||!buttons.length)return;set(buttons[0])});
+      gallery?.addEventListener('mouseenter',()=>{
+        if(!touched)delete card.dataset.swatchPreview;
+        if(touched||buttons.length<2)return;
+        set(buttons[(manualIndex+1)%buttons.length],{instant:true});
+      });
+      gallery?.addEventListener('mouseleave',()=>{
+        if(touched||!buttons.length)return;
+        set(buttons[0],{instant:true});
+      });
     }
+    card.addEventListener('mouseleave',()=>{if(!touched)delete card.dataset.swatchPreview});
 
     gallery?.addEventListener('touchstart',e=>startX=e.touches[0].clientX,{passive:true});
     gallery?.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-startX;if(Math.abs(dx)<35||!buttons.length)return;touched=true;let i=Math.max(0,buttons.findIndex(b=>b.classList.contains('active')));i=(i+(dx<0?1:-1)+buttons.length)%buttons.length;set(buttons[i])},{passive:true});
