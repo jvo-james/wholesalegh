@@ -39,7 +39,7 @@
         const payload={customer:{firstName:data.firstName,lastName:data.lastName,email:data.email,phone:data.phone,address:data.address,city:data.city,region:data.region},items:cart,madeToOrderAccepted:data.madeToOrderAccepted==='on'};
         const init=await WGH.api('/initialize-payment',payload,{auth:!!WGH.auth?.currentUser});
         document.querySelector('[data-checkout-fee]').textContent=WGH.money(init.processingFee);document.querySelector('[data-checkout-total]').textContent=WGH.money(init.total);
-        if(!window.PaystackPop)throw new Error('Secure payment did not load. Please refresh the page and try again.');
+        if(!window.PaystackPop)await WGH.waitFor(()=>window.PaystackPop,7000);if(!window.PaystackPop){WGH.showBrowserNotice?.('Secure payment could not load inside this browser.');throw new Error('Secure payment did not load. If you opened this link inside Snapchat or another app, use its menu to open the page in Safari/Chrome and try again.');}
         const popup=new PaystackPop();
         popup.newTransaction({key:init.publicKey,email:data.email,amount:init.amountKobo,reference:init.reference,currency:'GHS',onSuccess:async tx=>{const verifyBtn=btn;WGH.setLoading(verifyBtn,true,'Confirming payment');try{const confirmed=await WGH.api('/verify-payment',{reference:tx.reference});completeOrder(confirmed,data.email)}catch(err){WGH.showToast(err)}finally{WGH.setLoading(verifyBtn,false)}},onCancel:()=>WGH.showToast('Payment was not completed. Your bag is still here.')});
       }catch(err){WGH.showToast(err);}

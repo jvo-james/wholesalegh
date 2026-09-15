@@ -7,6 +7,15 @@ WGH.CART_KEY = 'wgh_cart_v2';
 WGH.ORDER_KEY = 'wgh_orders_v2';
 WGH.PROCESSING_RATE = 0.0295;
 
+WGH.waitFor = async (test, timeoutMs=8000, intervalMs=150) => {
+  const started=Date.now();
+  while(Date.now()-started<timeoutMs){
+    try{if(test())return true;}catch{}
+    await new Promise(r=>setTimeout(r,intervalMs));
+  }
+  return false;
+};
+
 WGH.icons = {
   arrow: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>',
   user: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-4 3.1-6 7-6s6.3 2 7 6"/></svg>',
@@ -258,9 +267,36 @@ WGH.renderTracking = order => {
   </section>`;
 };
 
+WGH.isInAppBrowser = () => {
+  const ua=String(navigator.userAgent||'').toLowerCase();
+  return /snapchat|instagram|fban|fbav|fb_iab|tiktok|musical_ly|line\//.test(ua) || (/(iphone|ipad|ipod)/.test(ua) && !/safari/.test(ua));
+};
+
+WGH.showBrowserNotice = (reason='Some account services could not load.') => {
+  if(document.querySelector('[data-browser-notice]'))return;
+  const notice=document.createElement('div');
+  notice.dataset.browserNotice='';
+  notice.className='browser-compat-notice';
+  const inApp=WGH.isInAppBrowser();
+  notice.innerHTML=`<div><strong>${inApp?'Having trouble inside this app?':'Connection problem'}</strong><span>${reason} ${inApp?'Use the app menu and choose <b>Open in browser</b> (Safari/Chrome), then continue.':'Refresh the page or try again on a stronger connection.'}</span></div><button type="button" aria-label="Close">×</button>`;
+  notice.querySelector('button').addEventListener('click',()=>notice.remove());
+  document.body.prepend(notice);
+};
+
+const waitForFirebaseSdk = async () => {
+  for(let i=0;i<40;i++){
+    if(window.firebase)return true;
+    await new Promise(r=>setTimeout(r,125));
+  }
+  return false;
+};
+
 async function initFirebase(){
   try{
-    const config=await WGH.api('/config');
+    if(!(await waitForFirebaseSdk()))throw new Error('Firebase SDK did not load');
+    let config;
+    try{config=await WGH.api('/config');}
+    catch(firstError){await new Promise(r=>setTimeout(r,700));config=await WGH.api('/config');}
     if(window.firebase&&config.firebase?.apiKey){
       let storeApp=firebase.apps.find(a=>a.name==='wgh-storefront');
       if(!storeApp)storeApp=firebase.initializeApp(config.firebase,'wgh-storefront');
@@ -287,7 +323,7 @@ async function initFirebase(){
         window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user,profile}}));
       });
     }
-  }catch(err){console.warn('Account services are not available yet.');}
+  }catch(err){console.warn('Account services are not available yet.',err);WGH.showBrowserNotice('Account services could not load. Shopping and checkout can still be used as a guest.');}
 }
 
 function initSocialLinks(){
@@ -350,7 +386,13 @@ function initNewsletter(){
 
 function initHome(){
   const rail=document.querySelector('[data-featured-products]');if(rail)WGH.loadProducts().then(()=>{const featuredIds=['sculpted-high-neck-hugger-dress','ruffle-button-top','ruched-waist-pants','nunu-tie-waist-skirt-set','drapped-halter-mini-dress'];const featured=featuredIds.map(id=>WGH.products.find(p=>p.id===id)).filter(Boolean);rail.innerHTML=featured.map(p=>WGH.productCard(p)).join('');WGH.bindProductCards(rail)});
-  const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+  const revealEls=[...document.querySelectorAll('.reveal')];
+  if('IntersectionObserver' in window){
+    const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}}),{threshold:.08});
+    revealEls.forEach(el=>observer.observe(el));
+  }else{
+    revealEls.forEach(el=>el.classList.add('visible'));
+  }
 }
 
 function initIcons(){
@@ -406,5 +448,15 @@ async function openAccountEditor(){
 }
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('[data-year]').forEach(el=>el.textContent=new Date().getFullYear());
-  WGH.updateCartCount();initIcons();initSocialLinks();initHeader();initDrawers();initTracking();initNewsletter();initHome();initAccountMenu();initFirebase();
+  const safeInit=(name,fn)=>{try{const result=fn();if(result?.catch)result.catch(err=>console.warn(`${name} failed`,err));}catch(err){console.warn(`${name} failed`,err);}};
+  safeInit('cart count',WGH.updateCartCount);
+  safeInit('icons',initIcons);
+  safeInit('social links',initSocialLinks);
+  safeInit('header',initHeader);
+  safeInit('drawers',initDrawers);
+  safeInit('tracking',initTracking);
+  safeInit('newsletter',initNewsletter);
+  safeInit('home',initHome);
+  safeInit('account menu',initAccountMenu);
+  safeInit('firebase',initFirebase);
 });

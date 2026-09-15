@@ -2136,3 +2136,8 @@ html body .product-card[data-feature-alt="1"][data-colour-selected="1"] .hover-i
   animation:none!important;
 }
 html body .card-colours button{touch-action:manipulation}
+
+/* In-app browser / slow-network compatibility notice */
+.browser-compat-notice{position:relative;z-index:99999;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;background:#171717;color:#fff;font-family:inherit;font-size:13px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.16)}
+.browser-compat-notice>div{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.browser-compat-notice strong{font-size:13px}.browser-compat-notice span{opacity:.9}.browser-compat-notice button{border:0;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:2px 4px}.browser-compat-notice b{font-weight:700}
+@media(max-width:640px){.browser-compat-notice{align-items:flex-start;padding:11px 13px;font-size:12px}.browser-compat-notice>div{display:block}.browser-compat-notice strong{display:block;margin-bottom:2px}}

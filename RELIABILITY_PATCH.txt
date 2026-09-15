@@ -1,0 +1,16 @@
+WholesaleGH mobile / Snapchat reliability patch
+
+This build preserves the existing products, orders, Paystack payment backend, admin data model and Firebase collections.
+
+Changes:
+- Signup progress now survives Snapchat/email app switching without storing the customer's password in persistent storage.
+- Customers with an existing 6-digit code can finish signup from another browser by entering email + code + password.
+- Account-service failures now show a clear Safari/Chrome fallback instead of failing silently.
+- Firebase initialization waits/retries instead of assuming CDN/config is immediately available.
+- Page startup modules are isolated so one optional browser feature cannot prevent the rest of the storefront from starting.
+- IntersectionObserver has a graceful fallback for older/in-app webviews.
+- Checkout/cart wait briefly for Paystack to load and show an in-app-browser instruction if it cannot.
+- Guest checkout remains supported; account services do not gate purchases.
+
+Deployment:
+Publish the contents of this folder as the Netlify site root using the same environment variables already configured for the existing deployment.

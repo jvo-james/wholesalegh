@@ -57,6 +57,7 @@
             </div>
             <button class="button button-dark full" type="submit">Create account</button>
           </form>
+          <button class="auth-switch" type="button" data-show-auth="verify">Already have a verification code? <strong>Finish signup</strong></button>
           <p class="auth-message" data-create-message aria-live="polite"></p>
         </div>
 
@@ -74,9 +75,11 @@
         <div class="auth-card verification-card" data-auth-view="verify" hidden>
           <button class="auth-back verification-back" type="button" data-verification-back><span data-icon="arrow" class="arrow-back-icon"></span> Back to account details</button>
           <div class="verification-mark">6</div>
-          <p class="eyebrow">Verify your email</p><h2>Enter your code</h2><p class="auth-copy">We sent a six-digit code to <strong data-verification-email></strong>. Enter it below to finish creating your account.</p>
+          <p class="eyebrow">Verify your email</p><h2>Enter your code</h2><p class="auth-copy">Enter the email you used to sign up and the six-digit code we sent. You can finish verification even if you returned in a different browser.</p>
           <form class="stack-form spacious" data-verify-form>
+            <label>Email address<input name="email" type="email" autocomplete="email" required></label>
             <label>Verification code<input class="verification-input" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" required></label>
+            <label data-verification-password-wrap hidden>Password<input name="password" type="password" minlength="6" autocomplete="new-password"><small>For security, re-enter the password you chose if you returned from your email app or another browser window.</small></label>
             <button class="button button-dark full" type="submit">Verify account</button>
           </form>
           <button class="auth-switch" type="button" data-resend-code>Didn’t receive it? <strong>Send another code</strong></button>
