@@ -272,61 +272,6 @@ WGH.isInAppBrowser = () => {
   return /snapchat|instagram|fban|fbav|fb_iab|tiktok|musical_ly|line\//.test(ua) || (/(iphone|ipad|ipod)/.test(ua) && !/safari/.test(ua));
 };
 
-WGH.openExternalBrowser = async () => {
-  const url=window.location.href;
-  const ua=String(navigator.userAgent||'').toLowerCase();
-  const isAndroid=/android/.test(ua);
-  const isIOS=/(iphone|ipad|ipod)/.test(ua);
-
-  // Android supports an explicit Chrome intent from many in-app browsers.
-  if(isAndroid){
-    const scheme=location.protocol.replace(':','')||'https';
-    const cleanTarget=`${location.host}${location.pathname}${location.search}`;
-    const fallback=encodeURIComponent(url);
-    location.href=`intent://${cleanTarget}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
-    return;
-  }
-
-  // iOS does not provide websites with a reliable way to force Safari open.
-  // A new-window attempt is useful in some webviews; copying the URL gives a
-  // dependable fallback when the host app keeps the link inside its own browser.
-  try{
-    const opened=window.open(url,'_blank','noopener,noreferrer');
-    if(opened && !isIOS)return;
-  }catch{}
-
-  try{
-    await navigator.clipboard?.writeText(url);
-    WGH.showToast?.(isIOS?'Link copied. Open Safari, paste the link, and continue.':'Link copied. Paste it into Safari or Chrome.','success');
-  }catch{
-    WGH.showToast?.(isIOS?'Use the app menu and choose Open in Safari, then continue.':'Use the app menu and choose Open in browser, then continue.');
-  }
-};
-
-WGH.showBrowserNotice = (reason='Some account services could not load.') => {
-  const existing=document.querySelector('[data-browser-notice]');
-  if(existing){
-    const text=existing.querySelector('[data-browser-reason]');
-    if(text)text.innerHTML=reason;
-    return;
-  }
-  const notice=document.createElement('div');
-  notice.dataset.browserNotice='';
-  notice.className='browser-compat-notice';
-  const inApp=WGH.isInAppBrowser();
-  notice.innerHTML=`<div class="browser-compat-copy"><strong>${inApp?'Having trouble inside this app?':'Connection problem'}</strong><span data-browser-reason>${reason}</span>${inApp?'<small>For the most reliable checkout and account experience, continue in Safari or Chrome.</small>':''}</div><div class="browser-compat-actions">${inApp?'<button class="browser-open-button" type="button" data-open-browser>Open in browser</button>':''}<button class="browser-close-button" type="button" data-close-browser-notice aria-label="Close">×</button></div>`;
-  notice.querySelector('[data-close-browser-notice]').addEventListener('click',()=>notice.remove());
-  notice.querySelector('[data-open-browser]')?.addEventListener('click',()=>WGH.openExternalBrowser());
-  document.body.prepend(notice);
-};
-
-function initInAppBrowserNotice(){
-  if(!WGH.isInAppBrowser())return;
-  if(document.body.classList.contains('account-page')||document.body.classList.contains('checkout-page')){
-    WGH.showBrowserNotice('This page is open inside an app browser. You can continue here, or open it in Safari/Chrome if anything does not respond.');
-  }
-}
-
 const waitForFirebaseSdk = async () => {
   for(let i=0;i<40;i++){
     if(window.firebase)return true;
@@ -367,7 +312,7 @@ async function initFirebase(){
         window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user,profile}}));
       });
     }
-  }catch(err){console.warn('Account services are not available yet.',err);WGH.showBrowserNotice('Account services could not load. Shopping and checkout can still be used as a guest.');}
+  }catch(err){console.warn('Account services are not available yet.',err);}
 }
 
 function initSocialLinks(){
@@ -496,7 +441,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   safeInit('cart count',WGH.updateCartCount);
   safeInit('icons',initIcons);
   safeInit('social links',initSocialLinks);
-  safeInit('in-app browser notice',initInAppBrowserNotice);
   safeInit('header',initHeader);
   safeInit('drawers',initDrawers);
   safeInit('tracking',initTracking);

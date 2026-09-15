@@ -2137,21 +2137,109 @@ html body .product-card[data-feature-alt="1"][data-colour-selected="1"] .hover-i
 }
 html body .card-colours button{touch-action:manipulation}
 
-/* In-app browser / slow-network compatibility notice */
-.browser-compat-notice{position:relative;z-index:99999;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;background:#171717;color:#fff;font-family:inherit;font-size:13px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.16)}
-.browser-compat-notice>div{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.browser-compat-notice strong{font-size:13px}.browser-compat-notice span{opacity:.9}.browser-compat-notice button{border:0;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:2px 4px}.browser-compat-notice b{font-weight:700}
-@media(max-width:640px){.browser-compat-notice{align-items:flex-start;padding:11px 13px;font-size:12px}.browser-compat-notice>div{display:block}.browser-compat-notice strong{display:block;margin-bottom:2px}}
+/* ======================================================================
+   CHECKOUT FINAL POLISH — Band Factory-inspired secure checkout
+   ====================================================================== */
+body.modern-checkout{background:#fbfaf8!important}
+body.modern-checkout .checkout-header{
+  background:rgba(255,255,255,.96)!important;
+  border-bottom:1px solid #ece8e3!important;
+  box-shadow:0 1px 0 rgba(20,18,16,.02)!important;
+}
+body.modern-checkout .checkout-brand{justify-self:center;display:flex;align-items:center;justify-content:center;width:88px;height:58px;overflow:hidden;text-decoration:none}
+body.modern-checkout .checkout-brand img{width:64px;height:64px;object-fit:cover;border-radius:10px;display:block}
+body.modern-checkout .checkout-layout{max-width:1500px!important;grid-template-columns:minmax(0,1.05fr) minmax(390px,.72fr)!important;gap:clamp(56px,6vw,110px)!important}
+body.modern-checkout .checkout-form-column{max-width:810px!important}
+body.modern-checkout .checkout-form-column>h1{font-size:clamp(50px,5vw,76px)!important;letter-spacing:-.025em}
+body.modern-checkout .checkout-intro{font-size:13px!important;line-height:1.75!important;color:#706a64!important}
 
-/* External-browser handoff for Snapchat / Instagram / other in-app webviews */
-.browser-compat-copy{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;min-width:0}
-.browser-compat-copy small{width:100%;font-size:11px;opacity:.72}
-.browser-compat-actions{display:flex;align-items:center;gap:9px;flex:0 0 auto}
-.browser-compat-notice .browser-open-button{appearance:none;border:1px solid rgba(255,255,255,.72);background:#fff;color:#171717;font:700 10px/1 inherit;letter-spacing:.08em;text-transform:uppercase;padding:10px 13px;white-space:nowrap;cursor:pointer}
-.browser-compat-notice .browser-close-button{border:0;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:2px 4px}
-@media(max-width:640px){
-  .browser-compat-notice{display:grid;grid-template-columns:1fr auto;gap:10px}
-  .browser-compat-copy{display:block}
-  .browser-compat-copy small{display:block;margin-top:4px}
-  .browser-compat-actions{align-self:start}
-  .browser-compat-notice .browser-open-button{padding:9px 10px;font-size:9px}
+/* Secure order review panel mirrors the calm dark treatment used on Band Factory. */
+body.modern-checkout .checkout-review{
+  top:108px!important;
+  align-self:start!important;
+  background:#11110f!important;
+  color:#fff!important;
+  border:0!important;
+  border-radius:28px!important;
+  padding:34px 36px 32px!important;
+  box-shadow:0 28px 70px rgba(17,17,15,.12)!important;
+  overflow:hidden!important;
+}
+body.modern-checkout .checkout-review .eyebrow.light{color:#a9a39d!important}
+body.modern-checkout .checkout-review h2{color:#fff!important;font-size:40px!important;margin-bottom:24px!important}
+body.modern-checkout .checkout-line-item{border-bottom:1px solid #30302d!important;padding:17px 0!important}
+body.modern-checkout .checkout-line-item img{border-radius:12px!important;background:#f2eee8!important}
+body.modern-checkout .checkout-line-item strong,
+body.modern-checkout .checkout-line-item b{color:#fff!important}
+body.modern-checkout .checkout-line-item span,
+body.modern-checkout .checkout-line-item small{color:#a9a39d!important}
+body.modern-checkout .checkout-review-totals{margin-top:24px!important}
+body.modern-checkout .checkout-review-totals>div{border-color:#30302d!important}
+body.modern-checkout .checkout-review-totals span{color:#b8b2ac!important}
+body.modern-checkout .checkout-review-totals strong{color:#fff!important}
+body.modern-checkout .checkout-review-totals .delivery-pending-row strong{color:#f4d49d!important}
+body.modern-checkout .checkout-review-totals .delivery-pending-note{border-color:#30302d!important;color:#b8b2ac!important}
+body.modern-checkout .delivery-pending-note span{color:#b8b2ac!important}
+body.modern-checkout .checkout-review-grand{padding-top:18px!important;margin-top:3px!important}
+body.modern-checkout .checkout-review-grand span,
+body.modern-checkout .checkout-review-grand strong{color:#fff!important;font-size:18px!important}
+body.modern-checkout .checkout-trust{border-color:#30302d!important;margin-top:22px!important;padding-top:22px!important;display:grid!important;gap:12px!important}
+body.modern-checkout .checkout-trust span{color:#c7c1bb!important;font-size:10px!important}
+body.modern-checkout .checkout-trust i{width:18px;color:#fff!important}
+
+/* Payment CTA is deliberately always active; validation directs users to missing fields. */
+body.modern-checkout .checkout-submit,
+body.modern-checkout .checkout-submit:disabled{
+  width:100%!important;
+  min-height:76px!important;
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr) 24px!important;
+  align-items:center!important;
+  gap:14px!important;
+  border-radius:999px!important;
+  border:1px solid #171412!important;
+  background:#171412!important;
+  color:#fff!important;
+  opacity:1!important;
+  cursor:pointer!important;
+  transform:none!important;
+  padding:10px 22px!important;
+  box-shadow:0 12px 28px rgba(23,20,18,.12)!important;
+}
+body.modern-checkout .checkout-submit:hover{transform:translateY(-2px)!important;box-shadow:0 16px 34px rgba(23,20,18,.16)!important}
+body.modern-checkout .checkout-submit:focus-visible{outline:3px solid rgba(23,20,18,.22)!important;outline-offset:4px!important}
+body.modern-checkout .paystack-symbol{width:35px!important;height:35px!important;border-radius:50%!important;background:#fff!important;display:grid!important;place-content:center!important;padding:8px!important}
+body.modern-checkout .checkout-submit-copy strong{font-size:12px!important;letter-spacing:.07em!important}
+body.modern-checkout .checkout-submit-copy small{font-size:10px!important;line-height:1.35!important;color:#d7d2cd!important;opacity:1!important}
+
+/* Friendly validation highlight after the user taps Pay. */
+body.modern-checkout .checkout-validation-message{margin:20px 0 12px;padding:13px 16px;border-radius:12px;background:#fff0ed;border:1px solid #efc7bf;color:#8c2e21;font-size:11px;line-height:1.5}
+body.modern-checkout .checkout-field-attention{animation:wghFieldNudge .38s ease both}
+body.modern-checkout label.checkout-field-attention,
+body.modern-checkout .checkout-field-attention label{color:#9a3023!important}
+body.modern-checkout .checkout-field-attention input:not([type=radio]):not([type=checkbox]),
+body.modern-checkout .checkout-field-attention select,
+body.modern-checkout .checkout-field-attention textarea,
+body.modern-checkout input.checkout-field-attention,
+body.modern-checkout select.checkout-field-attention,
+body.modern-checkout textarea.checkout-field-attention{border-bottom-color:#b93d2e!important}
+body.modern-checkout .checkout-confirm.checkout-field-attention{background:#fff4f1!important;border-radius:12px!important;padding:16px!important}
+@keyframes wghFieldNudge{0%{transform:translateX(0)}30%{transform:translateX(-4px)}60%{transform:translateX(4px)}100%{transform:translateX(0)}}
+
+@media(max-width:800px){
+  body.modern-checkout .checkout-header{height:76px!important;padding:0 16px!important}
+  body.modern-checkout .checkout-brand{width:70px;height:54px}
+  body.modern-checkout .checkout-brand img{width:52px;height:52px;border-radius:9px}
+  body.modern-checkout .checkout-layout{padding:0 16px 42px!important}
+  body.modern-checkout .checkout-review{
+    order:-1!important;position:relative!important;top:auto!important;
+    width:calc(100% + 32px)!important;margin:0 -16px 18px!important;
+    padding:0!important;border-radius:0!important;box-shadow:none!important;
+    background:#11110f!important;color:#fff!important;
+  }
+  body.modern-checkout .order-review-toggle{display:grid!important;background:#11110f!important;color:#fff!important;border-bottom:1px solid #30302d!important;padding:17px 16px!important}
+  body.modern-checkout .order-review-toggle strong{color:#fff!important}
+  body.modern-checkout .order-review-panel{background:#11110f!important;padding:8px 18px 24px!important}
+  body.modern-checkout .checkout-submit{min-height:72px!important;grid-template-columns:38px minmax(0,1fr) 20px!important;padding:9px 17px!important;margin-top:18px!important}
+  body.modern-checkout .paystack-symbol{width:32px!important;height:32px!important}
 }
