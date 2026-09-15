@@ -434,6 +434,39 @@ for (const [productId, product] of Object.entries(SERVER_CATALOG)) {
 
 const LEGACY_PRODUCT_IDS = new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);
 
+const DEFAULT_CATEGORIES = [
+  {id:"dresses",name:"Dresses",sortOrder:10,active:true,system:true},
+  {id:"tops",name:"Tops",sortOrder:20,active:true,system:true},
+  {id:"pants",name:"Pants",sortOrder:30,active:true,system:true},
+  {id:"two-pieces",name:"Two-pieces",sortOrder:40,active:true,system:true},
+  {id:"basics",name:"Basics",sortOrder:50,active:true,system:true}
+];
+
+async function getCategories(db) {
+  const snap = await db.collection("storeCategories").get();
+  const map = new Map(DEFAULT_CATEGORIES.map(x => [x.id, {...x}]));
+  for (const doc of snap.docs) map.set(doc.id, {id:doc.id, ...(map.get(doc.id)||{}), ...doc.data()});
+  return [...map.values()].filter(x => x.active !== false).sort((a,b)=>Number(a.sortOrder||999)-Number(b.sortOrder||999)||String(a.name||a.id).localeCompare(String(b.name||b.id)));
+}
+
+async function createAdminNotification(db, notification) {
+  try {
+    const key = notification.orderNumber ? `order_${String(notification.orderNumber).replace(/[^A-Za-z0-9_-]/g,"_")}` : null;
+    const ref = key ? db.collection("adminNotifications").doc(key) : db.collection("adminNotifications").doc();
+    await ref.set({
+      type: safeText(notification.type || "info", 40),
+      title: safeText(notification.title || "Update", 180),
+      message: safeText(notification.message || "", 600),
+      orderNumber: safeText(notification.orderNumber || "", 60),
+      target: safeText(notification.target || "overview", 40),
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }, {merge:true});
+  } catch (error) {
+    console.error("Admin notification write failed", error);
+  }
+}
+
 
 /* =========================================================
    PRODUCTION WEEK CALCULATION
@@ -1483,6 +1516,13 @@ async function completePaidOrder(
     newlyCreated &&
     fullOrderForEmail
   ) {
+    await createAdminNotification(getDb(), {
+      type:"order",
+      title:`New paid order ${fullOrderForEmail.orderNumber}`,
+      message:`${fullOrderForEmail.customer?.firstName || "Customer"} placed an order for ${Number(fullOrderForEmail.pieces||0)} piece${Number(fullOrderForEmail.pieces||0)===1?"":"s"}.`,
+      orderNumber:fullOrderForEmail.orderNumber,
+      target:"orders"
+    });
     const formattedOrder =
       emailReadyOrder(
         fullOrderForEmail
@@ -3275,6 +3315,41 @@ export default async function handler(
     }
 
 
+    if (path === "/admin/transactions" && method === "GET") {
+      await requireAdmin(request);
+      const snap=await getDb().collection("orders").orderBy("createdAt","desc").limit(250).get();
+      return json(200,snap.docs.map(serializeOrder));
+    }
+
+    if (path === "/admin/orders-page" && method === "GET") {
+      await requireAdmin(request);
+      const url=new URL(request.url), size=Math.min(100,Math.max(10,Number(url.searchParams.get("limit")||50))), after=safeText(url.searchParams.get("after"),60);
+      let q=getDb().collection("orders").orderBy("orderNumber","desc").limit(size);
+      if(after) q=q.startAfter(after);
+      const snap=await q.get(), items=snap.docs.map(serializeOrder);
+      return json(200,{items,nextCursor:snap.docs.length===size?(snap.docs[snap.docs.length-1].data().orderNumber||snap.docs[snap.docs.length-1].id):null});
+    }
+
+    if (path === "/admin/notifications" && method === "GET") {
+      await requireAdmin(request);
+      const db=getDb();
+      let snap=await db.collection("adminNotifications").orderBy("createdAt","desc").limit(100).get();
+      if(snap.empty){
+        const ordersSnap=await db.collection("orders").orderBy("createdAt","desc").limit(10).get();
+        const batch=db.batch();
+        ordersSnap.docs.forEach(doc=>{const o=serializeOrder(doc), id=`order_${String(o.orderNumber).replace(/[^A-Za-z0-9_-]/g,"_")}`, ref=db.collection("adminNotifications").doc(id);batch.set(ref,{type:"order",title:`Order ${o.orderNumber}`,message:`${o.customerName||"Customer"} · ${o.pieces||0} pieces · ${o.paymentStatus||"paid"}`,orderNumber:o.orderNumber,target:"orders",read:false,createdAt:doc.data().createdAt||admin.firestore.FieldValue.serverTimestamp()},{merge:true})});
+        if(!ordersSnap.empty)await batch.commit();
+        snap=await db.collection("adminNotifications").orderBy("createdAt","desc").limit(100).get();
+      }
+      return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)})));
+    }
+    if (path === "/admin/notification-read" && method === "POST") {
+      await requireAdmin(request); const input=await readBody(request);
+      if(input.all){const snap=await getDb().collection("adminNotifications").where("read","==",false).limit(200).get();const batch=getDb().batch();snap.docs.forEach(d=>batch.update(d.ref,{read:true,readAt:admin.firestore.FieldValue.serverTimestamp()}));await batch.commit();}
+      else {const id=safeText(input.id,120);if(id)await getDb().collection("adminNotifications").doc(id).set({read:true,readAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});}
+      return json(200,{ok:true});
+    }
+
     /* ===============================================
        ADMIN ALL ORDERS
        =============================================== */
@@ -3789,6 +3864,10 @@ export default async function handler(
       return json(200, snap.docs.filter(doc => !LEGACY_PRODUCT_IDS.has(doc.id)).map(doc => ({ id: doc.id, ...doc.data() })));
     }
 
+    if (path === "/categories" && method === "GET") {
+      return json(200, await getCategories(getDb()));
+    }
+
     if (path === "/abandoned-cart" && method === "POST") {
       const input=await readBody(request),email=safeText(input.email,160).toLowerCase(),phone=safeText(input.phone,50); if(!email&&!phone)return json(200,{ok:true,ignored:true});
       const id=crypto.createHash("sha256").update(email||phone).digest("hex"),items=Array.isArray(input.items)?input.items.slice(0,30):[]; const pieces=items.reduce((n,i)=>n+Math.max(0,Number(i.totalQuantity||0)),0),value=items.reduce((n,i)=>n+Math.max(0,Number(i.unitPrice||0))*Math.max(0,Number(i.totalQuantity||0)),0);
@@ -3809,6 +3888,30 @@ export default async function handler(
       const db=getDb();
       const id=crypto.createHash("sha256").update(email).digest("hex");
       await db.collection("mailingList").doc(id).set({email,subscribed:true,source:"storefront",updatedAt:admin.firestore.FieldValue.serverTimestamp(),createdAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return json(200,{ok:true});
+    }
+
+    if (path === "/admin/categories" && method === "GET") {
+      await requireAdmin(request);
+      return json(200, await getCategories(getDb()));
+    }
+    if (path === "/admin/category-save" && method === "POST") {
+      const adminUser=await requireAdmin(request), input=await readBody(request);
+      const name=safeText(input.name,80).trim();
+      let id=safeText(input.id,80).trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+      if(!id) id=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+      if(!id||!name) throw new Error("Add a category name first.");
+      await getDb().collection("storeCategories").doc(id).set({name,sortOrder:Math.max(1,Number(input.sortOrder||99)),active:input.active!==false,system:DEFAULT_CATEGORIES.some(x=>x.id===id),updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return json(200,{ok:true,id});
+    }
+    if (path === "/admin/category-delete" && method === "POST") {
+      await requireAdmin(request); const input=await readBody(request), id=safeText(input.id,80);
+      if(!id) throw new Error("Choose a category.");
+      const db=getDb(), overrides=await db.collection("productOverrides").get();
+      const effective=new Map(Object.entries(SERVER_CATALOG).map(([pid,x])=>[pid,{id:pid,...x,active:true}]));
+      overrides.docs.forEach(doc=>effective.set(doc.id,{...(effective.get(doc.id)||{id:doc.id}),...doc.data()}));
+      if([...effective.values()].some(x=>x.active!==false&&x.category===id)) throw new Error("Move products out of this category before removing it.");
+      await getDb().collection("storeCategories").doc(id).set({active:false,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
       return json(200,{ok:true});
     }
 
@@ -3838,6 +3941,7 @@ export default async function handler(
       await db.runTransaction(async tx=>{const [counterSnap,batchSnap]=await Promise.all([tx.get(counterRef),tx.get(batch.ref)]);const counter=counterSnap.exists?counterSnap.data():{},batchData=batchSnap.exists?batchSnap.data():{};const orderSequence=Number(counter.orderSeq||0)+1;let batchSequence=Number(batchData.batchNumber||0);if(!batchSequence)batchSequence=Number(counter.batchCounter||0)+1;const orderNumber=`WGH-${String(orderSequence).padStart(3,"0")}`,batchName=`Batch ${String(batchSequence).padStart(2,"0")}`;const earliest=addDays(batch.close,Number(env("DELIVERY_MIN_DAYS")||14)),latest=addDays(batch.close,Number(env("DELIVERY_MAX_DAYS")||21)),estimatedDelivery=formatDeliveryRange(earliest,latest),nowIso=new Date().toISOString();const orderRef=db.collection("orders").doc(orderNumber);orderRefHolder.number=orderNumber;
         tx.set(orderRef,{orderNumber,userId:null,batchId:batch.id,batchName,batchCloseDate:admin.firestore.Timestamp.fromDate(batch.close),estimatedDelivery,estimatedDeliveryStart:admin.firestore.Timestamp.fromDate(earliest),estimatedDeliveryEnd:admin.firestore.Timestamp.fromDate(latest),customer:{firstName:safeText(input.firstName,80),lastName:safeText(input.lastName,80),email:safeText(input.email,160).toLowerCase(),phone:safeText(input.phone,40)},items:[{id:product.id,name:product.name,image:product.images?.[0]||"",mode,totalQuantity:quantity,unitPrice:price,variants:[{colour:safeText(input.colour,40),size:safeText(input.size,20),quantity}]}],pieces,pieceCount:pieces,subtotal,processingFee:0,deliveryFee,total,paymentReference:"MANUAL",paymentStatus:"manual",status:"cycle_assigned",adminNotes:input.note?[{note:safeText(input.note,800),by:adminUser.email||adminUser.uid,at:nowIso}]:[],createdAt:admin.firestore.FieldValue.serverTimestamp(),statusHistory:[{status:"order_confirmed",at:nowIso},{status:"payment_received",at:nowIso},{status:"cycle_assigned",at:nowIso}]});
         tx.set(batch.ref,{batchNumber:batchSequence,batchName,startDate:admin.firestore.Timestamp.fromDate(batch.start),closeDate:admin.firestore.Timestamp.fromDate(batch.close),capacity:batch.capacity,usedCapacity:Number(batchData.usedCapacity||0)+pieces,status:"OPEN",updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});tx.set(counterRef,{orderSeq:orderSequence,batchCounter:Math.max(Number(counter.batchCounter||0),batchSequence)},{merge:true});});
+      await createAdminNotification(db,{type:"order",title:`Manual order ${orderRefHolder.number} created`,message:`A manual ${mode} order for ${quantity} piece${quantity===1?"":"s"} was added.`,orderNumber:orderRefHolder.number,target:"orders"});
       return json(200,{ok:true,orderNumber:orderRefHolder.number});
     }
 
