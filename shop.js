@@ -1,7 +1,7 @@
 (async()=>{
   const grid=document.querySelector('[data-shop-grid]');
   if(!grid)return;
-  await WGH.loadProducts();
+  await Promise.all([WGH.loadProducts(), WGH.loadCategories()]);
 
   const params=new URLSearchParams(location.search);
   let mode=params.get('mode')==='wholesale'?'wholesale':'retail';
@@ -9,7 +9,11 @@
   let sort=params.get('sort')||'featured';
   let query='';
   let cycleTimer=null,activeCard=null,scrolling=false,scrollTimer=null;
-  const titles={all:'Shop all',new:'New arrivals',tops:'Tops',dresses:'Dresses',pants:'Pants','two-pieces':'Two-pieces',basics:'Basics'};
+  const titles=Object.fromEntries([['all','Shop all'],['new','New arrivals'],...WGH.categories.map(c=>[c.id,c.name])]);
+  const categoryRoot=document.querySelector('[data-category-filter]');
+  if(categoryRoot){
+    categoryRoot.innerHTML=`<button data-category="all" type="button">All</button><button data-category="new" type="button">New arrivals</button>${WGH.categories.map(c=>`<button data-category="${c.id}" type="button">${c.name}</button>`).join('')}`;
+  }
 
   function setupSearch(){
     const toolbar=document.querySelector('.shop-toolbar');
@@ -76,7 +80,8 @@
 
   setupSearch();
   document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;render()});
-  document.querySelectorAll('[data-category]').forEach(b=>b.onclick=()=>{category=b.dataset.category;render()});
+  const bindCategoryButtons=()=>document.querySelectorAll('[data-category]').forEach(b=>b.onclick=()=>{category=b.dataset.category;render()});
+  bindCategoryButtons();
   const pop=document.querySelector('[data-sort-popover]');
   document.querySelector('[data-sort-toggle]').onclick=()=>pop.hidden=!pop.hidden;
   pop.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>{sort=b.dataset.sort;pop.hidden=true;render()});

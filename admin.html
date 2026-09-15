@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&amp;family=Libre+Caslon+Display&amp;display=swap" rel="stylesheet"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css'" rel="stylesheet"/><link href="style.css" rel="stylesheet"/>
 <style>
-/* Admin clarity pass — intentionally scoped to admin only. */
+/* Admin clarity pass - intentionally scoped to admin only. */
 .admin-clarity-note{display:flex;gap:12px;align-items:flex-start;margin:0 0 22px;padding:14px 0;border-top:1px solid rgba(24,23,19,.12);border-bottom:1px solid rgba(24,23,19,.12);max-width:980px}.admin-clarity-note>i{font-size:15px;margin-top:2px;opacity:.7}.admin-clarity-note strong{display:block;font-size:13px;font-weight:600;margin-bottom:3px}.admin-clarity-note p{margin:0;max-width:760px;font-size:12px;line-height:1.55;color:rgba(24,23,19,.66)}
 .admin-nav button{position:relative}.admin-nav button[title]:hover::after{display:none}
 .admin-product-editor .field-help{max-width:680px}
@@ -24,20 +24,26 @@
 <aside class="admin-sidebar">
 <a class="brand-wordmark admin-brand" href="index.html"><span>THE WHOLESALE</span><strong>GHANA</strong></a>
 <nav class="admin-nav">
-<button class="active" data-admin-view="overview"><i class="fa-solid fa-chart-pie"></i> Overview</button>
-<button data-admin-view="orders"><i class="fa-solid fa-bag-shopping"></i> Orders</button>
-<button data-admin-view="transactions"><i class="fa-solid fa-receipt"></i> Transactions</button>
-<button data-admin-view="international"><i class="fa-solid fa-earth-africa"></i> International orders</button>
-<button data-admin-view="analytics"><i class="fa-solid fa-chart-line"></i> Sales analytics</button>
-<button data-admin-view="batches"><i class="fa-solid fa-layer-group"></i> Production</button>
-<button data-admin-view="products"><i class="fa-solid fa-boxes-stacked"></i> Products &amp; inventory</button>
-<button data-admin-view="wholesale"><i class="fa-solid fa-boxes-packing"></i> Wholesale</button>
-<button data-admin-view="customers"><i class="fa-solid fa-users"></i> Customers</button><button data-admin-view="accounts"><i class="fa-solid fa-user-group"></i> Registered accounts</button>
-<button data-admin-view="abandoned"><i class="fa-solid fa-cart-arrow-down"></i> Abandoned carts</button>
-<button data-admin-view="subscribers"><i class="fa-solid fa-envelope"></i> Subscribers</button>
-<button data-admin-view="alerts"><i class="fa-solid fa-bell"></i> Notifications</button>
-<button data-admin-view="activity"><i class="fa-solid fa-clock-rotate-left"></i> Activity history</button>
-<button data-admin-view="settings"><i class="fa-solid fa-gear"></i> Settings</button>
+<span class="admin-nav-group">Store</span>
+<button class="active" data-admin-view="overview"><i class="fa-solid fa-grid-2"></i><span>Overview</span></button>
+<button data-admin-view="orders"><i class="fa-solid fa-bag-shopping"></i><span>Orders</span></button>
+<button data-admin-view="transactions"><i class="fa-solid fa-credit-card"></i><span>Transactions</span></button>
+<button data-admin-view="products"><i class="fa-solid fa-shirt"></i><span>Products & inventory</span></button>
+<button data-admin-view="categories"><i class="fa-solid fa-tags"></i><span>Categories</span></button>
+<button data-admin-view="customers"><i class="fa-solid fa-users"></i><span>Customers</span></button>
+<span class="admin-nav-group">Production</span>
+<button data-admin-view="batches"><i class="fa-solid fa-layer-group"></i><span>Production batches</span></button>
+<button data-admin-view="wholesale"><i class="fa-solid fa-boxes-packing"></i><span>Wholesale</span></button>
+<button data-admin-view="international"><i class="fa-solid fa-earth-africa"></i><span>International orders</span></button>
+<span class="admin-nav-group">Growth</span>
+<button data-admin-view="analytics"><i class="fa-solid fa-chart-line"></i><span>Sales analytics</span></button>
+<button data-admin-view="accounts"><i class="fa-solid fa-user-group"></i><span>Registered accounts</span></button>
+<button data-admin-view="abandoned"><i class="fa-solid fa-cart-arrow-down"></i><span>Abandoned carts</span></button>
+<button data-admin-view="subscribers"><i class="fa-solid fa-envelope"></i><span>Subscribers</span></button>
+<span class="admin-nav-group">Operations</span>
+<button data-admin-view="alerts"><i class="fa-solid fa-bell"></i><span>Notifications</span><em data-admin-notification-count>0</em></button>
+<button data-admin-view="activity"><i class="fa-solid fa-clock-rotate-left"></i><span>Activity history</span></button>
+<button data-admin-view="settings"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
 </nav>
 <div class="admin-sidebar-foot"><a href="shop.html" target="_blank">Open storefront <span data-icon="arrow"></span></a><button data-admin-signout="" title="Sign out of the admin dashboard" type="button">Sign out</button></div>
 </aside>
@@ -55,9 +61,14 @@
 <section class="admin-view" data-view-panel="orders" hidden="">
 <div class="admin-page-head"><div><p class="eyebrow">Orders</p><h1>Orders</h1><p>Find an order, update its stage, print packing slips or create an order placed outside the website.</p></div><div class="admin-head-actions"><button class="button button-dark" data-manual-order="" title="Create an order that was placed outside the website" type="button"><i class="fa-solid fa-plus"></i> Create order manually</button><button class="admin-refresh" data-refresh-orders="" title="Reload orders from the server" type="button">Refresh</button></div></div><div class="admin-clarity-note"><i aria-hidden="true" class="fa-regular fa-circle-question"></i><div><strong>Typical workflow</strong><p>Click anywhere on an order row to see every detail. Select multiple orders only when you want to update or print them together.</p></div></div>
 <div class="admin-toolbar"><label class="admin-search"><span>Search</span><input data-order-search="" placeholder="Order number, name or email" type="search"/></label><label><span>Status</span><select data-order-filter=""><option value="all">All statuses</option><option value="cycle_assigned">Cycle assigned</option><option value="production">Production</option><option value="quality_control">Quality control</option><option value="packaging">Packaging</option><option value="ready_dispatch">Ready for dispatch</option><option value="dispatched">Dispatched</option><option value="delivered">Delivered</option></select></label></div><div class="admin-bulk-bar" data-bulk-orders=""><label class="bulk-check"><input data-select-all-orders="" type="checkbox"/> <span>Select all visible</span></label><div><span data-selected-orders-count="">0 selected</span><select data-bulk-status=""><option value="">Update status…</option><option value="cycle_assigned">Cycle assigned</option><option value="production">Production</option><option value="quality_control">Quality control</option><option value="packaging">Packaging</option><option value="ready_dispatch">Ready for dispatch</option><option value="dispatched">Dispatched</option><option value="delivered">Delivered</option></select><button class="button button-outline" data-bulk-update="" title="Apply the selected status to every checked order" type="button">Update selected orders</button><button class="button button-outline" data-bulk-print="" title="Print one packing slip for every checked order" type="button"><i class="fa-solid fa-print"></i> Print selected packing slips</button></div></div>
-<div class="admin-card admin-table-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th data-order-check-head=""></th><th>Order</th><th>Customer</th><th>Batch</th><th>Pieces</th><th>Total</th><th>Delivery</th><th>Status</th></tr></thead><tbody data-orders-table=""></tbody></table></div><div class="admin-mobile-list" data-orders-mobile=""></div></div>
+<div class="admin-card admin-table-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th data-order-check-head=""></th><th>Order</th><th>Customer</th><th>Batch</th><th>Pieces</th><th>Total</th><th>Delivery</th><th>Status</th></tr></thead><tbody data-orders-table=""></tbody></table></div><div class="admin-mobile-list" data-orders-mobile=""></div></div><div class="admin-load-more-wrap"><button class="button button-outline" data-orders-load-more type="button" hidden>Load 50 more orders</button></div>
 </section>
-<section class="admin-view" data-view-panel="products" hidden=""><div class="admin-page-head"><div><p class="eyebrow">Catalogue</p><h1>Products &amp; inventory</h1><p>Add or edit styles, prices, colours, images, sizes and operational stock counts.</p></div><button class="button button-dark" data-add-product="" title="Add a new product to the catalogue" type="button"><i class="fa-solid fa-plus"></i> Add product</button></div><div class="admin-clarity-note"><i aria-hidden="true" class="fa-regular fa-circle-question"></i><div><strong>How product editing works</strong><p>Open a product to change anything about it. Add colours one at a time, choose the swatch visually, then assign the correct images and size counts.</p></div></div><div class="admin-product-grid" data-admin-products=""></div></section>
+<section class="admin-view" data-view-panel="products" hidden=""><div class="admin-page-head"><div><p class="eyebrow">Catalogue</p><h1>Products &amp; inventory</h1><p>Manage every hardcoded style and every new product you add. Changes publish to the live storefront.</p></div><div class="admin-head-actions"><button class="button button-outline" data-jump-view="categories" type="button"><i class="fa-solid fa-tags"></i> Categories</button><button class="button button-dark" data-add-product="" title="Add a new product to the catalogue" type="button"><i class="fa-solid fa-plus"></i> Add product</button></div></div><div class="admin-clarity-note"><i aria-hidden="true" class="fa-regular fa-circle-question"></i><div><strong>How product editing works</strong><p>Open a product to change anything about it. Add colours one at a time, choose the swatch visually, then assign the correct images and size counts.</p></div></div><div class="admin-product-grid" data-admin-products=""></div></section>
+<section class="admin-view" data-view-panel="categories" hidden>
+<div class="admin-page-head"><div><p class="eyebrow">Store structure</p><h1>Categories</h1><p>Create the collections customers see in the shop. Products can be assigned to any category you create here.</p></div><button class="button button-dark" data-add-category type="button"><i class="fa-solid fa-plus"></i> New category</button></div>
+<div class="admin-clarity-note"><i class="fa-regular fa-circle-question"></i><div><strong>Connected to the live storefront</strong><p>Categories saved here are loaded by the shop page. A category appears in the storefront filter as soon as it is active. Move all products out of a category before removing it.</p></div></div>
+<div class="category-admin-layout"><form class="admin-card category-editor-card" data-category-form><input type="hidden" name="id"><p class="eyebrow">Category editor</p><h2 data-category-editor-title>Create category</h2><label>Category name<input name="name" required placeholder="Example: Skirts"></label><label>Display order<input name="sortOrder" type="number" min="1" value="99"></label><label class="availability-toggle"><input name="active" type="checkbox" checked><span>Show this category in the shop</span></label><div class="admin-editor-actions"><button class="button button-dark" type="submit"><i class="fa-regular fa-floppy-disk"></i> Save category</button><button class="button button-outline" data-cancel-category type="button">Clear</button></div></form><div class="admin-card"><div class="admin-card-head"><div><p class="eyebrow">Live categories</p><h2>Storefront navigation</h2></div><span class="admin-count-chip" data-category-count>0</span></div><div class="admin-category-list" data-admin-categories></div></div></div>
+</section>
 <section class="admin-view" data-view-panel="customers" hidden="">
 <div class="admin-page-head"><div><p class="eyebrow">Customers</p><h1>Customers</h1><p>Customers who have placed orders. Open a customer to see contact details, spend and full order history.</p></div><button class="admin-refresh" data-refresh-customers="" type="button">Refresh</button></div><div class="admin-clarity-note"><i aria-hidden="true" class="fa-regular fa-circle-question"></i><div><strong>Customers vs Registered accounts</strong><p>Customers have placed at least one order. “Registered accounts” also includes people who signed up but have never purchased.</p></div></div>
 <div class="admin-card admin-table-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Customer</th><th>Phone</th><th>Orders</th><th>Pieces</th><th>Total spend</th><th>Last order</th></tr></thead><tbody data-customers-table=""></tbody></table></div><div class="admin-mobile-list" data-customers-mobile=""></div></div>

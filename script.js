@@ -6,6 +6,13 @@ WGH.CURRENCY = 'GHS';
 WGH.CART_KEY = 'wgh_cart_v2';
 WGH.ORDER_KEY = 'wgh_orders_v2';
 WGH.PROCESSING_RATE = 0.0295;
+WGH.categories = [
+  {id:'dresses',name:'Dresses',sortOrder:10,active:true,system:true},
+  {id:'tops',name:'Tops',sortOrder:20,active:true,system:true},
+  {id:'pants',name:'Pants',sortOrder:30,active:true,system:true},
+  {id:'two-pieces',name:'Two-pieces',sortOrder:40,active:true,system:true},
+  {id:'basics',name:'Basics',sortOrder:50,active:true,system:true}
+];
 
 WGH.waitFor = async (test, timeoutMs=8000, intervalMs=150) => {
   const started=Date.now();
@@ -123,6 +130,8 @@ WGH.productCard = (p,mode='retail') => {
   return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a data-card-link href="${baseHref}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${firstImage}" alt="${p.name}" loading="lazy"><img class="hover-image" data-hover-colour="${hoverColour||''}" src="${hoverSrc}" alt="${p.name} alternate view" loading="${p.cardFeatureAlt?'eager':'lazy'}"></div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?'MOQ '+p.moq+' · mix colours & sizes':'Made to order'}</p></div><strong>${priceLabel}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map(c=>`<button type="button" data-card-colour="${c}" data-card-src="${colourImagesFor(c)[0]||firstImage}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${preferred||colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name} to wishlist" title="Save to wishlist"><i class="fa-regular fa-heart"></i><span>Save</span></button></article>`;
 };
 WGH.loadProducts = async()=>{try{const data=await WGH.api('/catalog');if(Array.isArray(data)&&data.length){const legacy=new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);const base=new Map(WGH.products.map(p=>[p.id,p]));data.filter(o=>!legacy.has(o.id)).forEach(o=>{const prev=base.get(o.id)||{};base.set(o.id,{...prev,...o})});WGH.products=[...base.values()].filter(p=>p.active!==false)}}catch{}return WGH.products};
+WGH.loadCategories = async()=>{try{const data=await WGH.api('/categories');if(Array.isArray(data)&&data.length)WGH.categories=data.filter(x=>x.active!==false)}catch{}return WGH.categories};
+WGH.categoryName = id => (WGH.categories.find(x=>x.id===id)?.name || String(id||'Collection').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
 WGH.bindProductCards = root=>{
   (root||document).querySelectorAll('[data-product-card]').forEach(card=>{
     const img=card.querySelector('[data-card-image]'),
@@ -272,6 +281,41 @@ WGH.isInAppBrowser = () => {
   return /snapchat|instagram|fban|fbav|fb_iab|tiktok|musical_ly|line\//.test(ua) || (/(iphone|ipad|ipod)/.test(ua) && !/safari/.test(ua));
 };
 
+WGH.openExternalBrowser = async () => {
+  const url=window.location.href;
+  const ua=String(navigator.userAgent||'').toLowerCase();
+  const isAndroid=/android/.test(ua);
+  const isIOS=/(iphone|ipad|ipod)/.test(ua);
+
+  // Android supports an explicit Chrome intent from many in-app browsers.
+  if(isAndroid){
+    const scheme=location.protocol.replace(':','')||'https';
+    const cleanTarget=`${location.host}${location.pathname}${location.search}`;
+    const fallback=encodeURIComponent(url);
+    location.href=`intent://${cleanTarget}#Intent;scheme=${scheme};package=com.android.chrome;S.browser_fallback_url=${fallback};end`;
+    return;
+  }
+
+  // iOS does not provide websites with a reliable way to force Safari open.
+  // A new-window attempt is useful in some webviews; copying the URL gives a
+  // dependable fallback when the host app keeps the link inside its own browser.
+  try{
+    const opened=window.open(url,'_blank','noopener,noreferrer');
+    if(opened && !isIOS)return;
+  }catch{}
+
+  try{
+    await navigator.clipboard?.writeText(url);
+    WGH.showToast?.(isIOS?'Link copied. Open Safari, paste the link, and continue.':'Link copied. Paste it into Safari or Chrome.','success');
+  }catch{
+    WGH.showToast?.(isIOS?'Use the app menu and choose Open in Safari, then continue.':'Use the app menu and choose Open in browser, then continue.');
+  }
+};
+
+WGH.showBrowserNotice = (reason='Some services could not load.') => { WGH.showToast?.(reason); };
+
+function initInAppBrowserNotice(){}
+
 const waitForFirebaseSdk = async () => {
   for(let i=0;i<40;i++){
     if(window.firebase)return true;
@@ -312,7 +356,7 @@ async function initFirebase(){
         window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user,profile}}));
       });
     }
-  }catch(err){console.warn('Account services are not available yet.',err);}
+  }catch(err){console.warn('Account services are not available yet.',err);WGH.showBrowserNotice('Account services could not load. Shopping and checkout can still be used as a guest.');}
 }
 
 function initSocialLinks(){
@@ -375,6 +419,7 @@ function initNewsletter(){
 
 function initHome(){
   const rail=document.querySelector('[data-featured-products]');if(rail)WGH.loadProducts().then(()=>{const featuredIds=['sculpted-high-neck-hugger-dress','ruffle-button-top','ruched-waist-pants','nunu-tie-waist-skirt-set','drapped-halter-mini-dress'];const featured=featuredIds.map(id=>WGH.products.find(p=>p.id===id)).filter(Boolean);rail.innerHTML=featured.map(p=>WGH.productCard(p)).join('');WGH.bindProductCards(rail)});
+  const categoryCards=document.querySelector('.category-cards');if(categoryCards)Promise.all([WGH.loadProducts(),WGH.loadCategories?.()]).then(()=>{const cats=(WGH.categories||[]).filter(c=>WGH.products.some(p=>p.category===c.id&&p.active!==false));if(!cats.length)return;categoryCards.innerHTML=cats.map((c,i)=>{const p=WGH.products.find(x=>x.category===c.id&&x.active!==false),src=p?.colourImages?.[p.featuredColour]?.[0]||p?.images?.[0]||'images/prod.jpg';return `<a class="category-card reveal visible" href="shop.html?category=${encodeURIComponent(c.id)}"><img alt="${c.name} collection" loading="lazy" src="${src}"><div><span>${i+1}</span><h3>${c.name}</h3></div></a>`}).join('')});
   const revealEls=[...document.querySelectorAll('.reveal')];
   if('IntersectionObserver' in window){
     const observer=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target)}}),{threshold:.08});
