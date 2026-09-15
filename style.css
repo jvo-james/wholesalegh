@@ -2141,3 +2141,17 @@ html body .card-colours button{touch-action:manipulation}
 .browser-compat-notice{position:relative;z-index:99999;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;background:#171717;color:#fff;font-family:inherit;font-size:13px;line-height:1.45;box-shadow:0 6px 24px rgba(0,0,0,.16)}
 .browser-compat-notice>div{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}.browser-compat-notice strong{font-size:13px}.browser-compat-notice span{opacity:.9}.browser-compat-notice button{border:0;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:2px 4px}.browser-compat-notice b{font-weight:700}
 @media(max-width:640px){.browser-compat-notice{align-items:flex-start;padding:11px 13px;font-size:12px}.browser-compat-notice>div{display:block}.browser-compat-notice strong{display:block;margin-bottom:2px}}
+
+/* External-browser handoff for Snapchat / Instagram / other in-app webviews */
+.browser-compat-copy{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;min-width:0}
+.browser-compat-copy small{width:100%;font-size:11px;opacity:.72}
+.browser-compat-actions{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+.browser-compat-notice .browser-open-button{appearance:none;border:1px solid rgba(255,255,255,.72);background:#fff;color:#171717;font:700 10px/1 inherit;letter-spacing:.08em;text-transform:uppercase;padding:10px 13px;white-space:nowrap;cursor:pointer}
+.browser-compat-notice .browser-close-button{border:0;background:transparent;color:#fff;font-size:24px;line-height:1;cursor:pointer;padding:2px 4px}
+@media(max-width:640px){
+  .browser-compat-notice{display:grid;grid-template-columns:1fr auto;gap:10px}
+  .browser-compat-copy{display:block}
+  .browser-compat-copy small{display:block;margin-top:4px}
+  .browser-compat-actions{align-self:start}
+  .browser-compat-notice .browser-open-button{padding:9px 10px;font-size:9px}
+}
