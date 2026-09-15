@@ -609,7 +609,7 @@ function serializeOrder(doc) {
     adminNotes: Array.isArray(order.adminNotes) ? order.adminNotes : [],
     delivery: order.delivery || order.customer || {},
     paymentReference: order.paymentReference || "",
-    paymentStatus: order.paymentStatus || "",
+    paymentStatus: order.paymentStatus || (order.paymentReference ? (String(order.paymentReference).toUpperCase()==="MANUAL" ? "manual" : "paid") : "recorded"),
     userId: order.userId || null
   };
 }
@@ -3317,8 +3317,9 @@ export default async function handler(
 
     if (path === "/admin/transactions" && method === "GET") {
       await requireAdmin(request);
-      const snap=await getDb().collection("orders").orderBy("createdAt","desc").limit(250).get();
-      return json(200,snap.docs.map(serializeOrder));
+      const snap=await getDb().collection("orders").limit(500).get();
+      const items=snap.docs.map(serializeOrder).sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
+      return json(200,items);
     }
 
     if (path === "/admin/orders-page" && method === "GET") {
@@ -3332,15 +3333,7 @@ export default async function handler(
 
     if (path === "/admin/notifications" && method === "GET") {
       await requireAdmin(request);
-      const db=getDb();
-      let snap=await db.collection("adminNotifications").orderBy("createdAt","desc").limit(100).get();
-      if(snap.empty){
-        const ordersSnap=await db.collection("orders").orderBy("createdAt","desc").limit(10).get();
-        const batch=db.batch();
-        ordersSnap.docs.forEach(doc=>{const o=serializeOrder(doc), id=`order_${String(o.orderNumber).replace(/[^A-Za-z0-9_-]/g,"_")}`, ref=db.collection("adminNotifications").doc(id);batch.set(ref,{type:"order",title:`Order ${o.orderNumber}`,message:`${o.customerName||"Customer"} · ${o.pieces||0} pieces · ${o.paymentStatus||"paid"}`,orderNumber:o.orderNumber,target:"orders",read:false,createdAt:doc.data().createdAt||admin.firestore.FieldValue.serverTimestamp()},{merge:true})});
-        if(!ordersSnap.empty)await batch.commit();
-        snap=await db.collection("adminNotifications").orderBy("createdAt","desc").limit(100).get();
-      }
+      const snap=await getDb().collection("adminNotifications").orderBy("createdAt","desc").limit(100).get();
       return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)})));
     }
     if (path === "/admin/notification-read" && method === "POST") {
@@ -3348,6 +3341,17 @@ export default async function handler(
       if(input.all){const snap=await getDb().collection("adminNotifications").where("read","==",false).limit(200).get();const batch=getDb().batch();snap.docs.forEach(d=>batch.update(d.ref,{read:true,readAt:admin.firestore.FieldValue.serverTimestamp()}));await batch.commit();}
       else {const id=safeText(input.id,120);if(id)await getDb().collection("adminNotifications").doc(id).set({read:true,readAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});}
       return json(200,{ok:true});
+    }
+    if (path === "/admin/notification-delete" && method === "POST") {
+      await requireAdmin(request); const input=await readBody(request), id=safeText(input.id,120);
+      if(!id) throw new Error("Choose a notification.");
+      await getDb().collection("adminNotifications").doc(id).delete();
+      return json(200,{ok:true});
+    }
+    if (path === "/admin/notifications-clear" && method === "POST") {
+      await requireAdmin(request); const db=getDb(); let deleted=0;
+      while(true){const snap=await db.collection("adminNotifications").limit(200).get();if(snap.empty)break;const batch=db.batch();snap.docs.forEach(d=>batch.delete(d.ref));await batch.commit();deleted+=snap.size;if(snap.size<200)break;}
+      return json(200,{ok:true,deleted});
     }
 
     /* ===============================================
