@@ -312,7 +312,7 @@ WGH.openExternalBrowser = async () => {
   }
 };
 
-WGH.showBrowserNotice = (reason='Some services could not load.') => { WGH.showToast?.(reason); };
+WGH.showBrowserNotice = () => {};
 
 function initInAppBrowserNotice(){}
 
@@ -356,7 +356,7 @@ async function initFirebase(){
         window.dispatchEvent(new CustomEvent('wgh:auth',{detail:{user,profile}}));
       });
     }
-  }catch(err){console.warn('Account services are not available yet.',err);WGH.showBrowserNotice('Account services could not load. Shopping and checkout can still be used as a guest.');}
+  }catch(err){console.warn('Account services are not available yet.',err);}
 }
 
 function initSocialLinks(){

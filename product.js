@@ -71,11 +71,27 @@
 
     const total=variants.reduce((sum,v)=>sum+v.quantity,0);
     const moq=Math.max(1,Number(product.moq||6));
+    const remaining=Math.max(0,moq-total);
+    const overBy=Math.max(0,total-moq);
     $('[data-wholesale-count]').textContent=total;
-    const totalTarget=document.querySelector('[data-wholesale-target]');
-    if(totalTarget)totalTarget.textContent=moq;
+    document.querySelectorAll('[data-wholesale-target]').forEach(el=>el.textContent=moq);
+    const minCopy=document.querySelector('[data-wholesale-min-copy]');
+    if(minCopy)minCopy.textContent=`${moq} piece${moq===1?'':'s'}`;
     $('[data-moq-bar]').style.width=`${Math.min(100,total/moq*100)}%`;
-    $('[data-moq-message]').textContent=total>=moq?`Your mix is ready. You have ${total} pieces in this style.`:`Add ${moq-total} more piece${moq-total===1?'':'s'} to reach the ${moq}-piece minimum.`;
+    const status=document.querySelector('[data-moq-status]');
+    const message=document.querySelector('[data-moq-message]');
+    const progressCard=document.querySelector('.wholesale-progress-card');
+    if(total>=moq){
+      if(status)status.textContent='Wholesale minimum reached';
+      if(message)message.textContent=overBy>0
+        ? `${total} pieces selected. That is ${overBy} above the ${moq}-piece minimum, and you can keep adding more.`
+        : `${total} pieces selected. You have reached the minimum and can add more if you want.`;
+      progressCard?.classList.add('is-ready');
+    }else{
+      if(status)status.textContent='Building your wholesale order';
+      if(message)message.textContent=`${total} selected. Add ${remaining} more piece${remaining===1?'':'s'} to reach the ${moq}-piece minimum.`;
+      progressCard?.classList.remove('is-ready');
+    }
     root.querySelectorAll('.wholesale-mix-card').forEach(card=>{
       const i=Number(card.dataset.variantIndex);
       card.querySelector('[data-v-colour]').onchange=e=>{variants[i].colour=e.target.value;renderVariants()};

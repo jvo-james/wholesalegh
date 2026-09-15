@@ -2864,3 +2864,84 @@ body.modern-checkout .checkout-submit>i{
   .admin-category-card{grid-template-columns:34px minmax(0,1fr);padding:15px 13px}.category-card-actions{grid-column:1/-1;justify-content:flex-end;border-top:1px solid #f0eae4;padding-top:10px}.category-card-actions .icon-action{flex:1}.category-card-title{gap:8px}.category-card-meta{gap:7px 10px}
   .notification-popover-footer{grid-template-columns:1fr 1fr}.notification-preview-main{padding-left:14px}
 }
+
+
+/* Wholesale clarity and mobile controls */
+.wholesale-total-badge{
+  display:grid;
+  grid-template-columns:1fr auto;
+  grid-template-areas:"label minimum" "count minimum";
+  align-items:center;
+  gap:2px 12px;
+  min-width:178px;
+  text-align:left;
+  padding:13px 14px;
+}
+.wholesale-total-badge small{grid-area:label;margin:0}
+.wholesale-total-badge strong{grid-area:count;font-size:24px;line-height:1}
+.wholesale-total-badge strong em{font-style:normal;font-family:'DM Sans',sans-serif;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#bdb5ae;margin-left:4px}
+.wholesale-minimum-chip{
+  grid-area:minimum;
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:7px 9px;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:999px;
+  font-size:8px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  white-space:nowrap;
+  color:#f7f4ef;
+}
+.wholesale-minimum-chip b{font-size:10px}
+.wholesale-progress-card{position:relative}
+.wholesale-progress-card.is-ready{background:#171513}
+.wholesale-progress-card.is-ready .moq-meter span{background:#fff}
+.wholesale-no-maximum{display:block;margin-top:9px;color:#938b84;font-size:8px;line-height:1.45}
+.wholesale-progress-card.is-ready .wholesale-no-maximum{color:#aaa39c}
+
+.wholesale-mix-card{position:relative;overflow:hidden}
+.wholesale-mix-card-head{position:relative;padding-right:58px;min-height:70px}
+.wholesale-mix-card .remove-variant{
+  position:absolute !important;
+  top:50% !important;
+  right:14px !important;
+  transform:translateY(-50%) !important;
+  margin:0 !important;
+  width:34px !important;
+  height:34px !important;
+  display:grid !important;
+  place-items:center !important;
+  border:1px solid #ddd5cc !important;
+  border-radius:50% !important;
+  background:#fff !important;
+  color:#1b1917 !important;
+  box-shadow:none !important;
+  z-index:2;
+}
+.wholesale-mix-card .remove-variant:hover{background:#171513 !important;color:#fff !important;border-color:#171513 !important}
+.wholesale-mix-card .remove-variant i{font-size:13px;line-height:1;pointer-events:none}
+
+@media(max-width:820px){
+  .wholesale-total-badge{
+    display:grid;
+    grid-template-columns:1fr auto;
+    grid-template-areas:"label minimum" "count minimum";
+    min-width:0;
+    width:100%;
+    padding:13px 14px;
+  }
+  .wholesale-builder-intro{gap:14px}
+}
+@media(max-width:480px){
+  .wholesale-mix-card-head{padding:14px 56px 14px 14px;min-height:72px}
+  .wholesale-mix-card .remove-variant{
+    top:50% !important;
+    right:12px !important;
+    transform:translateY(-50%) !important;
+  }
+  .wholesale-total-badge strong{font-size:22px}
+  .wholesale-minimum-chip{padding:6px 8px}
+}
