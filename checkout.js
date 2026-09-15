@@ -48,41 +48,115 @@ function setupCountrySelector(){
 }
 function validateCheckout(){
   if(!submitBtn)return;
-  const ready=form.checkValidity();
-  // Keep the payment button clickable at all times. Validation happens on
-  // submit so customers get taken directly to the first missing field.
+  // The payment button stays available before validation. It is only put into
+  // a loading state while a real payment request is being prepared.
   submitBtn.disabled=false;
   submitBtn.removeAttribute('aria-disabled');
-  const small=submitBtn.querySelector('small');
-  if(small)small.textContent=ready?'Your details are complete · continue to secure payment':'Tap to continue — we’ll show you anything that still needs attention';
 }
 
-function clearFieldAttention(){
-  form.querySelectorAll('.checkout-field-attention').forEach(el=>el.classList.remove('checkout-field-attention'));
-  const notice=form.querySelector('[data-checkout-validation]');
-  if(notice){notice.hidden=true;notice.textContent='';}
+form.noValidate=true;
+let activeInvalidField=null;
+let activeFieldError=null;
+
+function clearActiveError(){
+  if(activeFieldError){activeFieldError.remove();activeFieldError=null;}
+  if(activeInvalidField){
+    const box=validationContainer(activeInvalidField);
+    box?.classList.remove('checkout-field-attention');
+    activeInvalidField.removeAttribute('aria-invalid');
+    activeInvalidField=null;
+  }
+  const old=form.querySelector('[data-checkout-validation]');
+  if(old){old.hidden=true;old.textContent='';}
+}
+
+function validationContainer(field){
+  if(!field)return null;
+  if(field.name==='fulfilment')return field.closest('.fulfilment-options')||field;
+  if(field.name==='madeToOrderAccepted')return field.closest('.checkout-confirm')||field;
+  if(field.name==='country')return field.closest('.checkout-country-block')||field.closest('label')||field;
+  return field.closest('label')||field;
+}
+
+function fieldMessage(field){
+  const name=field?.name||'';
+  const value=String(field?.value||'').trim();
+  const messages={
+    firstName:'Enter your first name.',
+    lastName:'Enter your last name.',
+    phone:'Enter a phone number we can use for your order updates.',
+    country:'Choose your delivery country.',
+    region:'Choose your region.',
+    regionInternational:'Enter your state, province or region.',
+    city:'Enter your city or town.',
+    address:'Enter your delivery address.',
+    fulfilment:'Choose delivery or pickup.',
+    madeToOrderAccepted:'Confirm that you have checked your order details.'
+  };
+  if(name==='email')return value && !field.validity.valid?'Enter a valid email address.':'Enter your email address.';
+  return messages[name]||'Complete this field before continuing.';
+}
+
+function appendFieldError(field,message){
+  clearActiveError();
+  activeInvalidField=field;
+  field.setAttribute('aria-invalid','true');
+  const container=validationContainer(field);
+  container?.classList.add('checkout-field-attention');
+  const error=document.createElement('div');
+  error.className='checkout-field-error';
+  error.setAttribute('role','alert');
+  error.textContent=message;
+  activeFieldError=error;
+
+  if(field.name==='fulfilment'||field.name==='madeToOrderAccepted'){
+    container.insertAdjacentElement('afterend',error);
+  }else if(field.name==='country'){
+    container.appendChild(error);
+  }else if(container?.tagName==='LABEL'){
+    container.appendChild(error);
+  }else{
+    field.insertAdjacentElement('afterend',error);
+  }
+}
+
+function firstInvalidField(){
+  return [...form.querySelectorAll('input,select,textarea')].find(field=>{
+    if(field.disabled||field.hidden)return false;
+    if(field.type==='hidden')return false;
+    if(field.closest('[hidden]'))return false;
+    return !field.checkValidity();
+  })||null;
 }
 
 function focusFirstInvalid(){
-  const invalid=[...form.querySelectorAll('input,select,textarea')].find(el=>!el.disabled&&!el.checkValidity());
+  const invalid=firstInvalidField();
   if(!invalid)return false;
-  const target=invalid.closest('.fulfilment-options,.checkout-confirm,.checkout-country-block,label,.checkout-step')||invalid;
-  target.classList.add('checkout-field-attention');
-  const notice=form.querySelector('[data-checkout-validation]');
-  if(notice){
-    const label=(invalid.closest('label')?.childNodes?.[0]?.textContent||invalid.getAttribute('aria-label')||invalid.name||'required field').trim();
-    notice.textContent=`Please complete ${label || 'the highlighted field'} before continuing.`;
-    notice.hidden=false;
-  }
+  appendFieldError(invalid,fieldMessage(invalid));
+  const target=validationContainer(invalid)||invalid;
   target.scrollIntoView({behavior:'smooth',block:'center'});
-  setTimeout(()=>{
+  window.setTimeout(()=>{
     try{invalid.focus({preventScroll:true});}catch{try{invalid.focus();}catch{}}
-    try{invalid.reportValidity();}catch{}
-  },420);
+    if(invalid.matches('input:not([type=radio]):not([type=checkbox]),textarea')){
+      try{
+        const end=String(invalid.value||'').length;
+        invalid.setSelectionRange(end,end);
+      }catch{}
+    }
+  },380);
   return true;
 }
+
+function maybeClearCurrentError(event){
+  if(!activeInvalidField)return;
+  const target=event.target;
+  const same=target===activeInvalidField ||
+    (activeInvalidField.name==='fulfilment'&&target?.name==='fulfilment') ||
+    (activeInvalidField.name==='country'&&target?.name==='country');
+  if(same)clearActiveError();
+}
 let abandonTimer;const saveAbandoned=()=>{clearTimeout(abandonTimer);abandonTimer=setTimeout(()=>{const email=String(form.elements.email?.value||'').trim(),phone=String(form.elements.phone?.value||'').trim();if(!email&&!phone)return;WGH.api('/abandoned-cart',{email,phone,name:`${form.elements.firstName?.value||''} ${form.elements.lastName?.value||''}`.trim(),items:cart}).catch(()=>{})},700)};form.addEventListener('input',saveAbandoned);
-const render=()=>{items.innerHTML=cart.map(i=>`<article class="checkout-line-item"><img src="${i.image}" alt=""><div><strong>${i.name}</strong><span>${i.orderType} · ${i.totalQuantity} piece${i.totalQuantity===1?'':'s'}</span><small>${(i.variants||[]).map(v=>`${v.quantity}× ${v.colour} / ${v.size}`).join(' · ')}</small></div><b>${WGH.money(i.unitPrice*i.totalQuantity)}</b></article>`).join('');document.querySelector('[data-checkout-subtotal]').textContent=WGH.money(subtotal());document.querySelector('[data-checkout-fee]').textContent=WGH.money(fee());document.querySelector('[data-checkout-total]').textContent=WGH.money(total());document.querySelector('[data-review-mobile-total]').textContent=WGH.money(total())};
+const render=()=>{items.innerHTML=cart.map(i=>`<article class="checkout-line-item"><img src="${i.image}" alt=""><div><strong>${i.name}</strong><span>${i.orderType} · ${i.totalQuantity} piece${i.totalQuantity===1?'':'s'}</span><small>${(i.variants||[]).map(v=>`${v.quantity}× ${v.colour} / ${v.size}`).join(' · ')}</small></div><b>${WGH.money(i.unitPrice*i.totalQuantity)}</b></article>`).join('');document.querySelector('[data-checkout-subtotal]').textContent=WGH.money(subtotal());document.querySelector('[data-checkout-fee]').textContent=WGH.money(fee());document.querySelector('[data-checkout-total]').textContent=WGH.money(total());document.querySelector('[data-review-mobile-total]').textContent=WGH.money(total());const payAmount=document.querySelector('[data-payment-amount]');if(payAmount)payAmount.textContent=`Pay ${WGH.money(total())}`};
 const pieces=cart.reduce((sum,i)=>sum+Number(i.totalQuantity||1),0);WGH.api('/capacity-preview',{pieces}).then(c=>{const el=document.querySelector('[data-batch-soft-note]');if(!el)return;el.classList.toggle('limited',!!c.limited);el.innerHTML=`<i class="fa-solid fa-layer-group"></i><div><strong>${c.veryLimited?'Current production cycle has very limited space remaining.':c.limited?'Current production cycle has limited space remaining.':'Production space is currently available.'}</strong><p>Your paid order will be assigned automatically to the earliest cycle with room for ${pieces} piece${pieces===1?'':'s'}.</p></div>`}).catch(()=>{});
 const now=new Date(),close=new Date(now);close.setDate(now.getDate()+((7-now.getDay())%7));const a=new Date(close),b=new Date(close);a.setDate(a.getDate()+14);b.setDate(b.getDate()+21);const fmt=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});document.querySelector('[data-cycle-delivery]').textContent=`${fmt(a)} – ${fmt(b)}`;
 const deliveryFields=document.querySelector('[data-delivery-fields]'),pickupFields=document.querySelector('[data-pickup-fields]');
@@ -99,8 +173,8 @@ function syncFulfilment(){
   validateCheckout();
 }
 form.querySelectorAll('[name=fulfilment]').forEach(r=>r.addEventListener('change',syncFulfilment));
-form.addEventListener('input',()=>{clearFieldAttention();validateCheckout()});
-form.addEventListener('change',()=>{clearFieldAttention();validateCheckout()});
+form.addEventListener('input',e=>{maybeClearCurrentError(e);validateCheckout()});
+form.addEventListener('change',e=>{maybeClearCurrentError(e);validateCheckout()});
 document.querySelector('[data-review-toggle]').addEventListener('click',e=>{const aside=document.querySelector('[data-order-review]');aside.classList.toggle('open');e.currentTarget.setAttribute('aria-expanded',aside.classList.contains('open'))});
 async function hydrateProfile(){let tries=0;while(!WGH.auth&&tries++<30)await new Promise(r=>setTimeout(r,100));if(!WGH.auth)return;await new Promise(resolve=>{const off=WGH.auth.onAuthStateChanged(async user=>{off();if(!user)return resolve();try{const p=await WGH.api('/account/profile',undefined,{auth:true});const values={firstName:p.firstName,lastName:p.lastName,email:user.email,phone:p.phone,address:p.address,city:p.city,region:p.region,country:p.country||'Ghana',address2:p.address2};Object.entries(values).forEach(([k,v])=>{if(k==='region')return;if(form.elements[k]&&v)form.elements[k].value=v});
 if(values.country&&window.jQuery&&window.jQuery.fn.countrySelect){
@@ -117,5 +191,5 @@ if(values.region){
   else if(form.elements.regionInternational)form.elements.regionInternational.value=values.region;
 }
 ['firstName','lastName','email','phone'].forEach(k=>{if(form.elements[k]){form.elements[k].readOnly=true;form.elements[k].classList.add('locked-field')}});document.querySelector('[data-saved-profile-note]').hidden=false;syncCountryState();validateCheckout();}catch{}resolve();});});}
-form.addEventListener('submit',async e=>{e.preventDefault();clearFieldAttention();validateCheckout();if(!form.checkValidity()){focusFirstInvalid();return;}const btn=submitBtn,data=Object.fromEntries(new FormData(form));const country=selectedCountry();data.country=country.name;data.countryCode=country.code;data.region=country.code==='GH'?String(form.elements.region?.value||''):String(form.elements.regionInternational?.value||'');await WGH.withLoading(btn,async()=>{try{if(WGH.auth?.currentUser&&data.fulfilment==='delivery')await WGH.api('/account/profile',{address:data.address,address2:data.address2,city:data.city,region:data.region,country:data.country},{auth:true});const customer={firstName:data.firstName,lastName:data.lastName,email:data.email,phone:data.phone,address:data.fulfilment==='delivery'?data.address:'Pickup',address2:data.address2||'',city:data.fulfilment==='delivery'?data.city:'',region:data.fulfilment==='delivery'?data.region:'',country:data.country||'Ghana',countryCode:data.countryCode||'GH',fulfilment:data.fulfilment};const init=await WGH.api('/initialize-payment',{customer,items:cart,madeToOrderAccepted:data.madeToOrderAccepted==='on',fulfilment:data.fulfilment,country:data.country,countryCode:data.countryCode,notes:data.notes},{auth:!!WGH.auth?.currentUser});if(!window.PaystackPop)await WGH.waitFor(()=>window.PaystackPop,7000);if(!window.PaystackPop){throw new Error('Secure payment did not load. If you opened this link inside Snapchat or another app, use its menu to open the page in Safari/Chrome and try again.');}new PaystackPop().newTransaction({key:init.publicKey,email:data.email,amount:init.amountKobo,reference:init.reference,currency:'GHS',onSuccess:async tx=>{WGH.setLoading(btn,true,'Confirming payment');try{const order=await WGH.api('/verify-payment',{reference:tx.reference});const record={...order,email:data.email,customer,items:cart,status:order.status||'order_confirmed',fulfilment:data.fulfilment};sessionStorage.setItem('wgh_last_order',JSON.stringify(record));const orders=JSON.parse(localStorage.getItem(WGH.ORDER_KEY)||'[]');orders.unshift(record);localStorage.setItem(WGH.ORDER_KEY,JSON.stringify(orders.slice(0,20)));WGH.saveCart([]);await WGH.api('/abandoned-recovered',{email:data.email,orderNumber:order.orderNumber||''}).catch(()=>{});location.href=`confirmation.html?order=${encodeURIComponent(order.orderNumber||'')}`;}catch(err){WGH.showToast(err)}finally{WGH.setLoading(btn,false)}},onCancel:()=>WGH.showToast('Payment was not completed. Your bag is still saved.')});}catch(err){WGH.showToast(err)}},'Preparing payment')});render();setupCountrySelector();syncFulfilment();validateCheckout();hydrateProfile();
+form.addEventListener('submit',async e=>{e.preventDefault();clearActiveError();validateCheckout();if(!form.checkValidity()){focusFirstInvalid();return;}const btn=submitBtn,data=Object.fromEntries(new FormData(form));const country=selectedCountry();data.country=country.name;data.countryCode=country.code;data.region=country.code==='GH'?String(form.elements.region?.value||''):String(form.elements.regionInternational?.value||'');await WGH.withLoading(btn,async()=>{try{if(WGH.auth?.currentUser&&data.fulfilment==='delivery')await WGH.api('/account/profile',{address:data.address,address2:data.address2,city:data.city,region:data.region,country:data.country},{auth:true});const customer={firstName:data.firstName,lastName:data.lastName,email:data.email,phone:data.phone,address:data.fulfilment==='delivery'?data.address:'Pickup',address2:data.address2||'',city:data.fulfilment==='delivery'?data.city:'',region:data.fulfilment==='delivery'?data.region:'',country:data.country||'Ghana',countryCode:data.countryCode||'GH',fulfilment:data.fulfilment};const init=await WGH.api('/initialize-payment',{customer,items:cart,madeToOrderAccepted:data.madeToOrderAccepted==='on',fulfilment:data.fulfilment,country:data.country,countryCode:data.countryCode,notes:data.notes},{auth:!!WGH.auth?.currentUser});if(!window.PaystackPop)await WGH.waitFor(()=>window.PaystackPop,7000);if(!window.PaystackPop){throw new Error('Secure payment did not load. If you opened this link inside Snapchat or another app, use its menu to open the page in Safari/Chrome and try again.');}new PaystackPop().newTransaction({key:init.publicKey,email:data.email,amount:init.amountKobo,reference:init.reference,currency:'GHS',onSuccess:async tx=>{WGH.setLoading(btn,true,'Confirming payment');try{const order=await WGH.api('/verify-payment',{reference:tx.reference});const record={...order,email:data.email,customer,items:cart,status:order.status||'order_confirmed',fulfilment:data.fulfilment};sessionStorage.setItem('wgh_last_order',JSON.stringify(record));const orders=JSON.parse(localStorage.getItem(WGH.ORDER_KEY)||'[]');orders.unshift(record);localStorage.setItem(WGH.ORDER_KEY,JSON.stringify(orders.slice(0,20)));WGH.saveCart([]);await WGH.api('/abandoned-recovered',{email:data.email,orderNumber:order.orderNumber||''}).catch(()=>{});location.href=`confirmation.html?order=${encodeURIComponent(order.orderNumber||'')}`;}catch(err){WGH.showToast(err)}finally{WGH.setLoading(btn,false)}},onCancel:()=>WGH.showToast('Payment was not completed. Your bag is still saved.')});}catch(err){WGH.showToast(err)}},'Preparing payment')});render();setupCountrySelector();syncFulfilment();validateCheckout();hydrateProfile();
 })();
