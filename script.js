@@ -343,6 +343,10 @@ const waitForFirebaseSdk = async () => {
 };
 
 async function initFirebase(){
+  // The admin page has its own Firebase Auth instance in admin.js. Do not
+  // boot the storefront Auth here: the shared storefront listener can see
+  // an admin account and sign it out, racing the admin login/session.
+  if(document.querySelector('[data-admin-login],[data-admin-app]'))return;
   try{
     if(!(await waitForFirebaseSdk()))throw new Error('Firebase SDK did not load');
     let config;
