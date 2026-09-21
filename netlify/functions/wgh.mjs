@@ -551,21 +551,13 @@ function serializeBatch(doc) {
 }
 
 
-async function getAllOrders(db, batchSize = 500) {
-  const all = [];
-  let lastDoc = null;
-  while (true) {
-    let query = db.collection("orders").orderBy(admin.firestore.FieldPath.documentId(), "desc").limit(batchSize);
-    if (lastDoc) query = query.startAfter(lastDoc);
-    const snapshot = await query.get();
-    if (snapshot.empty) break;
-    snapshot.docs.forEach(doc => all.push(serializeOrder(doc)));
-    if (snapshot.size < batchSize) break;
-    lastDoc = snapshot.docs[snapshot.docs.length - 1];
-  }
-  return all;
+async function getAllOrders(db) {
+  // Fetch the complete orders collection directly. The admin dashboard does
+  // not need a Firestore cursor/orderBy query here, which avoids requiring a
+  // custom composite or collection-group index just to populate admin views.
+  const snapshot = await db.collection("orders").get();
+  return snapshot.docs.map(serializeOrder);
 }
-
 
 function serializeOrder(doc) {
   const order = doc.data();
@@ -3341,17 +3333,17 @@ export default async function handler(
 
     if (path === "/admin/orders-page" && method === "GET") {
       await requireAdmin(request);
-      const url=new URL(request.url), size=Math.min(100,Math.max(10,Number(url.searchParams.get("limit")||50))), after=safeText(url.searchParams.get("after"),60);
-      let q=getDb().collection("orders").orderBy("orderNumber","desc").limit(size);
-      if(after) q=q.startAfter(after);
-      const snap=await q.get(), items=snap.docs.map(serializeOrder);
-      return json(200,{items,nextCursor:snap.docs.length===size?(snap.docs[snap.docs.length-1].data().orderNumber||snap.docs[snap.docs.length-1].id):null});
+      const items=await getAllOrders(getDb());
+      items.sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
+      return json(200,{items,nextCursor:null});
     }
 
     if (path === "/admin/notifications" && method === "GET") {
       await requireAdmin(request);
-      const snap=await getDb().collection("adminNotifications").orderBy("createdAt","desc").limit(100).get();
-      return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)})));
+      const snap=await getDb().collection("adminNotifications").limit(100).get();
+      const items=snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}));
+      items.sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+      return json(200,items);
     }
     if (path === "/admin/notification-read" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request);
@@ -3419,22 +3411,14 @@ export default async function handler(
 
 
       const snapshot =
-        await db
-          .collection(
-            "orders"
-          )
-          .limit(500)
-          .get();
+        await getAllOrders(db);
 
 
       const customers =
         new Map();
 
 
-      snapshot.docs
-        .map(
-          serializeOrder
-        )
+      snapshot
         .forEach(
           (order) => {
             const key =
