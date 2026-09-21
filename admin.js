@@ -32,11 +32,31 @@
   }
   async function adminRequest(path,body,prefix=true){const auth=await ensureAdminAuth(),user=auth.currentUser;if(!user)throw new Error('Please sign in to admin again.');const token=await user.getIdToken(),opts={method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${token}`}};if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}const res=await fetch(`${WGH.API_BASE}${prefix?'/admin':''}${path}`,opts),data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Admin request failed.');return data}
   async function adminApi(path,body){adminBusy(true);try{return await adminRequest(path,body,true)}finally{adminBusy(false)}}
-  const VIEW_LOADERS={overview:loadOverview,orders:loadOrders,transactions:loadTransactions,international:loadInternational,analytics:loadAnalytics,batches:loadBatches,products:loadProducts,categories:loadCategoriesAdmin,wholesale:loadWholesale,customers:loadCustomers,accounts:loadAccounts,abandoned:loadAbandoned,subscribers:loadSubscribers,alerts:loadAlerts,activity:loadActivity,settings:loadSettings};
+  function getViewLoader(name){
+    switch(name){
+      case 'overview': return loadOverview;
+      case 'orders': return loadOrders;
+      case 'transactions': return loadTransactions;
+      case 'international': return typeof loadInternational==='function'?loadInternational:null;
+      case 'analytics': return loadAnalytics;
+      case 'batches': return loadBatches;
+      case 'products': return loadProducts;
+      case 'categories': return loadCategoriesAdmin;
+      case 'wholesale': return typeof loadWholesale==='function'?loadWholesale:null;
+      case 'customers': return loadCustomers;
+      case 'accounts': return loadAccounts;
+      case 'abandoned': return loadAbandoned;
+      case 'subscribers': return typeof loadSubscribers==='function'?loadSubscribers:null;
+      case 'alerts': return loadAlerts;
+      case 'activity': return loadActivity;
+      case 'settings': return loadSettings;
+      default: return null;
+    }
+  }
   function showView(name){
     if(!ADMIN_VIEWS.includes(name))name='overview';
     location.hash=name;document.querySelectorAll('[data-admin-view]').forEach(b=>b.classList.toggle('active',b.dataset.adminView===name));document.querySelectorAll('[data-view-panel]').forEach(p=>{const active=p.dataset.viewPanel===name;p.hidden=!active;p.classList.toggle('active',active)});document.body.classList.remove('admin-menu-open');window.scrollTo({top:0,behavior:'instant'});
-    const loader=VIEW_LOADERS[name];if(loader)runViewLoader(name,loader);
+    const loader=getViewLoader(name);if(loader)runViewLoader(name,loader);
   }
   document.querySelectorAll('[data-admin-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.adminView)));document.querySelectorAll('[data-jump-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.jumpView)));document.querySelector('[data-admin-menu]')?.addEventListener('click',()=>document.body.classList.toggle('admin-menu-open'));
 
@@ -308,13 +328,36 @@
   async function loadMessages(){const root=document.querySelector('[data-messages-list]');try{const data=await adminApi('/messages');root.innerHTML=data.length?data.map(x=>`<article class="admin-notification"><i class="fa-solid fa-comment"></i><div><strong>${escape(x.name||x.email||'Message')}</strong><p>${escape(x.message||'')}</p></div><span>${date(x.createdAt)}</span></article>`).join(''):empty('Inbox is clear','New connected-form messages will appear here.')}catch(e){root.innerHTML=empty('Inbox is clear','No messages are available yet.')}}
   async function loadActivity(){await ensureOrders();const items=[];orders.forEach(o=>(o.statusHistory||[]).forEach(h=>items.push({at:h.at,title:`${o.orderNumber} · ${labels[h.status]||h.status}`,copy:h.by?`Changed by ${h.by}`:'Order status updated'})));orders.forEach(o=>(o.adminNotes||[]).forEach(n=>items.push({at:n.at,title:`${o.orderNumber} · Internal note`,copy:`${n.by||'Admin'}: ${n.note}`})));items.sort((a,b)=>String(b.at).localeCompare(String(a.at)));const root=document.querySelector('[data-activity-list]');if(root)root.innerHTML=items.length?items.slice(0,200).map(x=>`<article class="admin-notification"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${escape(x.title)}</strong><p>${escape(x.copy)}</p></div><span>${date(x.at)}</span></article>`).join(''):empty('No activity yet','Status changes and admin notes will create an audit trail here.')}
 
+  async function loadInternational(){
+    const root=document.querySelector('[data-international-list]');
+    const all=await adminApi('/orders-all');
+    const items=(all||[]).filter(o=>{const country=String(o.delivery?.country||'Ghana').trim().toLowerCase();return country&&country!=='ghana';});
+    if(root)root.innerHTML=items.length?items.map(o=>`<article class="international-order-card"><div><p class="eyebrow">${escape(o.orderNumber)}</p><h3>${escape(o.customerName||'Customer')}</h3><p>${escape(o.customerEmail||'')}${o.customerPhone?` · ${escape(o.customerPhone)}`:''}</p></div><div><strong>${escape(o.delivery?.country||'International')}</strong><span>${escape([o.delivery?.address,o.delivery?.city,o.delivery?.region].filter(Boolean).join(', ')||'Address not recorded')}</span></div><div><b>${WGH.money(o.total)}</b><span>${escape(labels[o.status]||o.status||'Confirmed')}</span></div></article>`).join(''):empty('No international orders','Orders with a destination outside Ghana will appear here.');
+  }
+
+  async function loadWholesale(){
+    const [productsResult,allOrders]=await Promise.all([adminApi('/products'),adminApi('/orders-all')]);
+    const products=(productsResult||[]).filter(p=>p.active!==false),ready=products.filter(p=>Number(p.wholesalePrice)>0);
+    const wholesaleOrders=(allOrders||[]).filter(o=>(o.items||[]).some(i=>String(i.mode||'').toLowerCase()==='wholesale'));
+    const metrics=document.querySelector('[data-wholesale-metrics]');
+    if(metrics)metrics.innerHTML=[['Products',products.length],['Wholesale ready',ready.length],['Wholesale orders',wholesaleOrders.length],['Styles pending',products.filter(p=>Number(p.wholesalePrice)<=0).length]].map(([l,v])=>`<article class="admin-metric"><p>${l}</p><strong>${v}</strong></article>`).join('');
+    const root=document.querySelector('[data-wholesale-products]');
+    if(root)root.innerHTML=products.map(p=>`<tr><td><strong>${escape(p.name)}</strong><small>${escape(WGH.categoryName?.(p.category)||p.category||'Collection')}</small></td><td>${Number(p.wholesalePrice)>0?WGH.money(p.wholesalePrice):'<span class="status-pill warning">Not set</span>'}</td><td>${Number(p.moq||6)}</td><td>${(p.colours||[]).length}</td><td>${(p.sizes||[]).length}</td><td><span class="status-pill ${Number(p.wholesalePrice)>0?'':'warning'}">${Number(p.wholesalePrice)>0?'Ready':'Pending'}</span></td></tr>`).join('')||'<tr><td colspan="6"><div class="admin-empty-row"><strong>No products found.</strong></div></td></tr>';
+  }
+
+  async function loadSubscribers(){
+    const root=document.querySelector('[data-subscribers-table]');
+    const data=await adminApi('/subscribers');
+    if(root)root.innerHTML=(data||[]).map(s=>`<tr><td><strong>${escape(s.email)}</strong></td><td>${escape([s.firstName,s.lastName].filter(Boolean).join(' ')||s.name||'—')}</td><td><span class="status-pill">${s.subscribed===false?'Unsubscribed':'Subscribed'}</span></td><td>${date(s.updatedAt||s.createdAt)}</td></tr>`).join('')||'<tr><td colspan="4"><div class="admin-empty-row"><strong>No subscribers yet.</strong></div></td></tr>';
+  }
+
   async function loadSettings(){const settings=await adminApi('/settings');const f=document.querySelector('[data-store-settings-form]');if(f){['businessName','businessEmail','whatsapp','instagram','batchCapacity','defaultMoq','pickupAddress'].forEach(k=>{if(f.elements[k])f.elements[k].value=settings[k]??(k==='batchCapacity'?150:k==='defaultMoq'?6:'')})}}
   document.querySelector('[data-refresh-transactions]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadTransactions,'Refreshing'));
-document.querySelector('[data-refresh-international]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadInternational,'Refreshing'));
-document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadWholesale,'Refreshing'));
+document.querySelector('[data-refresh-international]')?.addEventListener('click',e=>{const loader=getViewLoader('international');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');WGH.showToast('International orders are not available yet.');});
+document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>{const loader=getViewLoader('wholesale');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');WGH.showToast('Wholesale data is not available yet.');});
 document.querySelector('[data-refresh-reviews]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadReviews,'Refreshing'));
 document.querySelector('[data-refresh-abandoned]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAbandoned,'Refreshing'));
-document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadSubscribers,'Refreshing'));
+document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>{const loader=getViewLoader('subscribers');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');WGH.showToast('Subscribers are not available yet.');});
 document.querySelector('[data-refresh-messages]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadMessages,'Refreshing'));
 document.querySelector('[data-refresh-activity]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadActivity,'Refreshing'));
 document.querySelector('[data-refresh-analytics]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAnalytics,'Refreshing'));
