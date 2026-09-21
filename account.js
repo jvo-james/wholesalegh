@@ -11,6 +11,12 @@
   let pendingPassword='';
   let authWaitTimer=null;
 
+  async function setSafeAuthPersistence(){
+    if(!WGH.auth)return;
+    try{await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);return;}catch{}
+    try{await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);}catch{}
+  }
+
   const showView=name=>views.forEach(v=>v.hidden=v.dataset.authView!==name);
   const message=(selector,text)=>{const el=document.querySelector(selector);if(el)el.textContent=text||''};
   const verificationPasswordWrap=()=>document.querySelector('[data-verification-password-wrap]');
@@ -98,7 +104,7 @@
       const data=Object.fromEntries(new FormData(e.currentTarget));
       try{
         if(!WGH.auth)throw new Error('Account services are not available in this browser yet. Please refresh or open this page in Safari/Chrome.');
-        await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        await setSafeAuthPersistence();
         await WGH.auth.signInWithEmailAndPassword(data.email.trim(),data.password);
       }catch(err){
         const friendly=WGH.friendlyError(err);message('[data-signin-message]',friendly);
@@ -161,7 +167,7 @@
       try{
         const result=await WGH.api('/account/complete-signup',{email,password,code,marketingConsent:Boolean(pendingSignup?.marketingConsent)});
         if(!WGH.auth)throw new Error('Your email was verified, but sign-in services did not load. Open this page in Safari/Chrome and sign in with your email and password.');
-        await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        await setSafeAuthPersistence();
         await WGH.auth.signInWithCustomToken(result.customToken);
         pendingPassword='';storePending(null);
         showDashboard();

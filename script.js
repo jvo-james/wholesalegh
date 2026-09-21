@@ -312,9 +312,27 @@ WGH.openExternalBrowser = async () => {
   }
 };
 
-WGH.showBrowserNotice = () => {};
+let browserNoticeEl=null;
+WGH.showBrowserNotice = (messageText='This page works best in Safari or Chrome.') => {
+  if(!WGH.isInAppBrowser?.())return;
+  if(!browserNoticeEl){
+    browserNoticeEl=document.createElement('aside');
+    browserNoticeEl.className='wgh-browser-notice';
+    browserNoticeEl.setAttribute('role','status');
+    browserNoticeEl.innerHTML='<div class="wgh-browser-notice-copy"><strong>Open in your browser</strong><span data-browser-notice-message></span></div><div class="wgh-browser-notice-actions"><button type="button" data-browser-notice-open>Open browser</button><button type="button" class="wgh-browser-notice-close" data-browser-notice-close aria-label="Dismiss browser notice">×</button></div>';
+    document.body.appendChild(browserNoticeEl);
+    browserNoticeEl.querySelector('[data-browser-notice-open]').onclick=()=>WGH.openExternalBrowser();
+    browserNoticeEl.querySelector('[data-browser-notice-close]').onclick=()=>{browserNoticeEl?.classList.remove('show');try{sessionStorage.setItem('wgh_browser_notice_dismissed','1')}catch{}};
+  }
+  const copy=browserNoticeEl.querySelector('[data-browser-notice-message]');if(copy)copy.textContent=messageText;
+  browserNoticeEl.classList.add('show');
+};
 
-function initInAppBrowserNotice(){}
+function initInAppBrowserNotice(){
+  if(!WGH.isInAppBrowser?.())return;
+  let dismissed=false;try{dismissed=sessionStorage.getItem('wgh_browser_notice_dismissed')==='1'}catch{}
+  if(!dismissed)WGH.showBrowserNotice('Some payments and account flows can be restricted inside social-app browsers.');
+}
 
 const waitForFirebaseSdk = async () => {
   for(let i=0;i<40;i++){
@@ -334,7 +352,7 @@ async function initFirebase(){
       let storeApp=firebase.apps.find(a=>a.name==='wgh-storefront');
       if(!storeApp)storeApp=firebase.initializeApp(config.firebase,'wgh-storefront');
       WGH.auth=storeApp.auth();
-      await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      try{await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);}catch{try{await WGH.auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);}catch{}}
       WGH.db=firebase.firestore?.();
       WGH.auth.onIdTokenChanged(async user=>{
         WGH.currentUser=user||null;
@@ -493,4 +511,5 @@ document.addEventListener('DOMContentLoaded',()=>{
   safeInit('home',initHome);
   safeInit('account menu',initAccountMenu);
   safeInit('firebase',initFirebase);
+  safeInit('in-app browser notice',initInAppBrowserNotice);
 });
