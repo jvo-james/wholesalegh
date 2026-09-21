@@ -32,31 +32,11 @@
   }
   async function adminRequest(path,body,prefix=true){const auth=await ensureAdminAuth(),user=auth.currentUser;if(!user)throw new Error('Please sign in to admin again.');const token=await user.getIdToken(),opts={method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${token}`}};if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}const res=await fetch(`${WGH.API_BASE}${prefix?'/admin':''}${path}`,opts),data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Admin request failed.');return data}
   async function adminApi(path,body){adminBusy(true);try{return await adminRequest(path,body,true)}finally{adminBusy(false)}}
-  function getViewLoader(name){
-    switch(name){
-      case 'overview': return loadOverview;
-      case 'orders': return loadOrders;
-      case 'transactions': return loadTransactions;
-      case 'international': return typeof loadInternational==='function'?loadInternational:null;
-      case 'analytics': return loadAnalytics;
-      case 'batches': return loadBatches;
-      case 'products': return loadProducts;
-      case 'categories': return loadCategoriesAdmin;
-      case 'wholesale': return typeof loadWholesale==='function'?loadWholesale:null;
-      case 'customers': return loadCustomers;
-      case 'accounts': return loadAccounts;
-      case 'abandoned': return loadAbandoned;
-      case 'subscribers': return typeof loadSubscribers==='function'?loadSubscribers:null;
-      case 'alerts': return loadAlerts;
-      case 'activity': return loadActivity;
-      case 'settings': return loadSettings;
-      default: return null;
-    }
-  }
+  const VIEW_LOADERS={overview:loadOverview,orders:loadOrders,transactions:loadTransactions,international:loadInternational,analytics:loadAnalytics,batches:loadBatches,products:loadProducts,categories:loadCategoriesAdmin,wholesale:loadWholesale,customers:loadCustomers,accounts:loadAccounts,abandoned:loadAbandoned,subscribers:loadSubscribers,alerts:loadAlerts,activity:loadActivity,settings:loadSettings};
   function showView(name){
     if(!ADMIN_VIEWS.includes(name))name='overview';
     location.hash=name;document.querySelectorAll('[data-admin-view]').forEach(b=>b.classList.toggle('active',b.dataset.adminView===name));document.querySelectorAll('[data-view-panel]').forEach(p=>{const active=p.dataset.viewPanel===name;p.hidden=!active;p.classList.toggle('active',active)});document.body.classList.remove('admin-menu-open');window.scrollTo({top:0,behavior:'instant'});
-    const loader=getViewLoader(name);if(loader)runViewLoader(name,loader);
+    const loader=VIEW_LOADERS[name];if(loader)runViewLoader(name,loader);
   }
   document.querySelectorAll('[data-admin-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.adminView)));document.querySelectorAll('[data-jump-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.jumpView)));document.querySelector('[data-admin-menu]')?.addEventListener('click',()=>document.body.classList.toggle('admin-menu-open'));
 
@@ -113,7 +93,7 @@
   document.querySelector('[data-admin-signout]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>adminAuth?.signOut(),'Signing out'));
 
   async function loadOverview(){
-    const [overview,recentBatches,recentOrders]=await Promise.all([adminApi('/overview'),adminApi('/batches'),adminApi('/orders-page?limit=50')]);batches=recentBatches;orders=recentOrders.items||[];
+    const [overview,recentBatches,allOrders]=await Promise.all([adminApi('/overview'),adminApi('/batches'),adminApi('/orders-all')]);batches=recentBatches;orders=Array.isArray(allOrders)?allOrders:[];
     document.querySelector('[data-overview-metrics]').innerHTML=[['Total orders',overview.orders],['Active orders',overview.activeOrders],['Pieces in production',overview.pieces],['Revenue',WGH.money(overview.revenue)]].map(([l,v])=>`<article class="admin-metric"><p>${l}</p><strong>${v}</strong></article>`).join('');
     const batchOverview=document.querySelector('[data-overview-batches]');if(batchOverview)batchOverview.innerHTML=batches.slice(0,5).map(batchRow).join('')||empty('No production batches yet','A production batch will appear automatically after the first paid order is assigned.');
     document.querySelector('[data-overview-orders]').innerHTML=orders.slice(0,6).map(orderRow).join('')||empty('No orders yet','Paid website orders and manually created orders will appear here.');
@@ -180,7 +160,7 @@
     WGH.openLayer(panel);
   }
 
-  async function loadCustomers(){const btn=document.querySelector('[data-refresh-customers]');await WGH.withLoading(btn,async()=>{[customers,orders]=await Promise.all([adminApi('/customers'),adminApi('/orders-all')]);renderCustomers()},'Refreshing')}
+  async function loadCustomers(){const btn=document.querySelector('[data-refresh-customers]');await WGH.withLoading(btn,async()=>{customers=await adminApi('/customers');await ensureOrders(true);renderCustomers()},'Refreshing')}
   function renderCustomers(){document.querySelector('[data-customers-table]').innerHTML=customers.map((c,i)=>`<tr class="admin-click-row" data-customer-index="${i}"><td><strong>${escape(c.name||'Customer')}</strong><small>${escape(c.email)}</small></td><td>${escape(c.phone)}</td><td>${c.orders}</td><td>${c.pieces}</td><td>${WGH.money(c.spent)}</td><td>${date(c.lastOrder)}</td></tr>`).join('')||`<tr><td colspan="6">No customer orders yet.</td></tr>`;document.querySelector('[data-customers-mobile]').innerHTML=customers.map((c,i)=>`<article class="admin-mobile-card admin-click-row" data-customer-index="${i}"><div><strong>${escape(c.name||'Customer')}</strong><span>${escape(c.email)}</span></div><p>${c.orders} orders · ${c.pieces} pieces · ${WGH.money(c.spent)}</p></article>`).join('');document.querySelectorAll('[data-customer-index]').forEach(el=>el.onclick=()=>openCustomerDetail(customers[+el.dataset.customerIndex]))}
   const date=v=>v?new Date(v).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-';
   function exportCsv(b,batchOrders){const lines=[['Batch','Order','Customer','Product','Colour','Size','Quantity']];batchOrders.forEach(o=>(o.items||[]).forEach(item=>(item.variants||[]).forEach(v=>lines.push([b.batchName,o.orderNumber,o.customerName,item.name,v.colour,v.size,v.quantity]))));const csv=lines.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`${(b.batchName||b.id).replace(/\s+/g,'-').toLowerCase()}-production-sheet.csv`;a.click();URL.revokeObjectURL(url)}
@@ -274,7 +254,7 @@
 
 
   document.querySelector('[data-refresh-overview]')?.addEventListener('click',e=>runViewLoader('overview',()=>WGH.withLoading(e.currentTarget,loadOverview,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-batches]')?.addEventListener('click',e=>runViewLoader('batches',loadBatches,'Refreshing'));document.querySelector('[data-refresh-orders]')?.addEventListener('click',e=>runViewLoader('orders',loadOrders,'Refreshing'));document.querySelector('[data-refresh-products]')?.addEventListener('click',e=>runViewLoader('products',()=>WGH.withLoading(e.currentTarget,loadProducts,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-categories]')?.addEventListener('click',e=>runViewLoader('categories',()=>WGH.withLoading(e.currentTarget,loadCategoriesAdmin,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-customers]')?.addEventListener('click',e=>runViewLoader('customers',loadCustomers,'Refreshing'));
-  async function loadAnalytics(){if(!orders.length)orders=await adminApi('/orders-all');const revenue=orders.reduce((s,o)=>s+Number(o.total||0),0),pieces=orders.reduce((s,o)=>s+Number(o.pieces||0),0),avg=orders.length?revenue/orders.length:0;const metrics=document.querySelector('[data-analytics-metrics]');if(metrics)metrics.innerHTML=[['Revenue',WGH.money(revenue)],['Average order',WGH.money(avg)],['Pieces',pieces],['Orders',orders.length]].map(([l,v],i)=>`<article class="admin-metric"><span>${i+1}</span><p>${l}</p><strong>${v}</strong></article>`).join('');const counts=Object.fromEntries(statuses.map(x=>[x,0]));orders.forEach(o=>counts[o.status]=(counts[o.status]||0)+1);const max=Math.max(1,...Object.values(counts));const bars=document.querySelector('[data-status-bars]');if(bars)bars.innerHTML=Object.entries(counts).filter(([,n])=>n).map(([k,n])=>`<div><span>${labels[k]||k}</span><i><b style="width:${n/max*100}%"></b></i><strong>${n}</strong></div>`).join('')||empty('No order data yet','Analytics will appear after the first order.');}
+  async function loadAnalytics(){await ensureOrders();const revenue=orders.reduce((s,o)=>s+Number(o.total||0),0),pieces=orders.reduce((s,o)=>s+Number(o.pieces||0),0),avg=orders.length?revenue/orders.length:0;const metrics=document.querySelector('[data-analytics-metrics]');if(metrics)metrics.innerHTML=[['Revenue',WGH.money(revenue)],['Average order',WGH.money(avg)],['Pieces',pieces],['Orders',orders.length]].map(([l,v],i)=>`<article class="admin-metric"><span>${i+1}</span><p>${l}</p><strong>${v}</strong></article>`).join('');const counts=Object.fromEntries(statuses.map(x=>[x,0]));orders.forEach(o=>counts[o.status]=(counts[o.status]||0)+1);const max=Math.max(1,...Object.values(counts));const bars=document.querySelector('[data-status-bars]');if(bars)bars.innerHTML=Object.entries(counts).filter(([,n])=>n).map(([k,n])=>`<div><span>${labels[k]||k}</span><i><b style="width:${n/max*100}%"></b></i><strong>${n}</strong></div>`).join('')||empty('No order data yet','Analytics will appear after the first order.');}
   async function notificationGo(n){
     const target=n?.target||'overview';
     showView(target);
@@ -328,42 +308,18 @@
   async function loadMessages(){const root=document.querySelector('[data-messages-list]');try{const data=await adminApi('/messages');root.innerHTML=data.length?data.map(x=>`<article class="admin-notification"><i class="fa-solid fa-comment"></i><div><strong>${escape(x.name||x.email||'Message')}</strong><p>${escape(x.message||'')}</p></div><span>${date(x.createdAt)}</span></article>`).join(''):empty('Inbox is clear','New connected-form messages will appear here.')}catch(e){root.innerHTML=empty('Inbox is clear','No messages are available yet.')}}
   async function loadActivity(){await ensureOrders();const items=[];orders.forEach(o=>(o.statusHistory||[]).forEach(h=>items.push({at:h.at,title:`${o.orderNumber} · ${labels[h.status]||h.status}`,copy:h.by?`Changed by ${h.by}`:'Order status updated'})));orders.forEach(o=>(o.adminNotes||[]).forEach(n=>items.push({at:n.at,title:`${o.orderNumber} · Internal note`,copy:`${n.by||'Admin'}: ${n.note}`})));items.sort((a,b)=>String(b.at).localeCompare(String(a.at)));const root=document.querySelector('[data-activity-list]');if(root)root.innerHTML=items.length?items.slice(0,200).map(x=>`<article class="admin-notification"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${escape(x.title)}</strong><p>${escape(x.copy)}</p></div><span>${date(x.at)}</span></article>`).join(''):empty('No activity yet','Status changes and admin notes will create an audit trail here.')}
 
-  async function loadInternational(){
-    const root=document.querySelector('[data-international-list]');
-    const all=await adminApi('/orders-all');
-    const items=(all||[]).filter(o=>{const country=String(o.delivery?.country||'Ghana').trim().toLowerCase();return country&&country!=='ghana';});
-    if(root)root.innerHTML=items.length?items.map(o=>`<article class="international-order-card"><div><p class="eyebrow">${escape(o.orderNumber)}</p><h3>${escape(o.customerName||'Customer')}</h3><p>${escape(o.customerEmail||'')}${o.customerPhone?` · ${escape(o.customerPhone)}`:''}</p></div><div><strong>${escape(o.delivery?.country||'International')}</strong><span>${escape([o.delivery?.address,o.delivery?.city,o.delivery?.region].filter(Boolean).join(', ')||'Address not recorded')}</span></div><div><b>${WGH.money(o.total)}</b><span>${escape(labels[o.status]||o.status||'Confirmed')}</span></div></article>`).join(''):empty('No international orders','Orders with a destination outside Ghana will appear here.');
-  }
-
-  async function loadWholesale(){
-    const [productsResult,allOrders]=await Promise.all([adminApi('/products'),adminApi('/orders-all')]);
-    const products=(productsResult||[]).filter(p=>p.active!==false),ready=products.filter(p=>Number(p.wholesalePrice)>0);
-    const wholesaleOrders=(allOrders||[]).filter(o=>(o.items||[]).some(i=>String(i.mode||'').toLowerCase()==='wholesale'));
-    const metrics=document.querySelector('[data-wholesale-metrics]');
-    if(metrics)metrics.innerHTML=[['Products',products.length],['Wholesale ready',ready.length],['Wholesale orders',wholesaleOrders.length],['Styles pending',products.filter(p=>Number(p.wholesalePrice)<=0).length]].map(([l,v])=>`<article class="admin-metric"><p>${l}</p><strong>${v}</strong></article>`).join('');
-    const root=document.querySelector('[data-wholesale-products]');
-    if(root)root.innerHTML=products.map(p=>`<tr><td><strong>${escape(p.name)}</strong><small>${escape(WGH.categoryName?.(p.category)||p.category||'Collection')}</small></td><td>${Number(p.wholesalePrice)>0?WGH.money(p.wholesalePrice):'<span class="status-pill warning">Not set</span>'}</td><td>${Number(p.moq||6)}</td><td>${(p.colours||[]).length}</td><td>${(p.sizes||[]).length}</td><td><span class="status-pill ${Number(p.wholesalePrice)>0?'':'warning'}">${Number(p.wholesalePrice)>0?'Ready':'Pending'}</span></td></tr>`).join('')||'<tr><td colspan="6"><div class="admin-empty-row"><strong>No products found.</strong></div></td></tr>';
-  }
-
-  async function loadSubscribers(){
-    const root=document.querySelector('[data-subscribers-table]');
-    const data=await adminApi('/subscribers');
-    if(root)root.innerHTML=(data||[]).map(s=>`<tr><td><strong>${escape(s.email)}</strong></td><td>${escape([s.firstName,s.lastName].filter(Boolean).join(' ')||s.name||'—')}</td><td><span class="status-pill">${s.subscribed===false?'Unsubscribed':'Subscribed'}</span></td><td>${date(s.updatedAt||s.createdAt)}</td></tr>`).join('')||'<tr><td colspan="4"><div class="admin-empty-row"><strong>No subscribers yet.</strong></div></td></tr>';
-  }
-
   async function loadSettings(){const settings=await adminApi('/settings');const f=document.querySelector('[data-store-settings-form]');if(f){['businessName','businessEmail','whatsapp','instagram','batchCapacity','defaultMoq','pickupAddress'].forEach(k=>{if(f.elements[k])f.elements[k].value=settings[k]??(k==='batchCapacity'?150:k==='defaultMoq'?6:'')})}}
   document.querySelector('[data-refresh-transactions]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadTransactions,'Refreshing'));
-document.querySelector('[data-refresh-international]')?.addEventListener('click',e=>{const loader=getViewLoader('international');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');WGH.showToast('International orders are not available yet.');});
-document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>{const loader=getViewLoader('wholesale');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');WGH.showToast('Wholesale data is not available yet.');});
+document.querySelector('[data-refresh-international]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadInternational,'Refreshing'));
+document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadWholesale,'Refreshing'));
 document.querySelector('[data-refresh-reviews]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadReviews,'Refreshing'));
 document.querySelector('[data-refresh-abandoned]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAbandoned,'Refreshing'));
-document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>{const loader=getViewLoader('subscribers');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');WGH.showToast('Subscribers are not available yet.');});
+document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadSubscribers,'Refreshing'));
 document.querySelector('[data-refresh-messages]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadMessages,'Refreshing'));
 document.querySelector('[data-refresh-activity]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadActivity,'Refreshing'));
 document.querySelector('[data-refresh-analytics]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAnalytics,'Refreshing'));
 document.querySelector('[data-refresh-alerts]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAlerts,'Refreshing'));
 document.querySelector('[data-refresh-settings]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadSettings,'Refreshing'));
-  document.querySelector('[data-email-test-form]')?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button'),msg=document.querySelector('[data-email-test-message]'),email=new FormData(e.currentTarget).get('email');msg.textContent='';await WGH.withLoading(btn,async()=>{try{const r=await adminApi('/email-test',{email});msg.textContent=`Email accepted by the delivery service${r.id?` · ${r.id}`:''}.`;}catch(err){msg.textContent=WGH.friendlyError(err)}},'Sending test')});
   document.querySelectorAll('[data-admin-view]').forEach(btn=>btn.addEventListener('click',()=>{const v=btn.dataset.adminView;if(v==='analytics')loadAnalytics();if(v==='alerts')loadAlerts();if(v==='settings')loadSettings();}));
 
   document.querySelector('[data-store-settings-form]')?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button');await WGH.withLoading(btn,async()=>{await adminApi('/settings-save',Object.fromEntries(new FormData(e.currentTarget)));WGH.showToast('Store settings saved.','success')},'Saving settings')});
@@ -379,6 +335,32 @@ document.querySelector('[data-refresh-settings]')?.addEventListener('click',e=>W
   function printOrders(ids){const selected=orders.filter(o=>ids.includes(o.orderNumber));if(!selected.length)return WGH.showToast('Select at least one order first.');const w=open('','_blank');if(!w)return WGH.showToast('Your browser blocked the packing-slip window. Allow pop-ups for this site, then try again.');w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>The Wholesale Ghana · Packing slips</title><style>@page{size:4in 6in;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#ece9e2;color:#181713;font-size:10px}.print-page{width:4in;height:6in;margin:0 auto 16px;padding:.16in .18in;background:#fff;overflow:hidden;break-after:page;page-break-after:always}.print-page:last-child{break-after:auto;page-break-after:auto}.packing-slip{height:100%;display:flex;flex-direction:column;transform-origin:top left}.slip-head{display:flex;justify-content:space-between;gap:10px;padding-bottom:9px;border-bottom:2px solid #171612}.slip-head>div:first-child{display:grid;gap:2px}.brand{font-size:13px;font-weight:900;letter-spacing:.06em}.slip-head small,.slip-grid small,.slip-payment small{font-size:6.5px;letter-spacing:.15em;color:#786f65}.slip-order{text-align:right;display:grid;gap:2px}.slip-order strong{font-size:15px}.slip-intro{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:9px 0}.slip-intro>div:first-child>span{font-size:6.5px;letter-spacing:.14em;font-weight:800}.slip-intro h1{font-size:18px;line-height:1;margin:3px 0 2px}.slip-intro p{margin:0;color:#675f56;font-size:8px}.paid-chip{border:1px solid #181713;padding:5px 7px;display:grid;text-align:right;gap:1px}.paid-chip small{font-size:5.8px;letter-spacing:.12em}.paid-chip b{font-size:8px}.slip-grid{display:grid;grid-template-columns:1fr 1.45fr 1fr;border:1px solid #d9d3c9}.slip-grid>div{padding:6px;border-right:1px solid #d9d3c9;display:grid;align-content:start;gap:2px;min-width:0}.slip-grid>div:last-child{border-right:0}.slip-grid b{font-size:8px}.slip-grid span{font-size:6.7px;line-height:1.35;word-break:break-word}.slip-products{flex:1;min-height:0;padding-top:8px;overflow:hidden}.section-label{display:flex;justify-content:space-between;border-bottom:1px solid #181713;padding-bottom:4px;font-size:6.5px;letter-spacing:.12em}.slip-products main{overflow:hidden}.slip-item{display:grid;grid-template-columns:34px 1fr auto;gap:6px;padding:5px 0;border-bottom:1px solid #e5dfd6;align-items:start}.slip-item img{width:34px;height:40px;object-fit:contain;background:#f4f1eb}.slip-item h3{font-size:8px;margin:0 0 2px;line-height:1.15}.slip-item p{font-size:6.5px;margin:1px 0;color:#615a52}.slip-item>strong{font-size:7px;white-space:nowrap}.slip-payment{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:7px 0;border-top:2px solid #181713}.slip-payment>div{display:grid;gap:2px}.slip-payment>div:last-child span,.slip-payment>div:last-child strong{display:flex;justify-content:space-between;gap:8px;font-size:7px}.slip-payment>div:last-child strong{margin-top:2px;padding-top:3px;border-top:1px solid #d9d3c9;font-size:9px}.slip-payment>div:first-child>b{font-size:7px;word-break:break-all}.slip-payment>div:first-child>span{font-size:6px;color:#786f65}footer{border-top:1px solid #181713;padding-top:6px;display:flex;justify-content:space-between;align-items:flex-end}footer>div{display:grid;gap:2px}footer strong{font-size:7px}footer span{font-size:6px;color:#786f65}footer>b{font-size:8px;letter-spacing:.13em}@media print{body{background:#fff}.print-page{margin:0}}}</style></head><body>${selected.map(packingSlipHtml).join('')}<script>window.addEventListener('load',()=>{document.querySelectorAll('.print-page').forEach(page=>{const slip=page.querySelector('.packing-slip');const max=page.clientHeight;if(slip.scrollHeight>max){const scale=Math.max(.72,max/slip.scrollHeight);slip.style.transform='scale('+scale+')';slip.style.width=(100/scale)+'%'}});setTimeout(()=>window.print(),180)})<\/script></body></html>`);w.document.close()}
   document.querySelector('[data-bulk-print]')?.addEventListener('click',()=>printOrders([...new Set(selectedOrderNumbers())]));
   async function loadAccounts(){accounts=await adminApi('/accounts');const tb=document.querySelector('[data-accounts-table]'),mob=document.querySelector('[data-accounts-mobile]');if(tb)tb.innerHTML=accounts.map((a,i)=>`<tr class="admin-click-row" data-account-index="${i}"><td><strong>${escape([a.firstName,a.lastName].filter(Boolean).join(' ')||'Customer')}</strong></td><td>${escape(a.email)}</td><td>${escape(a.phone||'-')}</td><td>${date(a.createdAt)}</td><td>${a.orderCount||0}</td></tr>`).join('')||'<tr><td colspan="5">No accounts yet.</td></tr>';if(mob)mob.innerHTML=accounts.map((a,i)=>`<article class="admin-mobile-card"><strong>${escape([a.firstName,a.lastName].filter(Boolean).join(' ')||a.email)}</strong><p>${escape(a.email)} · ${a.orderCount||0} orders</p></article>`).join('')}
+  function isInternationalOrder(o){
+    const d=o?.delivery||{};
+    const country=String(d.country||d.countryName||d.countryCode||'').trim().toLowerCase();
+    if(!country)return false;
+    return !['ghana','gh','ghana, gh','republic of ghana'].includes(country);
+  }
+  async function loadInternational(){
+    const root=document.querySelector('[data-international-list]');
+    try{
+      const all=await ensureOrders(true);
+      const items=all.filter(isInternationalOrder);
+      if(!root)return;
+      root.innerHTML=items.length?items.map(o=>`<article class="admin-notification-row" data-order-detail="${escape(o.orderNumber)}"><div><strong>${escape(o.orderNumber)}</strong><p>${escape(o.customerName||o.customerEmail||'Customer')} · ${escape([o.delivery?.city,o.delivery?.country].filter(Boolean).join(', ')||'International destination')}</p><small>${o.pieces||0} pieces · ${WGH.money(o.total||0)} · ${escape(labels[o.status]||o.status||'Order confirmed')}</small></div><span>${date(o.createdAt)}</span></article>`).join(''):empty('No international orders','Orders with a destination outside Ghana will appear here.');
+      root.querySelectorAll('[data-order-detail]').forEach(b=>b.onclick=()=>openOrderDetail(b.dataset.orderDetail));
+    }catch(err){if(root)root.innerHTML=empty('Could not load International orders',WGH.friendlyError(err));throw err}
+  }
+  async function loadWholesale(){
+    const metrics=document.querySelector('[data-wholesale-metrics]'),root=document.querySelector('[data-wholesale-products]');
+    try{
+      const [products,all]=await Promise.all([adminApi('/products'),ensureOrders(true)]);
+      const wholesaleProducts=(Array.isArray(products)?products:[]).filter(p=>Number(p.wholesalePrice)>0&&p.active!==false);
+      const wholesaleOrders=all.filter(o=>(o.items||[]).some(i=>String(i.mode||i.orderType||'').toLowerCase()==='wholesale'));
+      if(metrics)metrics.innerHTML=[['Wholesale-ready styles',wholesaleProducts.length],['Wholesale orders',wholesaleOrders.length],['Wholesale pieces',wholesaleOrders.reduce((n,o)=>n+Number(o.pieces||0),0)],['Wholesale value',WGH.money(wholesaleOrders.reduce((n,o)=>n+Number(o.total||0),0))]].map(([l,v])=>`<article class="admin-metric"><p>${l}</p><strong>${v}</strong></article>`).join('');
+      if(root)root.innerHTML=wholesaleProducts.map(p=>`<tr><td><strong>${escape(p.name)}</strong></td><td>${WGH.money(p.wholesalePrice)}</td><td>${Number(p.moq||6)}</td><td>${(p.colours||[]).length}</td><td>${(p.sizes||[]).length}</td><td><span class="status-pill">${p.active===false?'Hidden':'Live'}</span></td></tr>`).join('')||'<tr><td colspan="6">No wholesale-ready products yet.</td></tr>';
+    }catch(err){if(root)root.innerHTML=`<tr><td colspan="6"><div class="admin-empty-row error"><strong>Wholesale could not load.</strong><span>${escape(WGH.friendlyError(err))}</span></div></td></tr>`;throw err}
+  }
   document.querySelector('[data-refresh-accounts]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAccounts,'Refreshing'));
   document.querySelector('[data-broadcast-form]')?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button'),msg=document.querySelector('[data-broadcast-message]'),d=Object.fromEntries(new FormData(e.currentTarget));await WGH.withLoading(btn,async()=>{try{const r=await adminApi('/broadcast',d);msg.textContent=`Sent to ${r.sent} subscriber${r.sent===1?'':'s'}${r.failed?`; ${r.failed} failed`:''}.`;WGH.showToast('Subscriber email sent.','success')}catch(err){msg.textContent=WGH.friendlyError(err)}},'Sending email')});
   let notificationOpen=false;async function loadNotificationPreview(){try{
