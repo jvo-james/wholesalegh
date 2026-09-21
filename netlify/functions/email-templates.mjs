@@ -120,12 +120,13 @@ function orderItems(items = []) {
   return (items || []).map(item => {
     const variant = itemVariantText(item);
     const qty = Number(item.totalQuantity || item.quantity || 1);
+    const unitPrice = Number(item.price ?? item.unitPrice ?? 0);
     return `<tr>
       <td style="padding:13px 0;border-bottom:1px solid ${BRAND.border};vertical-align:top;">
         <div style="font-size:13px;line-height:1.45;font-weight:600;color:${BRAND.text};">${escapeHtml(item.name || "Item")}</div>
         ${variant ? `<div style="margin-top:4px;font-size:11px;line-height:1.55;color:${BRAND.muted};">${escapeHtml(variant)}</div>` : ""}
       </td>
-      <td align="right" style="padding:13px 0;border-bottom:1px solid ${BRAND.border};vertical-align:top;white-space:nowrap;font-size:12px;line-height:1.45;">${money(Number(item.price || 0) * qty)}</td>
+      <td align="right" style="padding:13px 0;border-bottom:1px solid ${BRAND.border};vertical-align:top;white-space:nowrap;font-size:12px;line-height:1.45;">${money(unitPrice * qty)}</td>
     </tr>`;
   }).join("");
 }
@@ -134,7 +135,7 @@ function orderItemsText(items = []) {
   return (items || []).map(item => {
     const qty = Number(item.totalQuantity || item.quantity || 1);
     const variant = itemVariantText(item);
-    return `- ${clean(item.name || "Item")}${variant ? ` — ${variant}` : ""} — ${money(Number(item.price || 0) * qty)}`;
+    return `- ${clean(item.name || "Item")}${variant ? ` — ${variant}` : ""} — ${money(Number(item.price ?? item.unitPrice ?? 0) * qty)}`;
   }).join("\n");
 }
 
@@ -171,6 +172,46 @@ export function verificationEmail({ firstName = "", code }) {
         <div style="margin-top:9px;font-size:34px;line-height:1;font-weight:700;letter-spacing:.16em;color:${BRAND.text};">${escapeHtml(code)}</div>
       </div>`,
       footerNote: "This code expires shortly. If you did not request this account, you can safely ignore this email."
+    })
+  };
+}
+
+export function abandonedCartEmail(cart = {}) {
+  const name = clean(cart.name);
+  const items = Array.isArray(cart.items) ? cart.items : [];
+  const pieces = Number(cart.pieces || items.reduce((n,item)=>n+Number(item.totalQuantity||item.quantity||0),0));
+  const value = Number(cart.value || 0);
+  const greeting = name ? `Hi ${name}` : "Your saved pieces are still here";
+  return {
+    subject: "Still thinking it over? Your pieces are waiting — The Wholesale Ghana",
+    text: textLines(
+      greeting,
+      "",
+      "You left a few pieces in your bag before completing checkout. We saved the details so you can pick up where you left off.",
+      pieces ? `${pieces} piece${pieces===1?"":"s"} in your saved bag${value?` · ${money(value)}`:""}.` : "Your saved bag is still available.",
+      "",
+      "When you are ready, return to The Wholesale Ghana and complete checkout securely with Paystack.",
+      "",
+      `Return to the shop: ${siteUrl()}/shop.html`,
+      "",
+      "Need help with sizing, delivery or payment? Reply to this email and our team will help.",
+      "",
+      `${BRAND.name} · ${BRAND.phone} · @the.wholesalegh`
+    ),
+    html: layout({
+      preview: "Your saved pieces are waiting for you.",
+      eyebrow: "A gentle reminder",
+      title: name ? `Still thinking it over, ${name}?` : "Your saved pieces are waiting",
+      intro: "You started checkout but did not finish payment. We kept the cart details so you can return when you are ready.",
+      content: `<div style="margin-top:24px;padding:16px 0;border-top:1px solid ${BRAND.border};border-bottom:1px solid ${BRAND.border};">
+        ${infoRow("Saved pieces", `${pieces}`)}
+        ${value ? infoRow("Cart value", money(value)) : ""}
+      </div>
+      <div style="margin-top:24px;font-size:10px;line-height:1.4;letter-spacing:.13em;text-transform:uppercase;color:${BRAND.accent};">Your saved pieces</div>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">${orderItems(items)}</table>`,
+      buttonText: "Return to the shop",
+      buttonUrl: `${siteUrl()}/shop.html`,
+      footerNote: "Need a hand? Reply to this email for sizing, delivery or payment help. This message was sent because checkout activity was saved with this email address."
     })
   };
 }

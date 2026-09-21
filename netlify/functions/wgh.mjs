@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import {
   verificationEmail,
   customerOrderConfirmationEmail,
+  abandonedCartEmail,
   adminNewOrderEmail,
   productionStartedEmail,
   qualityControlEmail,
@@ -547,6 +548,22 @@ function serializeBatch(doc) {
     lockedBy: batch.lockedBy || "",
     lockedAt: timestampIso(batch.lockedAt)
   };
+}
+
+
+async function getAllOrders(db, batchSize = 500) {
+  const all = [];
+  let lastDoc = null;
+  while (true) {
+    let query = db.collection("orders").orderBy(admin.firestore.FieldPath.documentId(), "desc").limit(batchSize);
+    if (lastDoc) query = query.startAfter(lastDoc);
+    const snapshot = await query.get();
+    if (snapshot.empty) break;
+    snapshot.docs.forEach(doc => all.push(serializeOrder(doc)));
+    if (snapshot.size < batchSize) break;
+    lastDoc = snapshot.docs[snapshot.docs.length - 1];
+  }
+  return all;
 }
 
 
@@ -3317,8 +3334,8 @@ export default async function handler(
 
     if (path === "/admin/transactions" && method === "GET") {
       await requireAdmin(request);
-      const snap=await getDb().collection("orders").limit(500).get();
-      const items=snap.docs.map(serializeOrder).sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
+      const items=await getAllOrders(getDb());
+      items.sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
       return json(200,items);
     }
 
@@ -3372,30 +3389,8 @@ export default async function handler(
         getDb();
 
 
-      const snapshot =
-        await db
-          .collection(
-            "orders"
-          )
-          .limit(500)
-          .get();
-
-
-      const orders =
-        snapshot.docs
-          .map(
-            serializeOrder
-          )
-          .sort(
-            (a, b) =>
-              String(
-                b.createdAt
-              ).localeCompare(
-                String(
-                  a.createdAt
-                )
-              )
-          );
+      const orders = await getAllOrders(db);
+      orders.sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
 
 
       return json(
@@ -3873,9 +3868,17 @@ export default async function handler(
     }
 
     if (path === "/abandoned-cart" && method === "POST") {
-      const input=await readBody(request),email=safeText(input.email,160).toLowerCase(),phone=safeText(input.phone,50); if(!email&&!phone)return json(200,{ok:true,ignored:true});
-      const id=crypto.createHash("sha256").update(email||phone).digest("hex"),items=Array.isArray(input.items)?input.items.slice(0,30):[]; const pieces=items.reduce((n,i)=>n+Math.max(0,Number(i.totalQuantity||0)),0),value=items.reduce((n,i)=>n+Math.max(0,Number(i.unitPrice||0))*Math.max(0,Number(i.totalQuantity||0)),0);
-      await getDb().collection("abandonedCarts").doc(id).set({email,phone,name:safeText(input.name,160),items,pieces,value,status:"active",dismissed:false,recovered:false,updatedAt:admin.firestore.FieldValue.serverTimestamp(),createdAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true}); return json(200,{ok:true,id});
+      const input=await readBody(request);
+      const user=await optionalUser(request);
+      const email=(safeText(input.email,160)||safeText(user?.email,160)).toLowerCase();
+      const phone=safeText(input.phone,50);
+      if(!email&&!phone&&!user?.uid)return json(200,{ok:true,ignored:true});
+      const id=crypto.createHash("sha256").update(email||user?.uid||phone).digest("hex");
+      const items=Array.isArray(input.items)?input.items.slice(0,30):[];
+      const pieces=items.reduce((n,i)=>n+Math.max(0,Number(i.totalQuantity||0)),0);
+      const value=items.reduce((n,i)=>n+Math.max(0,Number(i.unitPrice||0))*Math.max(0,Number(i.totalQuantity||0)),0);
+      await getDb().collection("abandonedCarts").doc(id).set({email,phone,userId:user?.uid||null,name:safeText(input.name,160),items,pieces,value,status:"active",dismissed:false,recovered:false,updatedAt:admin.firestore.FieldValue.serverTimestamp(),createdAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return json(200,{ok:true,id});
     }
     if (path === "/abandoned-recovered" && method === "POST") {const input=await readBody(request),email=safeText(input.email,160).toLowerCase();if(email){const id=crypto.createHash("sha256").update(email).digest("hex");await getDb().collection("abandonedCarts").doc(id).set({recovered:true,status:"recovered",orderNumber:safeText(input.orderNumber,50),updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true})}return json(200,{ok:true});}
 
@@ -3920,8 +3923,12 @@ export default async function handler(
     }
 
     if (path === "/admin/products" && method === "GET") {
-      await requireAdmin(request); const db=getDb(); const snap=await db.collection("productOverrides").get();
-      return json(200,snap.docs.filter(doc=>!LEGACY_PRODUCT_IDS.has(doc.id)).map(doc=>({id:doc.id,...doc.data()})));
+      await requireAdmin(request); const db=getDb();
+      const [productSnap,overrideSnap]=await Promise.all([db.collection("products").get(),db.collection("productOverrides").get()]);
+      const effective=new Map(Object.entries(SERVER_CATALOG).map(([id,product])=>[id,{id,...product,active:true}]));
+      productSnap.docs.forEach(doc=>{if(!LEGACY_PRODUCT_IDS.has(doc.id))effective.set(doc.id,{...(effective.get(doc.id)||{id:doc.id}),...doc.data(),id:doc.id});});
+      overrideSnap.docs.forEach(doc=>{if(!LEGACY_PRODUCT_IDS.has(doc.id))effective.set(doc.id,{...(effective.get(doc.id)||{id:doc.id}),...doc.data(),id:doc.id});});
+      return json(200,[...effective.values()].filter(product=>product.active!==false));
     }
     if (path === "/admin/product-save" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80);
@@ -3981,6 +3988,24 @@ export default async function handler(
     if (path === "/admin/messages" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("messages").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}))); }
 
     if (path === "/admin/abandoned-action" && method === "POST") {await requireAdmin(request);const input=await readBody(request),id=safeText(input.id,100),action=safeText(input.action,30);if(!id)throw new Error("Choose a cart.");const patch={updatedAt:admin.firestore.FieldValue.serverTimestamp()};if(action==="dismiss")Object.assign(patch,{dismissed:true,status:"dismissed"});if(action==="restore")Object.assign(patch,{dismissed:false,status:"active"});await getDb().collection("abandonedCarts").doc(id).set(patch,{merge:true});return json(200,{ok:true});}
+    if (path === "/admin/abandoned-email" && method === "POST") {
+      await requireAdmin(request);
+      const input=await readBody(request),id=safeText(input.id,120);
+      if(!id)throw new Error("Choose a cart.");
+      const db=getDb();
+      const ref=db.collection("abandonedCarts").doc(id);
+      const snapshot=await ref.get();
+      if(!snapshot.exists)throw new Error("Abandoned cart not found.");
+      const cart={id:snapshot.id,...snapshot.data()};
+      if(cart.dismissed||cart.recovered)throw new Error("Only active abandoned carts can receive a recovery email.");
+      let email=safeText(cart.email,160).toLowerCase();
+      if(!email&&cart.userId){try{const user=await admin.auth().getUser(String(cart.userId));email=safeText(user.email,160).toLowerCase();}catch{}}
+      if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("This cart does not have a usable email address. Ask the customer for one first.");
+      const emailContent=abandonedCartEmail(cart);
+      await sendTemplate(email,emailContent);
+      await ref.set({email,recoveryEmailSentAt:admin.firestore.FieldValue.serverTimestamp(),recoveryEmailCount:admin.firestore.FieldValue.increment(1),updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return json(200,{ok:true,email});
+    }
 
     if (path === "/admin/accounts" && method === "GET") {
       await requireAdmin(request); const db=getDb(); const [usersSnap,ordersSnap]=await Promise.all([db.collection("users").limit(1500).get(),db.collection("orders").limit(1000).get()]);
