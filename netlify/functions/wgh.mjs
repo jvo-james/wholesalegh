@@ -276,20 +276,40 @@ async function requireAdmin(request) {
     return decoded;
   }
 
-  const adminDoc = await db
+  // Firestore admin records have existed in a few shapes over time.
+  // Support the UID document using either `active: true` or `admin: true`
+  // (plus a couple of common aliases) so creating the admin record in the
+  // Firebase console actually grants the intended access.
+  const uidDoc = await db
     .collection("admins")
     .doc(decoded.uid)
     .get();
 
-  if (
-    adminDoc.exists &&
-    adminDoc.data()?.active === true
-  ) {
-    return decoded;
+  if (uidDoc.exists) {
+    const data = uidDoc.data() || {};
+    if (data.active === true || data.admin === true || data.isAdmin === true || data.allowed === true) {
+      return decoded;
+    }
+  }
+
+  // Also support an admins/{email} document for installations where the
+  // administrator record was created with the email as the document ID.
+  if (email) {
+    const emailDoc = await db
+      .collection("admins")
+      .doc(email)
+      .get();
+
+    if (emailDoc.exists) {
+      const data = emailDoc.data() || {};
+      if (data.active === true || data.admin === true || data.isAdmin === true || data.allowed === true) {
+        return decoded;
+      }
+    }
   }
 
   throw new Error(
-    "This account is not approved for admin access."
+    "This account is not approved for admin access. In Firestore, create admins/{uid} and set active=true or admin=true."
   );
 }
 
