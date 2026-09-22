@@ -416,10 +416,15 @@
   }
   async function saveDiscountDisplay(button){
     const payload={showBanner:!!document.querySelector('[data-discount-show-banner]')?.checked,showModal:!!document.querySelector('[data-discount-show-modal]')?.checked};
-    await WGH.withLoading(button,async()=>{await adminApi('/discount-settings-save',payload);discountDisplay=payload;WGH.showToast('Sale message updated.','success');await loadDiscounts()},'Saving');
+    await WGH.withLoading(button,async()=>{
+      const saved=await adminApi('/discount-settings-save',payload);
+      discountDisplay={showBanner:saved.showBanner===true,showModal:saved.showModal===true};
+      renderDiscountStudio();
+      WGH.showToast('Sale message updated.','success');
+    },'Saving');
   }
   async function loadDiscounts(){
-    const [result,categoryResult]=await Promise.all([adminApi('/discounts'),adminApi('/categories')]);
+    const [result,categoryResult]=await Promise.all([adminApi(`/discounts?ts=${Date.now()}`),adminApi('/categories')]);
     discountProducts=Array.isArray(result.products)?result.products:[];
     if(Array.isArray(categoryResult))categories=categoryResult.filter(x=>x.active!==false),WGH.categories=categories;
     discountDisplay=result.display||{showBanner:result.campaign?.showBanner===true,showModal:result.campaign?.showModal===true};

@@ -269,7 +269,7 @@ WGH.closeLayers = () => {document.body.classList.remove('no-scroll');document.qu
 WGH.api = async (path,body,options={}) => {
   const headers={'Content-Type':'application/json',...(options.headers||{})};
   if(options.auth&&WGH.auth?.currentUser){const token=await WGH.auth.currentUser.getIdToken(false);headers.Authorization=`Bearer ${token}`;}
-  const response=await fetch(`${WGH.API_BASE}${path}`,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body)});
+  const response=await fetch(`${WGH.API_BASE}${path}`,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});
   let data={};try{data=await response.json()}catch{}
   if(!response.ok)throw new Error(WGH.friendlyError(data.error||'We could not complete that request. Please try again.'));
   return data;
