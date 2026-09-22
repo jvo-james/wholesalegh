@@ -32,11 +32,31 @@
   }
   async function adminRequest(path,body,prefix=true){const auth=await ensureAdminAuth(),user=auth.currentUser;if(!user)throw new Error('Please sign in to admin again.');const token=await user.getIdToken(),opts={method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${token}`}};if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}const res=await fetch(`${WGH.API_BASE}${prefix?'/admin':''}${path}`,opts),data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Admin request failed.');return data}
   async function adminApi(path,body){adminBusy(true);try{return await adminRequest(path,body,true)}finally{adminBusy(false)}}
-  const VIEW_LOADERS={overview:loadOverview,orders:loadOrders,transactions:loadTransactions,international:loadInternational,analytics:loadAnalytics,batches:loadBatches,products:loadProducts,categories:loadCategoriesAdmin,wholesale:loadWholesale,customers:loadCustomers,accounts:loadAccounts,abandoned:loadAbandoned,subscribers:loadSubscribers,alerts:loadAlerts,activity:loadActivity,settings:loadSettings};
+  function getViewLoader(name){
+    switch(name){
+      case 'overview': return loadOverview;
+      case 'orders': return loadOrders;
+      case 'transactions': return loadTransactions;
+      case 'international': return typeof loadInternational==='function'?loadInternational:null;
+      case 'analytics': return loadAnalytics;
+      case 'batches': return loadBatches;
+      case 'products': return loadProducts;
+      case 'categories': return loadCategoriesAdmin;
+      case 'wholesale': return typeof loadWholesale==='function'?loadWholesale:null;
+      case 'customers': return loadCustomers;
+      case 'accounts': return loadAccounts;
+      case 'abandoned': return loadAbandoned;
+      case 'subscribers': return typeof loadSubscribers==='function'?loadSubscribers:null;
+      case 'alerts': return loadAlerts;
+      case 'activity': return loadActivity;
+      case 'settings': return loadSettings;
+      default: return null;
+    }
+  }
   function showView(name){
     if(!ADMIN_VIEWS.includes(name))name='overview';
     location.hash=name;document.querySelectorAll('[data-admin-view]').forEach(b=>b.classList.toggle('active',b.dataset.adminView===name));document.querySelectorAll('[data-view-panel]').forEach(p=>{const active=p.dataset.viewPanel===name;p.hidden=!active;p.classList.toggle('active',active)});document.body.classList.remove('admin-menu-open');window.scrollTo({top:0,behavior:'instant'});
-    const loader=VIEW_LOADERS[name];if(loader)runViewLoader(name,loader);
+    const loader=getViewLoader(name);if(loader)runViewLoader(name,loader);
   }
   document.querySelectorAll('[data-admin-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.adminView)));document.querySelectorAll('[data-jump-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.jumpView)));document.querySelector('[data-admin-menu]')?.addEventListener('click',()=>document.body.classList.toggle('admin-menu-open'));
 
