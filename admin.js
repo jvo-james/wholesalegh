@@ -279,11 +279,38 @@
     hydrateProductCategorySelect();
     const root=document.querySelector('[data-admin-products]');if(!root)return;
     root.innerHTML=WGH.products.map(p=>`<article class="admin-product-card"><div class="admin-product-image"><img src="${escape(p.images?.[0]||'')}" alt=""><span>${p.active===false?'Hidden':'Live'}</span></div><div class="admin-product-card-copy"><div class="admin-product-card-top"><p class="eyebrow">${escape(WGH.categoryName?.(p.category)||p.category||'Collection')}</p><span class="product-live-dot"></span></div><h3>${escape(p.name)}</h3><div class="admin-product-price-row"><strong>${WGH.money(p.retailPrice)}</strong><span>Retail</span><strong>${Number(p.wholesalePrice)>0?WGH.money(p.wholesalePrice):'Not set'}</strong><span>Wholesale</span></div><div class="admin-product-facts"><span><b>${(p.colours||[]).length}</b> colours</span><span><b>${(p.sizes||[]).length}</b> sizes</span><span><b>${p.moq||6}</b> MOQ</span></div><button class="button button-outline full" type="button" data-edit-product="${escape(p.id)}"><i class="fa-regular fa-pen-to-square"></i> Edit product</button></div></article>`).join('')||empty('No products','Add your first product.');
-    root.querySelectorAll('[data-edit-product]').forEach(b=>b.addEventListener('click',()=>openProduct(b.dataset.editProduct)));hydrateManualProducts();
+    root.querySelectorAll('[data-edit-product]').forEach(b=>b.addEventListener('click',()=>openProduct(b.dataset.editProduct)));if(typeof hydrateManualProducts==='function')hydrateManualProducts();
   }
   function hydrateProductCategorySelect(){const sel=productForm?.elements?.category;if(!sel)return;const current=sel.value;sel.innerHTML=(categories.length?categories:WGH.categories||[]).map(c=>`<option value="${escape(c.id)}">${escape(c.name)}</option>`).join('');if([...sel.options].some(o=>o.value===current))sel.value=current}
 
   const modal=document.querySelector('[data-product-modal]'),productForm=document.querySelector('[data-product-form]'),SIZE_OPTIONS=['XXS','XS','S','M','L','XL','2XL','3XL'];
+  const manualModal=document.querySelector('[data-manual-order-modal]'),manualForm=document.querySelector('[data-manual-order-form]');
+  function hydrateManualProducts(){
+    const sel=document.querySelector('[data-manual-product]');
+    if(!sel)return;
+    const current=sel.value;
+    sel.innerHTML=WGH.products.map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('');
+    if(current && [...sel.options].some(o=>o.value===current))sel.value=current;
+    const sync=()=>{
+      const product=WGH.products.find(x=>x.id===sel.value),form=manualForm;
+      if(!product||!form)return;
+      const colour=form.elements.colour,size=form.elements.size;
+      if(colour){
+        const wrap=colour.parentElement;
+        let replacement=wrap?.querySelector('select[data-manual-colour]');
+        if(!replacement){
+          replacement=document.createElement('select');
+          replacement.name='colour';
+          replacement.dataset.manualColour='';
+          colour.replaceWith(replacement);
+        }
+        replacement.innerHTML=(product.colours||[]).map(c=>`<option>${escape(c)}</option>`).join('');
+      }
+      if(size){size.innerHTML=(product.sizes||[]).map(z=>`<option>${escape(z)}</option>`).join('');}
+    };
+    sel.onchange=sync;
+    sync();
+  }
   function renderSizePicker(selected=[]){const root=productForm.querySelector('[data-size-picker]');root.innerHTML=SIZE_OPTIONS.map(size=>`<button type="button" class="size-choice ${selected.includes(size)?'selected':''}" data-size-choice="${size}">${size}</button>`).join('');root.querySelectorAll('[data-size-choice]').forEach(btn=>btn.onclick=()=>{btn.classList.toggle('selected');productForm.elements.sizes.value=[...root.querySelectorAll('.selected')].map(x=>x.dataset.sizeChoice).join(',')});productForm.elements.sizes.value=selected.join(',');renderInventoryEditor()}
   let imageColourAssignments={};
   function productColours(){try{return JSON.parse(productForm.elements.colours.value||'[]')}catch{return []}} function productHexes(){try{return JSON.parse(productForm.elements.colourHexes.value||'{}')}catch{return {}}} function productInventory(){try{return JSON.parse(productForm.elements.inventory.value||'{}')}catch{return {}}}
@@ -400,6 +427,8 @@
     if(discountStudioBound)return;
     discountStudioBound=true;
     document.querySelector('[data-discount-display-save]')?.addEventListener('click',e=>saveDiscountDisplay(e.currentTarget));
+    document.querySelector('[data-discount-show-banner]')?.addEventListener('change',()=>saveDiscountDisplay(document.querySelector('[data-discount-display-save]')));
+    document.querySelector('[data-discount-show-modal]')?.addEventListener('change',()=>saveDiscountDisplay(document.querySelector('[data-discount-display-save]')));
     document.querySelector('[data-discount-search]')?.addEventListener('input',renderDiscountStudio);
     document.querySelector('[data-discount-category-filter]')?.addEventListener('change',renderDiscountStudio);
     document.querySelector('[data-discount-select-all]')?.addEventListener('click',()=>{

@@ -2963,3 +2963,31 @@ body.modern-checkout .checkout-submit>i{
 @media(max-width:1100px){.discount-filters{min-width:100%}.discount-bulk-bar{grid-template-columns:1fr 1fr 1fr}.discount-bulk-summary{grid-column:1/-1}.discount-product-grid{grid-template-columns:1fr}}
 @media(max-width:760px){.sale-banner{margin:0 12px 20px;border-radius:15px}.sale-banner-inner{display:grid;grid-template-columns:1fr;gap:16px;min-height:0;padding:21px 18px}.sale-banner-inner .button{justify-self:start}.sale-modal{padding:8px}.sale-modal-card{width:min(520px,calc(100vw - 16px));grid-template-columns:1fr;border-radius:20px}.sale-modal-art{min-height:220px}.sale-modal-art strong{font-size:82px}.sale-modal-copy{padding:28px 22px 24px}.sale-modal-copy h2{font-size:47px}.sale-modal-close{width:42px;height:42px}.product-card-sale-copy{font-size:8px;white-space:normal}.product-sale-price-row strong{font-size:22px}.discount-display-card,.discount-products-card{padding:17px}.discount-display-head,.discount-products-head{display:grid;gap:13px}.discount-display-grid{grid-template-columns:1fr}.discount-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}.discount-search{min-width:0;grid-column:1/-1}.discount-category-filter,.discount-select-all{width:100%}.discount-bulk-bar{grid-template-columns:1fr 1fr}.discount-bulk-bar .discount-bulk-summary{grid-column:1/-1}.discount-bulk-bar>label:nth-of-type(1){grid-column:1/-1}.discount-bulk-bar .button{grid-column:1/-1;width:100%}.discount-product-card{grid-template-columns:94px 1fr}.discount-product-body{padding:11px}.discount-product-title{display:grid}.discount-product-title>strong{justify-self:start}.discount-admin-prices{grid-template-columns:1fr}.discount-admin-prices>span{display:none}.discount-product-actions{grid-template-columns:1fr}.discount-product-actions .button{width:100%}}
 @media(max-width:480px){.discount-product-card{grid-template-columns:1fr}.discount-product-image{aspect-ratio:4/3}.discount-product-body{padding:13px}.discount-product-title h3{font-size:20px}.discount-bulk-bar{grid-template-columns:1fr}.discount-bulk-bar>label:nth-of-type(1){grid-column:auto}.sale-modal-copy h2{font-size:40px}}
+
+
+/* Latest storefront polish: the sale banner has a real host on Home and Shop and
+   the Home product rail keeps each product's name and price together. */
+.home-sale-banner{margin-top:calc(var(--header-h) + 27px);margin-bottom:0;border-radius:0;border-left:0;border-right:0;box-shadow:none}
+.home-sale-banner .sale-banner-inner{min-height:128px}
+.shop-sale-banner{margin-top:22px}
+.product-card-copy{align-items:start}
+.product-card-copy-main{min-width:0;display:grid;gap:5px}
+.product-card-copy-main h3{line-height:1.2}
+.product-card-price-wrap{display:grid;gap:3px;justify-items:end;min-width:92px}
+.product-price-label{display:block;font-size:8px;line-height:1;text-transform:uppercase;letter-spacing:.1em;color:#8b8179;font-weight:700;white-space:nowrap}
+.product-card .product-price-block{display:flex!important;flex-direction:column;align-items:flex-end!important;justify-content:flex-start!important;gap:2px!important;min-width:0}
+.home-page .product-card-copy{grid-template-columns:1fr;gap:9px;padding:14px 14px 24px}
+.home-page .product-card-price-wrap{justify-items:start;width:100%;padding-top:8px;border-top:1px solid var(--line)}
+.home-page .product-card .product-price-block{align-items:flex-start!important;width:100%}
+.home-page .product-card .product-price-line{justify-content:flex-start}
+.home-page .product-card .product-card-sale-copy{text-align:left;white-space:normal;max-width:100%}
+.home-page .product-card-copy-main p{line-height:1.35}
+.sale-modal-dismiss:focus-visible,.sale-modal-close:focus-visible{outline:2px solid #8f2e25;outline-offset:3px}
+@media(max-width:760px){
+  .home-sale-banner{margin-top:calc(var(--header-h) + 20px)}
+  .home-sale-banner .sale-banner-inner{padding:19px 18px}
+  .product-card-copy{grid-template-columns:1fr!important}
+  .product-card-price-wrap{justify-items:start;width:100%;padding-top:8px;border-top:1px solid var(--line)}
+  .product-card .product-price-block{align-items:flex-start!important;width:100%}
+  .product-card-price-wrap .product-price-label{font-size:7px}
+}
