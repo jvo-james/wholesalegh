@@ -518,22 +518,33 @@ function normalizeDiscountDoc(data = {}, product = {}) {
 }
 
 async function getDiscountState(db) {
-  const snap = await db.collection("storeDiscounts").get();
+  const campaignRef = db.collection("storeDiscounts").doc("__campaign__");
+  const [campaignSnap, productSnap] = await Promise.all([
+    campaignRef.get(),
+    db.collection("storeDiscounts").get()
+  ]);
+
   let campaign = {
     active: false,
     showBanner: false,
     showModal: false,
     upToPercent: 40
   };
-  const products = new Map();
-  for (const doc of snap.docs) {
-    if (doc.id === "__campaign__") campaign = { ...campaign, ...doc.data() };
-    else products.set(doc.id, doc.data() || {});
+
+  if (campaignSnap.exists) {
+    campaign = { ...campaign, ...(campaignSnap.data() || {}) };
   }
+
+  const products = new Map();
+  for (const doc of productSnap.docs) {
+    if (doc.id !== "__campaign__") products.set(doc.id, doc.data() || {});
+  }
+
   campaign.showBanner = campaign.showBanner === true || (campaign.showBanner === undefined && campaign.active === true);
   campaign.showModal = campaign.showModal === true || (campaign.showModal === undefined && campaign.active === true);
   campaign.active = campaign.showBanner || campaign.showModal;
   campaign.upToPercent = 40;
+  campaign.updatedAt = campaign.updatedAt || null;
   return { campaign, products };
 }
 
@@ -4125,6 +4136,8 @@ export default async function handler(
       const input = await readBody(request);
       const showBanner = input.showBanner === true;
       const showModal = input.showModal === true;
+      const db = getDb();
+      const ref = db.collection("storeDiscounts").doc("__campaign__");
       const payload = {
         active: showBanner || showModal,
         showBanner,
@@ -4133,8 +4146,15 @@ export default async function handler(
         updatedBy: adminUser.email || adminUser.uid,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };
-      await getDb().collection("storeDiscounts").doc("__campaign__").set(payload,{merge:true});
-      return json(200,{ok:true,showBanner,showModal});
+      await ref.set(payload, { merge: true });
+      const verify = await ref.get();
+      const saved = verify.exists ? (verify.data() || {}) : {};
+      const savedBanner = saved.showBanner === true;
+      const savedModal = saved.showModal === true;
+      if (savedBanner !== showBanner || savedModal !== showModal) {
+        throw new Error("The sale display settings could not be saved. Please try again.");
+      }
+      return json(200,{ok:true,showBanner:savedBanner,showModal:savedModal});
     }
 
     if (path === "/admin/discount-save" && method === "POST") {
