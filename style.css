@@ -2991,3 +2991,86 @@ body.modern-checkout .checkout-submit>i{
   .product-card .product-price-block{align-items:flex-start!important;width:100%}
   .product-card-price-wrap .product-price-label{font-size:7px}
 }
+
+
+/* Final sale experience: cleaner editorial banner, one-time pop-up and a
+   header that keeps its own colour when the Home banner sits above the hero. */
+.site-header.sale-visible{background:rgba(245,241,234,.97);color:var(--ink);border-color:var(--line);backdrop-filter:blur(14px)}
+.site-header.sale-visible .desktop-nav a,.site-header.sale-visible .desktop-actions a,.site-header.sale-visible .desktop-actions button{color:var(--ink)}
+
+.sale-banner{background:#f1e7df;border:1px solid rgba(99,43,36,.18);border-radius:0;box-shadow:none;color:#54231f;position:relative}
+.sale-banner-inner{min-height:154px;display:grid;grid-template-columns:minmax(0,1fr) 190px;align-items:stretch;gap:24px;padding:27px clamp(22px,4vw,54px);position:relative;overflow:hidden}
+.sale-banner-inner:before{content:"";position:absolute;left:0;top:0;bottom:0;width:7px;background:#7f332b;opacity:.9}
+.sale-banner-copy{position:relative;z-index:2;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;min-width:0}
+.sale-banner-kicker{display:flex;align-items:center;gap:10px;margin-bottom:7px;font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+.sale-banner-kicker span{color:#7f706a}
+.sale-banner-kicker b{color:#8d2e26}
+.sale-banner-copy h2{font:400 clamp(33px,4vw,54px)/.93 var(--serif);letter-spacing:-.04em;margin:0;color:#5a241f}
+.sale-banner-copy h2 strong{font-weight:400}
+.sale-banner-copy p{margin:9px 0 14px;max-width:530px;color:#7b625c;font-size:11px;line-height:1.45}
+.sale-banner-link{display:inline-flex;align-items:center;gap:9px;border-bottom:1px solid #6a2c25;padding-bottom:5px;color:#50211c;font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}
+.sale-banner-link i{font-size:9px;transition:transform .2s ease}
+.sale-banner-link:hover i{transform:translateX(3px)}
+.sale-banner-mark{position:relative;z-index:1;display:grid;place-items:center;align-content:center;justify-items:center;border-left:1px solid rgba(99,43,36,.18);min-width:0;overflow:hidden}
+.sale-banner-mark:before,.sale-banner-mark:after{content:"";position:absolute;border:1px solid rgba(99,43,36,.14);border-radius:50%;width:165px;height:165px;right:-42px;top:50%;transform:translateY(-50%)}
+.sale-banner-mark:after{width:118px;height:118px;right:-19px}
+.sale-banner-mark span{font-size:8px;letter-spacing:.2em;font-weight:800;position:relative;z-index:2;color:#84655e}
+.sale-banner-mark strong{font:400 84px/.78 var(--serif);letter-spacing:-.07em;color:#7f3028;position:relative;z-index:2}
+.sale-banner-mark small{font-size:9px;letter-spacing:.18em;font-weight:800;color:#6e443e;position:relative;z-index:2;margin-top:2px}
+.sale-banner-mark i{position:absolute;width:52px;height:1px;background:#7f332b;left:18px;top:50%;opacity:.7}
+.home-sale-banner{margin-top:calc(var(--header-h) + 27px);margin-bottom:0;border-radius:0;border-left:0;border-right:0;box-shadow:none}
+.home-sale-banner .sale-banner-inner{min-height:154px}
+.shop-sale-banner{margin-top:22px}
+
+.sale-modal{position:fixed;inset:0;z-index:240;display:grid;place-items:center;padding:22px;background:rgba(18,14,12,.56);opacity:0;pointer-events:none;transition:opacity .28s ease}
+.sale-modal.open{opacity:1;pointer-events:auto}
+.sale-modal-backdrop{position:absolute;inset:0}
+.sale-modal-card{width:min(760px,calc(100vw - 32px));min-height:390px;display:grid;grid-template-columns:43% 57%;position:relative;overflow:hidden;background:var(--paper);box-shadow:0 30px 90px rgba(0,0,0,.28);transform:translateY(18px) scale(.985);transition:transform .32s var(--ease)}
+.sale-modal.open .sale-modal-card{transform:none}
+.sale-modal-close{position:absolute;z-index:4;top:14px;right:14px;width:42px;height:42px;border:1px solid rgba(21,19,15,.18);border-radius:50%;background:rgba(245,241,234,.93);display:grid;place-items:center;cursor:pointer}
+.sale-modal-close span{position:absolute;width:13px;height:1px;background:#171310;transform:rotate(45deg)}
+.sale-modal-close span+span{transform:rotate(-45deg)}
+.sale-modal-art{background:#7f332b;color:#f7f1e9;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:34px 28px}
+.sale-modal-art:before{content:"";position:absolute;width:330px;height:330px;border:1px solid rgba(247,241,233,.28);border-radius:50%;left:-125px;bottom:-132px}
+.sale-modal-art:after{content:"";position:absolute;inset:18px;border:1px solid rgba(247,241,233,.16)}
+.sale-modal-art-kicker{position:absolute;top:30px;left:30px;font-size:7px;letter-spacing:.21em;font-weight:700;opacity:.76}
+.sale-modal-art-rule{width:52px;height:1px;background:rgba(247,241,233,.55);margin-bottom:16px;position:relative;z-index:2}
+.sale-modal-art strong{font:400 clamp(118px,16vw,170px)/.72 var(--serif);letter-spacing:-.08em;position:relative;z-index:2}
+.sale-modal-art-off{font-size:12px;letter-spacing:.2em;font-weight:800;position:relative;z-index:2;margin-top:8px}
+.sale-modal-art-note{position:absolute;left:30px;bottom:28px;font-size:7px;letter-spacing:.17em;font-weight:700;opacity:.72}
+.sale-modal-copy{display:flex;flex-direction:column;justify-content:center;padding:55px 54px 48px;color:var(--ink)}
+.sale-modal-kicker{font-size:8px;font-weight:800;letter-spacing:.17em;text-transform:uppercase;color:#8d382f;margin-bottom:12px}
+.sale-modal-copy h2{font:400 clamp(44px,5vw,68px)/.9 var(--serif);letter-spacing:-.05em;margin:0 0 18px;color:#2a211e;max-width:400px}
+.sale-modal-copy p{font-size:12px;line-height:1.65;color:#6e665e;max-width:430px;margin:0 0 28px}
+.sale-modal-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.sale-modal-actions .button{min-height:48px}
+.sale-modal-dismiss{font-size:10px;text-transform:uppercase;letter-spacing:.12em;border-bottom:1px solid #1d1916;padding:4px 0}
+.sale-modal-dismiss:hover{opacity:.62}
+.sale-modal-dismiss:focus-visible,.sale-modal-close:focus-visible{outline:2px solid #8f2e25;outline-offset:3px}
+
+@media(max-width:760px){
+  .home-sale-banner{margin-top:calc(var(--header-h) + 20px)}
+  .home-sale-banner .sale-banner-inner{min-height:0}
+  .sale-banner-inner{grid-template-columns:1fr;gap:18px;padding:24px 20px 20px 24px}
+  .sale-banner-mark{min-height:88px;border-left:0;border-top:1px solid rgba(99,43,36,.18);grid-template-columns:auto 1fr auto;justify-items:start;gap:7px;padding-top:17px}
+  .sale-banner-mark strong{font-size:69px}
+  .sale-banner-mark i{display:none}
+  .sale-banner-mark:before,.sale-banner-mark:after{width:112px;height:112px;right:-24px;top:50%}
+  .sale-banner-mark:after{width:78px;height:78px;right:-5px}
+  .sale-modal{padding:10px}
+  .sale-modal-card{width:min(520px,calc(100vw - 20px));grid-template-columns:1fr;max-height:calc(100dvh - 20px);overflow:auto}
+  .sale-modal-art{min-height:190px;padding:28px}
+  .sale-modal-art:after{inset:12px}
+  .sale-modal-art-kicker{top:22px;left:22px}
+  .sale-modal-art strong{font-size:108px}
+  .sale-modal-art-note{left:22px;bottom:21px}
+  .sale-modal-copy{padding:30px 24px 24px}
+  .sale-modal-copy h2{font-size:49px}
+}
+@media(max-width:430px){
+  .sale-banner-copy h2{font-size:37px}
+  .sale-banner-copy p{font-size:10.5px}
+  .sale-modal-copy h2{font-size:42px}
+  .sale-modal-actions{display:grid;gap:12px}
+  .sale-modal-actions .button,.sale-modal-dismiss{width:100%;justify-content:center}
+}

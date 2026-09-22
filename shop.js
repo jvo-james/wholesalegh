@@ -10,10 +10,10 @@
   let sort=params.get('sort')||'featured';
   let query='';
   let cycleTimer=null,activeCard=null,scrolling=false,scrollTimer=null;
-  const titles=Object.fromEntries([['all','Shop all'],['new','New arrivals'],['sale','Sale edit'],...WGH.categories.map(c=>[c.id,c.name])]);
+  const titles=Object.fromEntries([['all','Shop all'],['new','New arrivals'],['sale','Deals'],...WGH.categories.map(c=>[c.id,c.name])]);
   const categoryRoot=document.querySelector('[data-category-filter]');
   if(categoryRoot){
-    categoryRoot.innerHTML=`<button data-category="all" type="button">All</button><button data-category="new" type="button">New arrivals</button><button data-category="sale" type="button">Sale edit</button>${WGH.categories.map(c=>`<button data-category="${c.id}" type="button">${c.name}</button>`).join('')}`;
+    categoryRoot.innerHTML=`<button data-category="all" type="button">All</button><button data-category="new" type="button">New arrivals</button><button data-category="sale" type="button">Deals</button>${WGH.categories.map(c=>`<button data-category="${c.id}" type="button">${c.name}</button>`).join('')}`;
   }
 
   function setupSearch(){

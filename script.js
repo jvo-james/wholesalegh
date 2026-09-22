@@ -457,29 +457,98 @@ async function initDiscountExperience(){
     const settings=await WGH.loadDiscountSettings();
     const showBanner=settings?.showBanner===true || (settings?.showBanner===undefined&&settings?.active===true);
     const showModal=settings?.showModal===true || (settings?.showModal===undefined&&settings?.active===true);
+    const header=document.getElementById('siteHeader');
+
     document.querySelectorAll('[data-discount-banner]').forEach(el=>{
-      if(!showBanner){el.hidden=true;el.innerHTML='';return;}
-      el.innerHTML=`<div class="sale-banner-inner"><div class="sale-banner-main"><span>SALE</span><strong>Up to 40% off</strong><p>Selected styles are now marked down.</p></div><a class="button button-light" href="shop.html?sale=1">Shop the sale <i class="fa-solid fa-arrow-right"></i></a></div>`;
+      if(!showBanner){
+        el.hidden=true;
+        el.innerHTML='';
+        return;
+      }
+      el.innerHTML=`<div class="sale-banner-inner">
+        <div class="sale-banner-copy">
+          <div class="sale-banner-kicker"><span>THE WHOLESALE GHANA</span><b>SALE</b></div>
+          <h2>Up to <strong>40%</strong> off</h2>
+          <p>Selected pieces are now marked down. Shop the new prices while they last.</p>
+          <a class="sale-banner-link" href="shop.html?sale=1">Shop the sale <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        </div>
+        <div class="sale-banner-mark" aria-hidden="true">
+          <span>UP TO</span>
+          <strong>40</strong>
+          <small>% OFF</small>
+          <i></i>
+        </div>
+      </div>`;
       el.hidden=false;
     });
+
+    // Home has a transparent header over the hero. When the sale banner sits
+    // above that hero, give the header its own paper background so the banner
+    // never changes the header's readability.
+    if(header) header.classList.toggle('sale-visible',showBanner&&document.body.classList.contains('home-page'));
+
     if(!showModal)return;
 
-    // The admin controls whether the modal is on. When it is on, it shows on every
-    // fresh page load. Closing it only closes the current modal and never disables
-    // the campaign. This makes the storefront behaviour predictable.
+    const MODAL_SEEN_KEY='wgh_discount_modal_seen_v2';
+    const hasSeen=()=>{
+      try{return localStorage.getItem(MODAL_SEEN_KEY)==='1'}catch{}
+      return document.cookie.split(';').some(part=>part.trim().startsWith(`${MODAL_SEEN_KEY}=1`));
+    };
+    const markSeen=()=>{
+      try{localStorage.setItem(MODAL_SEEN_KEY,'1');return}catch{}
+      try{document.cookie=`${MODAL_SEEN_KEY}=1; max-age=31536000; path=/; SameSite=Lax`}catch{}
+    };
+    if(hasSeen())return;
+
+    // Mark it as seen as soon as it opens. That way following page loads,
+    // refreshes and visits to another page cannot bring it back.
+    markSeen();
+
     document.querySelectorAll('.sale-modal').forEach(existing=>existing.remove());
     const modal=document.createElement('aside');
-    modal.className='sale-modal';modal.setAttribute('aria-hidden','true');
-    modal.innerHTML=`<div class="sale-modal-backdrop" data-sale-close></div><div class="sale-modal-card" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title"><button class="sale-modal-close" type="button" aria-label="Close sale" data-sale-close><span></span><span></span></button><div class="sale-modal-art"><span class="sale-modal-word">SALE</span><strong>40%</strong><small>OFF</small></div><div class="sale-modal-copy"><span class="sale-modal-kicker">Right now</span><h2 id="sale-modal-title">Up to 40% off</h2><p>Selected styles are on sale now. The sale price is the price you pay. Prices are as marked.</p><a class="button button-dark" href="shop.html?sale=1">Shop the sale <i class="fa-solid fa-arrow-right"></i></a><button class="sale-modal-dismiss" type="button" data-sale-close>Close</button></div></div>`;
+    modal.className='sale-modal';
+    modal.setAttribute('aria-hidden','true');
+    modal.innerHTML=`<div class="sale-modal-backdrop" data-sale-close></div>
+      <div class="sale-modal-card" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title">
+        <button class="sale-modal-close" type="button" aria-label="Close sale" data-sale-close><span></span><span></span></button>
+        <div class="sale-modal-art" aria-hidden="true">
+          <span class="sale-modal-art-kicker">THE WHOLESALE GHANA</span>
+          <div class="sale-modal-art-rule"></div>
+          <strong>40</strong>
+          <span class="sale-modal-art-off">% OFF</span>
+          <span class="sale-modal-art-note">SELECTED STYLES</span>
+        </div>
+        <div class="sale-modal-copy">
+          <span class="sale-modal-kicker">A little something for your wardrobe</span>
+          <h2 id="sale-modal-title">Up to 40% off</h2>
+          <p>Some of your favourite pieces have new prices. The sale price is the price you pay. Prices are as marked.</p>
+          <div class="sale-modal-actions">
+            <a class="button button-dark" href="shop.html?sale=1">Shop the sale <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+            <button class="sale-modal-dismiss" type="button" data-sale-close>Maybe later</button>
+          </div>
+        </div>
+      </div>`;
     document.body.appendChild(modal);
-    const close=()=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('no-scroll');document.removeEventListener('keydown',onKey)};
+
+    const close=()=>{
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      document.body.classList.remove('no-scroll');
+      document.removeEventListener('keydown',onKey);
+    };
     const onKey=e=>{if(e.key==='Escape')close()};
     modal.querySelectorAll('[data-sale-close]').forEach(btn=>btn.addEventListener('click',close));
     document.addEventListener('keydown',onKey);
-    requestAnimationFrame(()=>{modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('no-scroll');modal.querySelector('.sale-modal-close')?.focus()});
-  }catch(err){console.warn('Discount experience failed',err)}
+    requestAnimationFrame(()=>{
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+      document.body.classList.add('no-scroll');
+      modal.querySelector('.sale-modal-close')?.focus();
+    });
+  }catch(err){
+    console.warn('Discount experience failed',err);
+  }
 }
-
 function initHome(){
   const rail=document.querySelector('[data-featured-products]');if(rail)WGH.loadProducts().then(()=>{const featured=WGH.latestProducts(5);rail.innerHTML=featured.map(p=>WGH.productCard(p)).join('');WGH.bindProductCards(rail)});
   const categoryCards=document.querySelector('.category-cards');if(categoryCards)Promise.all([WGH.loadProducts(),WGH.loadCategories?.()]).then(()=>{const cats=(WGH.categories||[]).filter(c=>WGH.products.some(p=>p.category===c.id&&p.active!==false));if(!cats.length)return;categoryCards.innerHTML=cats.map((c,i)=>{const p=WGH.products.find(x=>x.category===c.id&&x.active!==false),src=p?.colourImages?.[p.featuredColour]?.[0]||p?.images?.[0]||'images/prod.jpg';return `<a class="category-card reveal visible" href="shop.html?category=${encodeURIComponent(c.id)}"><img alt="${c.name} collection" loading="lazy" src="${src}"><div><span>${i+1}</span><h3>${c.name}</h3></div></a>`}).join('')});
