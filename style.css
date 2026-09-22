@@ -3261,3 +3261,282 @@ html body.product-page [data-wholesale-policy][hidden]{display:none!important;}
   body.modern-checkout .checkout-stage-copy strong{font-size:8px!important;}
   body.modern-checkout .checkout-stage-copy small{font-size:8px!important;}
 }
+
+/* ======================================================================
+   CHECKOUT REFINEMENT — COMPACT JOURNEY + OPEN BACKGROUND FORM
+   ====================================================================== */
+
+/* Let the checkout breathe. Form sections sit directly on the warm page
+   background instead of looking like large white cards. */
+body.modern-checkout .checkout-step,
+body.modern-checkout .checkout-step:first-child,
+body.modern-checkout .checkout-step:last-of-type{
+  background:transparent!important;
+  border:0!important;
+  border-top:1px solid var(--checkout-rule)!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  margin:0!important;
+  padding:38px 0 42px!important;
+}
+body.modern-checkout .checkout-step:last-of-type{
+  border-bottom:1px solid var(--checkout-rule)!important;
+}
+
+/* Keep section numbers quiet and editorial. */
+body.modern-checkout .step-number{
+  background:transparent!important;
+  border:1px solid #cfc7be!important;
+  color:#6f675f!important;
+}
+
+/* Larger controls with more breathing room, especially on phones. */
+body.modern-checkout .step-content input:not([type=radio]):not([type=checkbox]),
+body.modern-checkout .step-content select,
+body.modern-checkout .step-content textarea,
+body.modern-checkout .country-select input#checkoutCountry{
+  min-height:58px!important;
+  font-size:14px!important;
+}
+body.modern-checkout .step-content textarea{
+  min-height:132px!important;
+  padding-top:17px!important;
+}
+
+/* ----------------------------------------------------------------------
+   Production journey
+   Desktop: one clean rail.
+   Mobile: compact 3 × 2 editorial grid so the whole journey stays visible
+   without becoming a tall six-step column.
+   ---------------------------------------------------------------------- */
+body.modern-checkout .checkout-order-timeline{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:0!important;
+  position:relative!important;
+  margin:34px 0 30px!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+body.modern-checkout .checkout-order-timeline::before{display:none!important;}
+body.modern-checkout .checkout-stage{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:32px minmax(0,1fr)!important;
+  align-items:start!important;
+  justify-items:stretch!important;
+  min-width:0!important;
+  min-height:78px!important;
+  padding:12px 14px 12px 0!important;
+  margin:0!important;
+  text-align:left!important;
+  border-top:1px solid #cfc6bd!important;
+  color:#6f675f!important;
+}
+body.modern-checkout .checkout-stage:not(:last-child){border-right:1px solid #e1dbd4!important;padding-right:16px!important;margin-right:16px!important;}
+body.modern-checkout .checkout-stage::after{display:none!important;}
+body.modern-checkout .checkout-stage-marker{
+  width:28px!important;
+  height:28px!important;
+  margin:0!important;
+  display:grid!important;
+  place-items:center!important;
+  border:1px solid #bcb3aa!important;
+  border-radius:50%!important;
+  background:#f4f1eb!important;
+  color:#766e67!important;
+  position:relative!important;
+  z-index:2!important;
+  transition:transform .25s ease,border-color .25s ease,background .25s ease,color .25s ease,box-shadow .25s ease!important;
+}
+body.modern-checkout .checkout-stage-marker b{
+  font-size:8px!important;
+  line-height:1!important;
+  font-weight:700!important;
+  letter-spacing:.04em!important;
+}
+body.modern-checkout .checkout-stage-copy{
+  display:grid!important;
+  align-content:start!important;
+  gap:4px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:1px 0 0!important;
+}
+body.modern-checkout .checkout-stage-copy strong{
+  font-size:9px!important;
+  line-height:1.2!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+  color:#39342f!important;
+  white-space:nowrap!important;
+}
+body.modern-checkout .checkout-stage-copy small{
+  max-width:155px!important;
+  margin:0!important;
+  font-size:8px!important;
+  line-height:1.45!important;
+  color:#8a8179!important;
+}
+
+/* A quiet route line sits behind the stage numbers. */
+body.modern-checkout .checkout-stage:not(:last-child)::before{
+  content:"";
+  position:absolute;
+  z-index:1;
+  top:26px;
+  left:28px;
+  right:-17px;
+  height:1px;
+  background:#d2c8bf;
+  pointer-events:none;
+}
+body.modern-checkout .checkout-stage:not(:last-child) .checkout-stage-marker{z-index:2!important;}
+body.modern-checkout .checkout-stage.is-current .checkout-stage-marker{
+  background:#171412!important;
+  border-color:#171412!important;
+  color:#fff!important;
+  box-shadow:0 0 0 6px rgba(23,20,18,.055)!important;
+  animation:checkout-stage-breathe 2.6s ease-in-out infinite!important;
+}
+body.modern-checkout .checkout-stage.is-current::before{
+  background:linear-gradient(90deg,#171412 0 55%,#d2c8bf 55% 100%)!important;
+}
+body.modern-checkout .checkout-stage.is-current .checkout-stage-marker::after{
+  content:"";
+  position:absolute;
+  inset:-5px;
+  border:1px solid rgba(23,20,18,.22);
+  border-radius:50%;
+  animation:checkout-stage-ring 2.6s ease-out infinite;
+}
+@keyframes checkout-stage-breathe{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.045)}
+}
+@keyframes checkout-stage-ring{
+  0%{opacity:.65;transform:scale(.88)}
+  70%,100%{opacity:0;transform:scale(1.24)}
+}
+
+/* Don't let the review column force a boxed feeling back into the form. */
+body.modern-checkout .checkout-review{box-shadow:none!important;}
+
+@media(max-width:800px){
+  body.modern-checkout .checkout-layout{
+    padding:0 16px 46px!important;
+  }
+  body.modern-checkout .checkout-step,
+  body.modern-checkout .checkout-step:first-child,
+  body.modern-checkout .checkout-step:last-of-type{
+    grid-template-columns:1fr!important;
+    gap:12px!important;
+    padding:30px 0 34px!important;
+    border-radius:0!important;
+    background:transparent!important;
+    border-left:0!important;
+    border-right:0!important;
+    box-shadow:none!important;
+  }
+  body.modern-checkout .step-number{
+    width:30px!important;
+    height:30px!important;
+    margin-bottom:3px!important;
+  }
+  body.modern-checkout .step-content>h2{font-size:31px!important;}
+
+  body.modern-checkout .step-content input:not([type=radio]):not([type=checkbox]),
+  body.modern-checkout .step-content select,
+  body.modern-checkout .country-select input#checkoutCountry{
+    min-height:62px!important;
+    font-size:16px!important;
+    padding:16px 3px!important;
+  }
+  body.modern-checkout .step-content textarea{
+    min-height:150px!important;
+    font-size:16px!important;
+    padding:17px 3px!important;
+  }
+
+  /* Compact 3 × 2 journey. */
+  body.modern-checkout .checkout-order-timeline{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    column-gap:0!important;
+    row-gap:12px!important;
+    margin:27px 0 29px!important;
+  }
+  body.modern-checkout .checkout-stage{
+    grid-template-columns:29px minmax(0,1fr)!important;
+    min-height:76px!important;
+    padding:12px 10px 10px 0!important;
+    border-top:1px solid #cfc6bd!important;
+  }
+  body.modern-checkout .checkout-stage:nth-child(3n){
+    border-right:0!important;
+    margin-right:0!important;
+    padding-right:5px!important;
+  }
+  body.modern-checkout .checkout-stage:not(:nth-child(3n)){
+    border-right:0!important;
+    margin-right:0!important;
+  }
+  body.modern-checkout .checkout-stage:nth-child(3n)::after{
+    content:"";
+    position:absolute;
+    display:block!important;
+    z-index:0;
+    width:1px;
+    height:13px;
+    right:0;
+    bottom:-13px;
+    background:#d2c8bf;
+  }
+  body.modern-checkout .checkout-stage:nth-child(3)::after{
+    background:#171412;
+  }
+  body.modern-checkout .checkout-stage:nth-child(3)::before,
+  body.modern-checkout .checkout-stage:nth-child(6)::before{
+    right:5px!important;
+  }
+  body.modern-checkout .checkout-stage:not(:nth-child(3n))::before{
+    left:28px!important;
+    right:-4px!important;
+  }
+  body.modern-checkout .checkout-stage:nth-child(3)::before{
+    background:#171412!important;
+  }
+  body.modern-checkout .checkout-stage:nth-child(4){
+    grid-column:1;
+  }
+  body.modern-checkout .checkout-stage:nth-child(1) .checkout-stage-marker,
+  body.modern-checkout .checkout-stage:nth-child(2) .checkout-stage-marker,
+  body.modern-checkout .checkout-stage:nth-child(3) .checkout-stage-marker{
+    margin-top:0!important;
+  }
+  body.modern-checkout .checkout-stage-marker{
+    width:28px!important;
+    height:28px!important;
+  }
+  body.modern-checkout .checkout-stage-copy strong{
+    font-size:8px!important;
+    letter-spacing:.07em!important;
+  }
+  body.modern-checkout .checkout-stage-copy small{
+    max-width:none!important;
+    font-size:8px!important;
+    line-height:1.38!important;
+  }
+}
+
+@media(max-width:390px){
+  body.modern-checkout .checkout-layout{padding-inline:14px!important;}
+  body.modern-checkout .checkout-stage{
+    grid-template-columns:27px minmax(0,1fr)!important;
+    min-height:73px!important;
+    padding-right:6px!important;
+  }
+  body.modern-checkout .checkout-stage:not(:nth-child(3n))::before{left:27px!important;right:-3px!important;}
+  body.modern-checkout .checkout-stage-copy strong{font-size:7.5px!important;}
+  body.modern-checkout .checkout-stage-copy small{font-size:7.5px!important;}
+  body.modern-checkout .step-content>h2{font-size:29px!important;}
+}
