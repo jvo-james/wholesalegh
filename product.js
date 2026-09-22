@@ -28,7 +28,14 @@
   $('[data-product-category]').textContent=WGH.categoryName?.(product.category)||product.category||'Collection';
   $('[data-product-details]').textContent=product.details||'';
   const wholesaleModeButton=document.querySelector('[data-purchase-mode="wholesale"]');
+  const purchaseMode=document.querySelector('.purchase-mode');
+  const retailOnlyState=document.querySelector('[data-retail-only-state]');
+  const wholesalePolicy=document.querySelector('[data-wholesale-policy]');
+  document.body.classList.toggle('retail-only-product',!wholesaleAvailable);
   if(wholesaleModeButton) { wholesaleModeButton.hidden=!wholesaleAvailable; wholesaleModeButton.setAttribute('aria-hidden', wholesaleAvailable?'false':'true'); }
+  if(purchaseMode) purchaseMode.hidden=!wholesaleAvailable;
+  if(retailOnlyState) retailOnlyState.hidden=wholesaleAvailable;
+  if(wholesalePolicy) wholesalePolicy.hidden=!wholesaleAvailable;
 
   function gallery(){
     const imgs=(product.colourImages?.[colour]?.length?product.colourImages[colour]:product.images)||[];

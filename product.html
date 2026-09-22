@@ -37,6 +37,10 @@
 <button data-purchase-mode="retail" type="button">Retail</button>
 <button data-purchase-mode="wholesale" type="button">Wholesale</button>
 </div>
+<div class="retail-only-state" data-retail-only-state hidden>
+<span class="retail-only-mark" aria-hidden="true"><i class="fa-solid fa-bag-shopping"></i></span>
+<div><strong>Retail purchase</strong><small>This style is available in retail only.</small></div>
+</div>
 <div data-retail-builder="">
 <fieldset class="option-group"><legend>Colour <span data-selected-colour=""></span></legend><div class="colour-options" data-colour-options=""></div></fieldset>
 <fieldset class="option-group"><legend>Size <button class="inline-help" data-panel-open="size" type="button">Size guide</button></legend><div class="size-options" data-size-options=""></div></fieldset>
@@ -57,7 +61,7 @@
 </div>
 <details><summary>Product details</summary><div data-product-details=""></div></details>
 <details><summary>Delivery &amp; production</summary><p>Your paid order is assigned to the next available weekly production cycle. Once the cycle closes, production begins. We always aim to complete and dispatch earlier whenever possible.</p></details>
-<details><summary>Wholesale policy</summary><p>The standard minimum is 6 pieces per style. You may mix available colours and sizes within that minimum.</p></details>
+<details data-wholesale-policy><summary>Wholesale policy</summary><p>The standard minimum is 6 pieces per style. You may mix available colours and sizes within that minimum.</p></details>
 </div>
 </aside>
 </section>

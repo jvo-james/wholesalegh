@@ -3074,3 +3074,190 @@ body.modern-checkout .checkout-submit>i{
   .sale-modal-actions{display:grid;gap:12px}
   .sale-modal-actions .button,.sale-modal-dismiss{width:100%;justify-content:center}
 }
+
+
+/* ======================================================================
+   FINAL PATCH — CHECKOUT JOURNEY + RETAIL-ONLY PRODUCT PAGE
+   ====================================================================== */
+
+/* Checkout: a readable six-stage journey instead of a cramped row of dots. */
+body.modern-checkout .checkout-order-timeline{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:12px!important;
+  margin:30px 0 30px!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+body.modern-checkout .checkout-order-timeline::before{display:none!important;}
+body.modern-checkout .checkout-stage{
+  position:relative!important;
+  display:grid!important;
+  grid-template-rows:auto auto!important;
+  justify-items:center!important;
+  min-width:0!important;
+  padding:0!important;
+  text-align:center!important;
+  color:#766f68;
+}
+body.modern-checkout .checkout-stage:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  z-index:0;
+  top:17px;
+  left:calc(50% + 20px);
+  right:calc(-50% - 8px);
+  height:1px;
+  background:#cfc5bb;
+}
+body.modern-checkout .checkout-stage-marker{
+  position:relative!important;
+  z-index:2;
+  width:34px!important;
+  height:34px!important;
+  display:grid!important;
+  place-items:center!important;
+  border:1px solid #beb4aa!important;
+  border-radius:50%!important;
+  background:#f8f5f0!important;
+  color:#777068!important;
+  box-sizing:border-box!important;
+  transition:transform .25s ease,background .25s ease,color .25s ease,border-color .25s ease,box-shadow .25s ease!important;
+}
+body.modern-checkout .checkout-stage-marker b{
+  font-size:8px!important;
+  font-weight:700!important;
+  letter-spacing:.04em!important;
+}
+body.modern-checkout .checkout-stage-copy{
+  display:grid!important;
+  gap:4px!important;
+  width:100%!important;
+  margin-top:10px!important;
+  min-width:0!important;
+}
+body.modern-checkout .checkout-stage-copy strong{
+  font-size:9px!important;
+  line-height:1.1!important;
+  font-weight:700!important;
+  letter-spacing:.06em!important;
+  text-transform:uppercase!important;
+  color:#3e3935!important;
+}
+body.modern-checkout .checkout-stage-copy small{
+  max-width:125px!important;
+  margin:0 auto!important;
+  font-size:8px!important;
+  line-height:1.45!important;
+  color:#8a8179!important;
+}
+body.modern-checkout .checkout-stage.is-current .checkout-stage-marker{
+  background:#171412!important;
+  border-color:#171412!important;
+  color:#fff!important;
+  box-shadow:0 0 0 7px rgba(23,20,18,.06)!important;
+  animation:checkout-stage-pulse 2.4s ease-in-out infinite!important;
+}
+body.modern-checkout .checkout-stage.is-current::after{
+  background:linear-gradient(90deg,#171412 0 42%,#cfc5bb 42% 100%)!important;
+}
+body.modern-checkout .checkout-stage:not(.is-current) .checkout-stage-marker{opacity:.94!important;}
+@keyframes checkout-stage-pulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(23,20,18,.10)}
+  50%{transform:scale(1.05);box-shadow:0 0 0 7px rgba(23,20,18,.055)}
+}
+
+/* Product pages with no wholesale: make retail a deliberate single choice. */
+html body.product-page .purchase-mode[hidden]{display:none!important;}
+html body.product-page .retail-only-state{
+  display:grid;
+  grid-template-columns:34px 1fr;
+  gap:12px;
+  align-items:center;
+  margin:24px 0 28px;
+  padding:14px 0;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+html body.product-page .retail-only-state[hidden]{display:none!important;}
+html body.product-page .retail-only-mark{
+  width:34px;
+  height:34px;
+  display:grid;
+  place-items:center;
+  border:1px solid var(--ink);
+  border-radius:50%;
+  color:var(--ink);
+  background:transparent;
+}
+html body.product-page .retail-only-mark i{font-size:11px;}
+html body.product-page .retail-only-state strong{
+  display:block;
+  font-size:10px;
+  line-height:1.2;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+  color:var(--ink);
+}
+html body.product-page .retail-only-state small{
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.45;
+}
+html body.product-page [data-wholesale-policy][hidden]{display:none!important;}
+
+@media(max-width:800px){
+  body.modern-checkout .checkout-order-timeline{
+    grid-template-columns:1fr!important;
+    gap:0!important;
+    margin:28px 0 25px!important;
+  }
+  body.modern-checkout .checkout-stage{
+    grid-template-columns:40px minmax(0,1fr)!important;
+    grid-template-rows:auto!important;
+    justify-items:start!important;
+    column-gap:13px!important;
+    min-height:76px!important;
+    text-align:left!important;
+  }
+  body.modern-checkout .checkout-stage:not(:last-child)::after{
+    top:34px!important;
+    bottom:-1px!important;
+    left:16px!important;
+    right:auto!important;
+    width:1px!important;
+    height:auto!important;
+    background:#cfc5bb!important;
+  }
+  body.modern-checkout .checkout-stage.is-current:not(:last-child)::after{
+    background:linear-gradient(180deg,#171412 0 36%,#cfc5bb 36% 100%)!important;
+  }
+  body.modern-checkout .checkout-stage-marker{
+    width:34px!important;
+    height:34px!important;
+  }
+  body.modern-checkout .checkout-stage-copy{
+    align-self:center!important;
+    margin-top:0!important;
+    padding:1px 0 12px!important;
+  }
+  body.modern-checkout .checkout-stage-copy small{
+    max-width:none!important;
+    margin:0!important;
+    font-size:9px!important;
+  }
+  html body.product-page .retail-only-state{
+    grid-template-columns:36px 1fr;
+    gap:11px;
+    margin:20px 0 26px;
+    padding:14px 0;
+  }
+}
+@media(max-width:390px){
+  body.modern-checkout .checkout-stage{min-height:72px!important;}
+  body.modern-checkout .checkout-stage-copy strong{font-size:8px!important;}
+  body.modern-checkout .checkout-stage-copy small{font-size:8px!important;}
+}
