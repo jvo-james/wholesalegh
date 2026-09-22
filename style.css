@@ -3652,3 +3652,108 @@ body.modern-checkout .checkout-order-timeline span i{
     box-shadow:0 0 0 3px #f5f1eb!important;
   }
 }
+
+/* ================================================================
+   CHECKOUT RESTORE + COUNTRY FIELD FIX
+   Restore the original production journey markup/layout and keep the
+   international region field genuinely hidden until it is needed.
+   ================================================================ */
+body.modern-checkout .checkout-order-timeline{
+  position:static!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  width:auto!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:13px 0 18px!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  white-space:nowrap!important;
+  text-transform:uppercase!important;
+  letter-spacing:.08em!important;
+  font-size:9px!important;
+  line-height:normal!important;
+  color:inherit!important;
+  counter-reset:none!important;
+}
+body.modern-checkout .checkout-order-timeline::before{
+  content:none!important;
+  display:none!important;
+}
+body.modern-checkout .checkout-order-timeline>i{
+  display:inline-block!important;
+  position:static!important;
+  width:auto!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  font-size:7px!important;
+  line-height:1!important;
+  color:#9f978f!important;
+  background:transparent!important;
+}
+body.modern-checkout .checkout-order-timeline span,
+body.modern-checkout .checkout-order-timeline span:first-of-type{
+  position:static!important;
+  display:inline!important;
+  min-width:0!important;
+  min-height:0!important;
+  width:auto!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:left!important;
+  color:inherit!important;
+  font-size:9px!important;
+  font-weight:400!important;
+  line-height:normal!important;
+  white-space:nowrap!important;
+  background:transparent!important;
+  border:0!important;
+}
+body.modern-checkout .checkout-order-timeline span::before,
+body.modern-checkout .checkout-order-timeline span::after{
+  content:none!important;
+  display:none!important;
+}
+body.modern-checkout .checkout-order-timeline span i{
+  display:inline-block!important;
+  position:static!important;
+  width:auto!important;
+  height:auto!important;
+  margin:0 4px 0 0!important;
+  padding:0!important;
+  font-size:9px!important;
+  color:inherit!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+
+/* The country-select plugin puts the flag on top of the text field.
+   Reserve enough room so "Ghana" never sits underneath the flag. */
+body.modern-checkout .country-select{position:relative!important;}
+body.modern-checkout .country-select input#checkoutCountry{
+  box-sizing:border-box!important;
+  padding-left:64px!important;
+  padding-right:46px!important;
+  text-indent:0!important;
+}
+body.modern-checkout .country-select .selected-flag{
+  left:0!important;
+  top:0!important;
+  width:56px!important;
+  height:100%!important;
+  padding:0 0 0 13px!important;
+  display:flex!important;
+  align-items:center!important;
+  box-sizing:border-box!important;
+}
+body.modern-checkout .country-select .selected-flag .arrow{
+  right:7px!important;
+}
+
+/* Keep the international-only region input hidden when Ghana is selected.
+   Some of the checkout sizing rules intentionally use !important, so this
+   rule must come later to honour the native hidden attribute. */
+body.modern-checkout [hidden]{display:none!important;}
