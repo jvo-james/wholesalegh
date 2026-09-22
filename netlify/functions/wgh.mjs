@@ -472,7 +472,7 @@ async function getCategories(db) {
 
 
 /* =========================================================
-   DISCOUNT STUDIO + STOREFRONT PRICING
+   DISCOUNTS + STOREFRONT PRICING
    Discounts live separately from product records so an owner can
    run, pause or change a promotion without mutating base prices.
    ========================================================= */
@@ -481,6 +481,7 @@ const DISCOUNT_BADGES = new Set([
   "Big sale",
   "Selling quickly",
   "Limited drop",
+  "Limited time",
   "Price drop",
   "Last call",
   "Best seller"
@@ -520,23 +521,19 @@ async function getDiscountState(db) {
   const snap = await db.collection("storeDiscounts").get();
   let campaign = {
     active: false,
-    upToPercent: 40,
-    headline: "A little less, a lot more to love.",
-    subheadline: "Selected pieces are moving into a limited-time sale.",
-    modalKicker: "The sale edit",
-    modalTitle: "Up to 40% off selected pieces.",
-    modalBody: "Fresh prices, same made-to-order care. Shop the pieces currently marked down before the sale edit changes.",
-    ctaText: "Shop the sale",
-    badge: "Big sale",
-    note: "Limited-time pricing"
+    showBanner: false,
+    showModal: false,
+    upToPercent: 40
   };
   const products = new Map();
   for (const doc of snap.docs) {
     if (doc.id === "__campaign__") campaign = { ...campaign, ...doc.data() };
     else products.set(doc.id, doc.data() || {});
   }
-  campaign.active = campaign.active === true;
-  campaign.upToPercent = Math.min(90, Math.max(1, Number(campaign.upToPercent || 40)));
+  campaign.showBanner = campaign.showBanner === true || (campaign.showBanner === undefined && campaign.active === true);
+  campaign.showModal = campaign.showModal === true || (campaign.showModal === undefined && campaign.active === true);
+  campaign.active = campaign.showBanner || campaign.showModal;
+  campaign.upToPercent = 40;
   return { campaign, products };
 }
 
@@ -3980,19 +3977,12 @@ export default async function handler(
     }
 
     if (path === "/storefront-discount" && method === "GET") {
-      const db = getDb();
-      const state = await getDiscountState(db);
+      const state = await getDiscountState(getDb());
       return json(200, {
         active: state.campaign.active === true,
-        upToPercent: state.campaign.upToPercent,
-        headline: safeText(state.campaign.headline, 140),
-        subheadline: safeText(state.campaign.subheadline, 260),
-        modalKicker: safeText(state.campaign.modalKicker, 60),
-        modalTitle: safeText(state.campaign.modalTitle, 180),
-        modalBody: safeText(state.campaign.modalBody, 500),
-        ctaText: safeText(state.campaign.ctaText, 60) || "Shop the sale",
-        badge: safeText(state.campaign.badge, 40),
-        note: safeText(state.campaign.note, 120)
+        showBanner: state.campaign.showBanner === true,
+        showModal: state.campaign.showModal === true,
+        upToPercent: 40
       });
     }
 
@@ -4112,11 +4102,12 @@ export default async function handler(
       await requireAdmin(request);
       const [products, state] = await Promise.all([getEffectiveCatalog(getDb()), getDiscountState(getDb())]);
       return json(200, {
-        campaign: state.campaign,
+        display: { showBanner: state.campaign.showBanner === true, showModal: state.campaign.showModal === true },
         products: products.map(product => ({
           id: product.id,
           name: product.name,
           category: product.category,
+          colours: product.colours || [],
           image: product.images?.[0] || "",
           retailPrice: Number(product.retailPrice || 0),
           wholesalePrice: Number(product.wholesalePrice || 0),
@@ -4131,22 +4122,18 @@ export default async function handler(
     if (path === "/admin/discount-settings-save" && method === "POST") {
       const adminUser = await requireAdmin(request);
       const input = await readBody(request);
+      const showBanner = input.showBanner === true;
+      const showModal = input.showModal === true;
       const payload = {
-        active: input.active === true,
-        upToPercent: Math.min(90, Math.max(1, Number(input.upToPercent || 40))),
-        headline: safeText(input.headline, 140) || "A little less, a lot more to love.",
-        subheadline: safeText(input.subheadline, 260),
-        modalKicker: safeText(input.modalKicker, 60) || "The sale edit",
-        modalTitle: safeText(input.modalTitle, 180) || `Up to ${Math.min(90, Math.max(1, Number(input.upToPercent || 40)))}% off selected pieces.`,
-        modalBody: safeText(input.modalBody, 500),
-        ctaText: safeText(input.ctaText, 60) || "Shop the sale",
-        badge: safeText(input.badge, 40),
-        note: safeText(input.note, 120),
+        active: showBanner || showModal,
+        showBanner,
+        showModal,
+        upToPercent: 40,
         updatedBy: adminUser.email || adminUser.uid,
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };
       await getDb().collection("storeDiscounts").doc("__campaign__").set(payload,{merge:true});
-      return json(200,{ok:true});
+      return json(200,{ok:true,showBanner,showModal});
     }
 
     if (path === "/admin/discount-save" && method === "POST") {
