@@ -427,21 +427,21 @@ async function sendTemplate(to, template) {
    ========================================================= */
 
 const SERVER_CATALOG = {
-  "sculpted-high-neck-hugger-dress": {"name":"Sculpted High Neck Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Red","Army Green"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ss-hugger-dress": {"name":"S.S. Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"moq":6,"colours":["Black","Brown","Nude","Army Green","Gray"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ls-hugger-dress": {"name":"LS HUGGER DRESS","category":"dresses","retailPrice":350,"wholesalePrice":160,"moq":6,"colours":["Grey","Emerald Green","Red","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "thin-strap-hugger-dress": {"name":"Thin Strap Hugger Dress","category":"dresses","retailPrice":250,"wholesalePrice":120,"moq":6,"colours":["Brown","Black","Nude","Pink","Grey","Royal Blue","Burgundy"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "drapped-halter-mini-dress": {"name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ruffle-asymmetric-mini-dress": {"name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ruche-wrap-mini-dress": {"name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "nael-mini-dress": {"name":"Naël Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"moq":6,"colours":["Red","Orange","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "dante-capri": {"name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ruched-waist-pants": {"name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "foldover-waist-flare-pants": {"name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ruffle-button-top": {"name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "ribbed-contrast-top": {"name":"Ribbed Contrast Top","category":"tops","retailPrice":90,"wholesalePrice":55,"moq":6,"colours":["Black","White","Flamingo","Chartreuse"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "nunu-tie-waist-skirt-set": {"name":"Nunu Tie-waist Skirt Set","category":"two-pieces","retailPrice":300,"wholesalePrice":160,"moq":6,"colours":["Black","Olive"],"sizes":["XS","S","M","L","XL","2XL"]},
-  "tube-top-set": {"name":"Tube Top Set","category":"two-pieces","retailPrice":200,"wholesalePrice":140,"moq":6,"colours":["Yellow","Black","Grey"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "sculpted-high-neck-hugger-dress": {"name":"Sculpted High Neck Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"wholesaleAvailable":true,"moq":6,"colours":["Black","Brown","Red","Army Green"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ss-hugger-dress": {"name":"S.S. Hugger Dress","category":"dresses","retailPrice":300,"wholesalePrice":150,"wholesaleAvailable":true,"moq":6,"colours":["Black","Brown","Nude","Army Green","Gray"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ls-hugger-dress": {"name":"LS HUGGER DRESS","category":"dresses","retailPrice":350,"wholesalePrice":160,"wholesaleAvailable":true,"moq":6,"colours":["Grey","Emerald Green","Red","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "thin-strap-hugger-dress": {"name":"Thin Strap Hugger Dress","category":"dresses","retailPrice":250,"wholesalePrice":120,"wholesaleAvailable":true,"moq":6,"colours":["Brown","Black","Nude","Pink","Grey","Royal Blue","Burgundy"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "drapped-halter-mini-dress": {"name":"Drapped Halter Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"wholesaleAvailable":true,"moq":6,"colours":["Dark Brown","Black","Grey","Baby Blue"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruffle-asymmetric-mini-dress": {"name":"Ruffle Asymmetric Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"wholesaleAvailable":true,"moq":6,"colours":["Pink","White","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruche-wrap-mini-dress": {"name":"Ruche Wrap Mini Dress","category":"dresses","retailPrice":250,"wholesalePrice":140,"wholesaleAvailable":true,"moq":6,"colours":["Black","Curry","White"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "nael-mini-dress": {"name":"Naël Mini Dress","category":"dresses","retailPrice":200,"wholesalePrice":130,"wholesaleAvailable":true,"moq":6,"colours":["Red","Orange","Black"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "dante-capri": {"name":"DANTÉ CAPRI","category":"pants","retailPrice":200,"wholesalePrice":140,"wholesaleAvailable":true,"moq":6,"colours":["Army Green","Grey","Black","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruched-waist-pants": {"name":"Ruched Waist Pants","category":"pants","retailPrice":200,"wholesalePrice":140,"wholesaleAvailable":true,"moq":6,"colours":["Black","Red","Brown"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "foldover-waist-flare-pants": {"name":"Foldover Waist Flare Pants","category":"pants","retailPrice":250,"wholesalePrice":145,"wholesaleAvailable":true,"moq":6,"colours":["Brown","Black","Nude","Pink"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ruffle-button-top": {"name":"Ruffle Button Top","category":"tops","retailPrice":145,"wholesalePrice":80,"wholesaleAvailable":true,"moq":6,"colours":["Black","Pink","Brown","Cream"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "ribbed-contrast-top": {"name":"Ribbed Contrast Top","category":"tops","retailPrice":90,"wholesalePrice":55,"wholesaleAvailable":true,"moq":6,"colours":["Black","White","Flamingo","Chartreuse"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "nunu-tie-waist-skirt-set": {"name":"Nunu Tie-waist Skirt Set","category":"two-pieces","retailPrice":300,"wholesalePrice":160,"wholesaleAvailable":true,"moq":6,"colours":["Black","Olive"],"sizes":["XS","S","M","L","XL","2XL"]},
+  "tube-top-set": {"name":"Tube Top Set","category":"two-pieces","retailPrice":200,"wholesalePrice":140,"wholesaleAvailable":true,"moq":6,"colours":["Yellow","Black","Grey"],"sizes":["XS","S","M","L","XL","2XL"]},
   "halter-neck-top": {"name":"Halter Neck Top","category":"tops","retailPrice":100,"wholesalePrice":70,"moq":6,"colours":["White","Blue Black","Nude"],"sizes":["XS","S","M","L","XL","2XL"]}
 };
 // Keep the default server catalogue in sync with the one image registry.
@@ -468,6 +468,118 @@ async function getCategories(db) {
   const map = new Map(DEFAULT_CATEGORIES.map(x => [x.id, {...x}]));
   for (const doc of snap.docs) map.set(doc.id, {id:doc.id, ...(map.get(doc.id)||{}), ...doc.data()});
   return [...map.values()].filter(x => x.active !== false).sort((a,b)=>Number(a.sortOrder||999)-Number(b.sortOrder||999)||String(a.name||a.id).localeCompare(String(b.name||b.id)));
+}
+
+
+/* =========================================================
+   DISCOUNT STUDIO + STOREFRONT PRICING
+   Discounts live separately from product records so an owner can
+   run, pause or change a promotion without mutating base prices.
+   ========================================================= */
+
+const DISCOUNT_BADGES = new Set([
+  "Big sale",
+  "Selling quickly",
+  "Limited drop",
+  "Price drop",
+  "Last call",
+  "Best seller"
+]);
+
+function cleanDiscountSide(side, fallbackPrice = 0) {
+  const value = side && typeof side === "object" ? side : {};
+  const active = value.active === true;
+  const oldPrice = Number(value.oldPrice ?? fallbackPrice);
+  const newPrice = Number(value.newPrice ?? 0);
+  if (!active) return { active:false, oldPrice:0, newPrice:0, percent:0 };
+  if (!Number.isFinite(oldPrice) || !Number.isFinite(newPrice) || oldPrice <= 0 || newPrice <= 0 || newPrice >= oldPrice) {
+    throw new Error("Discounts need a positive new price lower than the old price.");
+  }
+  const percent = Math.round((1 - (newPrice / oldPrice)) * 100);
+  return { active:true, oldPrice, newPrice, percent };
+}
+
+function normalizeDiscountDoc(data = {}, product = {}) {
+  const retail = cleanDiscountSide(data.retail, Number(product.retailPrice || 0));
+  const wholesale = cleanDiscountSide(data.wholesale, Number(product.wholesalePrice || 0));
+  const badge = DISCOUNT_BADGES.has(String(data.badge || "").trim()) ? String(data.badge).trim() : "";
+  const note = safeText(data.note, 90).trim();
+  const active = data.active === true && (retail.active || wholesale.active);
+  return {
+    active,
+    badge,
+    note,
+    retail,
+    wholesale,
+    updatedAt: timestampIso(data.updatedAt),
+    updatedBy: safeText(data.updatedBy, 160)
+  };
+}
+
+async function getDiscountState(db) {
+  const snap = await db.collection("storeDiscounts").get();
+  let campaign = {
+    active: false,
+    upToPercent: 40,
+    headline: "A little less, a lot more to love.",
+    subheadline: "Selected pieces are moving into a limited-time sale.",
+    modalKicker: "The sale edit",
+    modalTitle: "Up to 40% off selected pieces.",
+    modalBody: "Fresh prices, same made-to-order care. Shop the pieces currently marked down before the sale edit changes.",
+    ctaText: "Shop the sale",
+    badge: "Big sale",
+    note: "Limited-time pricing"
+  };
+  const products = new Map();
+  for (const doc of snap.docs) {
+    if (doc.id === "__campaign__") campaign = { ...campaign, ...doc.data() };
+    else products.set(doc.id, doc.data() || {});
+  }
+  campaign.active = campaign.active === true;
+  campaign.upToPercent = Math.min(90, Math.max(1, Number(campaign.upToPercent || 40)));
+  return { campaign, products };
+}
+
+function applyDiscountToProduct(product, discountData) {
+  const base = { ...product };
+  const discount = normalizeDiscountDoc(discountData || {}, base);
+  const retailPrice = discount.retail.active ? discount.retail.newPrice : Number(base.retailPrice || 0);
+  const wholesalePrice = discount.wholesale.active ? discount.wholesale.newPrice : Number(base.wholesalePrice || 0);
+  return {
+    ...base,
+    retailPrice,
+    wholesalePrice,
+    wholesaleAvailable: base.wholesaleAvailable !== false,
+    discount,
+    createdAt: timestampIso(base.createdAt),
+    updatedAt: timestampIso(base.updatedAt)
+  };
+}
+
+async function getEffectiveCatalog(db, { includeInactive = false } = {}) {
+  const [productSnap, overrideSnap, discountState] = await Promise.all([
+    db.collection("products").get(),
+    db.collection("productOverrides").get(),
+    getDiscountState(db)
+  ]);
+  const effective = new Map(Object.entries(SERVER_CATALOG).map(([id, product]) => [id, { id, ...product, active:true }]));
+  productSnap.docs.forEach(doc => {
+    if (LEGACY_PRODUCT_IDS.has(doc.id)) return;
+    const current = effective.get(doc.id) || {id:doc.id};
+    const data = doc.data() || {};
+    const createdAt = data.createdAt || doc.createTime || current.createdAt || null;
+    effective.set(doc.id, { ...current, ...data, id:doc.id, createdAt });
+  });
+  overrideSnap.docs.forEach(doc => {
+    if (LEGACY_PRODUCT_IDS.has(doc.id)) return;
+    const current = effective.get(doc.id) || {id:doc.id};
+    const data = doc.data() || {};
+    const createdAt = data.createdAt || current.createdAt || (!SERVER_CATALOG[doc.id] ? doc.createTime : null);
+    effective.set(doc.id, { ...current, ...data, id:doc.id, createdAt });
+  });
+  return [...effective.values()]
+    .filter(product => includeInactive || product.active !== false)
+    .map(product => applyDiscountToProduct(product, discountState.products.get(product.id)));
 }
 
 async function createAdminNotification(db, notification) {
@@ -706,6 +818,8 @@ async function serverCart(
   }
 
   const result = [];
+  const effectiveProducts = await getEffectiveCatalog(db);
+  const productMap = new Map(effectiveProducts.map(product => [product.id, product]));
 
   for (const raw of clientItems) {
     const productId = safeText(
@@ -713,16 +827,7 @@ async function serverCart(
       80
     );
 
-    const [productSnap, overrideSnap] = await Promise.all([
-      db.collection("products").doc(productId).get(),
-      db.collection("productOverrides").doc(productId).get()
-    ]);
-
-    const product = productSnap.exists
-      ? productSnap.data()
-      : overrideSnap.exists
-        ? { ...(SERVER_CATALOG[productId] || {}), ...overrideSnap.data() }
-        : SERVER_CATALOG[productId];
+    const product = productMap.get(productId);
 
     if (!product) {
       throw new Error(
@@ -761,6 +866,13 @@ async function serverCart(
 
     const moq =
       Number(product.moq || 6);
+
+    if (
+      mode === "wholesale" &&
+      product.wholesaleAvailable === false
+    ) {
+      throw new Error(`${product.name} is currently retail-only.`);
+    }
 
     if (
       mode === "wholesale" &&
@@ -832,6 +944,8 @@ async function serverCart(
         mode,
 
       unitPrice,
+      originalUnitPrice: Number(mode === "wholesale" ? (product.discount?.wholesale?.oldPrice || product.wholesalePrice) : (product.discount?.retail?.oldPrice || product.retailPrice)),
+      discountPercent: Number(mode === "wholesale" ? (product.discount?.wholesale?.percent || 0) : (product.discount?.retail?.percent || 0)),
 
       /*
         Kept as price too because the email template
@@ -3862,9 +3976,24 @@ export default async function handler(
     }
 
     if (path === "/catalog" && method === "GET") {
+      return json(200, await getEffectiveCatalog(getDb()));
+    }
+
+    if (path === "/storefront-discount" && method === "GET") {
       const db = getDb();
-      const snap = await db.collection("productOverrides").get();
-      return json(200, snap.docs.filter(doc => !LEGACY_PRODUCT_IDS.has(doc.id)).map(doc => ({ id: doc.id, ...doc.data() })));
+      const state = await getDiscountState(db);
+      return json(200, {
+        active: state.campaign.active === true,
+        upToPercent: state.campaign.upToPercent,
+        headline: safeText(state.campaign.headline, 140),
+        subheadline: safeText(state.campaign.subheadline, 260),
+        modalKicker: safeText(state.campaign.modalKicker, 60),
+        modalTitle: safeText(state.campaign.modalTitle, 180),
+        modalBody: safeText(state.campaign.modalBody, 500),
+        ctaText: safeText(state.campaign.ctaText, 60) || "Shop the sale",
+        badge: safeText(state.campaign.badge, 40),
+        note: safeText(state.campaign.note, 120)
+      });
     }
 
     if (path === "/categories" && method === "GET") {
@@ -3927,18 +4056,49 @@ export default async function handler(
     }
 
     if (path === "/admin/products" && method === "GET") {
-      await requireAdmin(request); const db=getDb();
-      const [productSnap,overrideSnap]=await Promise.all([db.collection("products").get(),db.collection("productOverrides").get()]);
-      const effective=new Map(Object.entries(SERVER_CATALOG).map(([id,product])=>[id,{id,...product,active:true}]));
-      productSnap.docs.forEach(doc=>{if(!LEGACY_PRODUCT_IDS.has(doc.id))effective.set(doc.id,{...(effective.get(doc.id)||{id:doc.id}),...doc.data(),id:doc.id});});
-      overrideSnap.docs.forEach(doc=>{if(!LEGACY_PRODUCT_IDS.has(doc.id))effective.set(doc.id,{...(effective.get(doc.id)||{id:doc.id}),...doc.data(),id:doc.id});});
-      return json(200,[...effective.values()].filter(product=>product.active!==false));
+      await requireAdmin(request);
+      return json(200, await getEffectiveCatalog(getDb()));
     }
     if (path === "/admin/product-save" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80);
-      if(!id) throw new Error("Choose a product."); const db=getDb();
-      const payload={name:safeText(input.name,120),category:safeText(input.category,50),retailPrice:Number(input.retailPrice||0),wholesalePrice:Number(input.wholesalePrice||0),moq:Math.max(1,Number(input.moq||6)),description:safeText(input.description,800),details:safeText(input.details,1000),colours:Array.isArray(input.colours)?input.colours.map(x=>safeText(x,40)).filter(Boolean):[],sizes:Array.isArray(input.sizes)?input.sizes.map(x=>safeText(x,20)).filter(Boolean):[],images:Array.isArray(input.images)?input.images.map(x=>safeText(x,500)).filter(Boolean):[],colourImages:input.colourImages&&typeof input.colourImages==='object'?input.colourImages:{},colourHexes:input.colourHexes&&typeof input.colourHexes==='object'?input.colourHexes:{},featuredColour:safeText(input.featuredColour,40),inventory:input.inventory&&typeof input.inventory==='object'?input.inventory:{},isNew:Boolean(input.isNew),available:input.available!==false,active:input.active!==false,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()};
-      await db.collection("productOverrides").doc(id).set(payload,{merge:true}); return json(200,{ok:true,id});
+      if(!id) throw new Error("Choose a product.");
+      const db=getDb();
+      const [overrideSnap, productSnap] = await Promise.all([
+        db.collection("productOverrides").doc(id).get(),
+        db.collection("products").doc(id).get()
+      ]);
+      const existing = overrideSnap.exists ? overrideSnap.data() || {} : (productSnap.exists ? productSnap.data() || {} : {});
+      const wholesaleAvailable = input.wholesaleAvailable === undefined
+        ? (existing.wholesaleAvailable !== false && Number(input.wholesalePrice ?? existing.wholesalePrice ?? 0) > 0)
+        : Boolean(input.wholesaleAvailable);
+      const payload={
+        name:safeText(input.name,120),
+        category:safeText(input.category,50),
+        retailPrice:Number(input.retailPrice||0),
+        wholesalePrice:Number(input.wholesalePrice||0),
+        wholesaleAvailable,
+        moq:Math.max(1,Number(input.moq||6)),
+        description:safeText(input.description,800),
+        details:safeText(input.details,1000),
+        colours:Array.isArray(input.colours)?input.colours.map(x=>safeText(x,40)).filter(Boolean):[],
+        sizes:Array.isArray(input.sizes)?input.sizes.map(x=>safeText(x,20)).filter(Boolean):[],
+        images:Array.isArray(input.images)?input.images.map(x=>safeText(x,500)).filter(Boolean):[],
+        colourImages:input.colourImages&&typeof input.colourImages==='object'?input.colourImages:{},
+        colourHexes:input.colourHexes&&typeof input.colourHexes==='object'?input.colourHexes:{},
+        featuredColour:safeText(input.featuredColour,40),
+        inventory:input.inventory&&typeof input.inventory==='object'?input.inventory:{},
+        isNew:false,
+        available:input.available!==false,
+        active:input.active!==false,
+        updatedBy:adminUser.email||adminUser.uid,
+        updatedAt:admin.firestore.FieldValue.serverTimestamp()
+      };
+      if (existing.createdAt) payload.createdAt = existing.createdAt;
+      else if (productSnap.exists && productSnap.data()?.createdAt) payload.createdAt = productSnap.data().createdAt;
+      else if (!SERVER_CATALOG[id]) payload.createdAt = admin.firestore.FieldValue.serverTimestamp();
+      else payload.createdAt = null;
+      await db.collection("productOverrides").doc(id).set(payload,{merge:true});
+      return json(200,{ok:true,id});
     }
     if (path === "/admin/product-delete" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80); if(!id) throw new Error("Choose a product.");
@@ -3947,14 +4107,95 @@ export default async function handler(
 
 
 
+
+    if (path === "/admin/discounts" && method === "GET") {
+      await requireAdmin(request);
+      const [products, state] = await Promise.all([getEffectiveCatalog(getDb()), getDiscountState(getDb())]);
+      return json(200, {
+        campaign: state.campaign,
+        products: products.map(product => ({
+          id: product.id,
+          name: product.name,
+          category: product.category,
+          image: product.images?.[0] || "",
+          retailPrice: Number(product.retailPrice || 0),
+          wholesalePrice: Number(product.wholesalePrice || 0),
+          baseRetailPrice: Number(product.discount?.retail?.oldPrice || product.retailPrice || 0),
+          baseWholesalePrice: Number(product.discount?.wholesale?.oldPrice || product.wholesalePrice || 0),
+          wholesaleAvailable: product.wholesaleAvailable !== false,
+          discount: product.discount || null
+        }))
+      });
+    }
+
+    if (path === "/admin/discount-settings-save" && method === "POST") {
+      const adminUser = await requireAdmin(request);
+      const input = await readBody(request);
+      const payload = {
+        active: input.active === true,
+        upToPercent: Math.min(90, Math.max(1, Number(input.upToPercent || 40))),
+        headline: safeText(input.headline, 140) || "A little less, a lot more to love.",
+        subheadline: safeText(input.subheadline, 260),
+        modalKicker: safeText(input.modalKicker, 60) || "The sale edit",
+        modalTitle: safeText(input.modalTitle, 180) || `Up to ${Math.min(90, Math.max(1, Number(input.upToPercent || 40)))}% off selected pieces.`,
+        modalBody: safeText(input.modalBody, 500),
+        ctaText: safeText(input.ctaText, 60) || "Shop the sale",
+        badge: safeText(input.badge, 40),
+        note: safeText(input.note, 120),
+        updatedBy: adminUser.email || adminUser.uid,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      await getDb().collection("storeDiscounts").doc("__campaign__").set(payload,{merge:true});
+      return json(200,{ok:true});
+    }
+
+    if (path === "/admin/discount-save" && method === "POST") {
+      const adminUser = await requireAdmin(request);
+      const input = await readBody(request);
+      const id = safeText(input.productId, 80);
+      if (!id) throw new Error("Choose a product.");
+      const product = (await getEffectiveCatalog(getDb())).find(x => x.id === id);
+      if (!product) throw new Error("Product not found.");
+      const retail = cleanDiscountSide(input.retail, Number(product.retailPrice || 0));
+      const wholesale = cleanDiscountSide(input.wholesale, Number(product.wholesalePrice || 0));
+      const badge = DISCOUNT_BADGES.has(safeText(input.badge, 40).trim()) ? safeText(input.badge, 40).trim() : "";
+      const note = safeText(input.note,90).trim();
+      const active = input.active === true && (retail.active || wholesale.active);
+      await getDb().collection("storeDiscounts").doc(id).set({active, retail, wholesale, badge, note, updatedBy:adminUser.email||adminUser.uid, updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      return json(200,{ok:true,id});
+    }
+
+    if (path === "/admin/discount-bulk-save" && method === "POST") {
+      const adminUser = await requireAdmin(request);
+      const input = await readBody(request);
+      const entries = Array.isArray(input.products) ? input.products.slice(0,500) : [];
+      if (!entries.length) throw new Error("Choose at least one product.");
+      const db = getDb();
+      const effective = await getEffectiveCatalog(db);
+      const map = new Map(effective.map(product => [product.id, product]));
+      const batch = db.batch();
+      for (const entry of entries) {
+        const product = map.get(safeText(entry.productId,80));
+        if (!product) continue;
+        const retail = cleanDiscountSide(entry.retail, Number(product.retailPrice || 0));
+        const wholesale = cleanDiscountSide(entry.wholesale, Number(product.wholesalePrice || 0));
+        const badge = DISCOUNT_BADGES.has(safeText(entry.badge, 40).trim()) ? safeText(entry.badge,40).trim() : "";
+        const note = safeText(entry.note,90).trim();
+        const active = entry.active === true && (retail.active || wholesale.active);
+        batch.set(db.collection("storeDiscounts").doc(product.id),{active,retail,wholesale,badge,note,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
+      }
+      await batch.commit();
+      return json(200,{ok:true,saved:entries.length});
+    }
+
     if (path === "/admin/manual-order" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const db=getDb();
       const productId=safeText(input.productId,80),quantity=Math.max(1,Number(input.quantity||1)),mode=input.mode==="wholesale"?"wholesale":"retail";
-      const overrideSnap=await db.collection("productOverrides").get(); const catalogMap=new Map(Object.entries(SERVER_CATALOG).map(([id,p])=>[id,{id,...p,active:true}])); overrideSnap.docs.forEach(doc=>catalogMap.set(doc.id,{...(catalogMap.get(doc.id)||{id:doc.id}),...doc.data()})); const product=[...catalogMap.values()].find(p=>p.id===productId&&p.active!==false); if(!product)throw new Error("Choose a valid product.");
+      const products=await getEffectiveCatalog(db); const product=products.find(p=>p.id===productId&&p.active!==false); if(!product)throw new Error("Choose a valid product."); if(mode==="wholesale"&&product.wholesaleAvailable===false)throw new Error(`${product.name} is currently retail-only.`);
       const pieces=quantity,price=Number(mode==="wholesale"?product.wholesalePrice:product.retailPrice),subtotal=price*quantity,deliveryFee=Math.max(0,Number(input.deliveryFee||0)),total=subtotal+deliveryFee;
       const batch=await findAvailableBatch(db,pieces); const counterRef=db.collection("counters").doc("orders"); const orderRefHolder={};
       await db.runTransaction(async tx=>{const [counterSnap,batchSnap]=await Promise.all([tx.get(counterRef),tx.get(batch.ref)]);const counter=counterSnap.exists?counterSnap.data():{},batchData=batchSnap.exists?batchSnap.data():{};const orderSequence=Number(counter.orderSeq||0)+1;let batchSequence=Number(batchData.batchNumber||0);if(!batchSequence)batchSequence=Number(counter.batchCounter||0)+1;const orderNumber=`WGH-${String(orderSequence).padStart(3,"0")}`,batchName=`Batch ${String(batchSequence).padStart(2,"0")}`;const earliest=addDays(batch.close,Number(env("DELIVERY_MIN_DAYS")||14)),latest=addDays(batch.close,Number(env("DELIVERY_MAX_DAYS")||21)),estimatedDelivery=formatDeliveryRange(earliest,latest),nowIso=new Date().toISOString();const orderRef=db.collection("orders").doc(orderNumber);orderRefHolder.number=orderNumber;
-        tx.set(orderRef,{orderNumber,userId:null,batchId:batch.id,batchName,batchCloseDate:admin.firestore.Timestamp.fromDate(batch.close),estimatedDelivery,estimatedDeliveryStart:admin.firestore.Timestamp.fromDate(earliest),estimatedDeliveryEnd:admin.firestore.Timestamp.fromDate(latest),customer:{firstName:safeText(input.firstName,80),lastName:safeText(input.lastName,80),email:safeText(input.email,160).toLowerCase(),phone:safeText(input.phone,40)},items:[{id:product.id,name:product.name,image:product.images?.[0]||"",mode,totalQuantity:quantity,unitPrice:price,variants:[{colour:safeText(input.colour,40),size:safeText(input.size,20),quantity}]}],pieces,pieceCount:pieces,subtotal,processingFee:0,deliveryFee,total,paymentReference:"MANUAL",paymentStatus:"manual",status:"cycle_assigned",adminNotes:input.note?[{note:safeText(input.note,800),by:adminUser.email||adminUser.uid,at:nowIso}]:[],createdAt:admin.firestore.FieldValue.serverTimestamp(),statusHistory:[{status:"order_confirmed",at:nowIso},{status:"payment_received",at:nowIso},{status:"cycle_assigned",at:nowIso}]});
+        tx.set(orderRef,{orderNumber,userId:null,batchId:batch.id,batchName,batchCloseDate:admin.firestore.Timestamp.fromDate(batch.close),estimatedDelivery,estimatedDeliveryStart:admin.firestore.Timestamp.fromDate(earliest),estimatedDeliveryEnd:admin.firestore.Timestamp.fromDate(latest),customer:{firstName:safeText(input.firstName,80),lastName:safeText(input.lastName,80),email:safeText(input.email,160).toLowerCase(),phone:safeText(input.phone,40)},items:[{id:product.id,name:product.name,image:product.images?.[0]||"",mode,totalQuantity:quantity,unitPrice:price,originalUnitPrice:Number(mode==="wholesale"?(product.discount?.wholesale?.oldPrice||product.wholesalePrice):(product.discount?.retail?.oldPrice||product.retailPrice)),discountPercent:Number(mode==="wholesale"?(product.discount?.wholesale?.percent||0):(product.discount?.retail?.percent||0)),variants:[{colour:safeText(input.colour,40),size:safeText(input.size,20),quantity}]}],pieces,pieceCount:pieces,subtotal,processingFee:0,deliveryFee,total,paymentReference:"MANUAL",paymentStatus:"manual",status:"cycle_assigned",adminNotes:input.note?[{note:safeText(input.note,800),by:adminUser.email||adminUser.uid,at:nowIso}]:[],createdAt:admin.firestore.FieldValue.serverTimestamp(),statusHistory:[{status:"order_confirmed",at:nowIso},{status:"payment_received",at:nowIso},{status:"cycle_assigned",at:nowIso}]});
         tx.set(batch.ref,{batchNumber:batchSequence,batchName,startDate:admin.firestore.Timestamp.fromDate(batch.start),closeDate:admin.firestore.Timestamp.fromDate(batch.close),capacity:batch.capacity,usedCapacity:Number(batchData.usedCapacity||0)+pieces,status:"OPEN",updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});tx.set(counterRef,{orderSeq:orderSequence,batchCounter:Math.max(Number(counter.batchCounter||0),batchSequence)},{merge:true});});
       await createAdminNotification(db,{type:"order",title:`Manual order ${orderRefHolder.number} created`,message:`A manual ${mode} order for ${quantity} piece${quantity===1?"":"s"} was added.`,orderNumber:orderRefHolder.number,target:"orders"});
       return json(200,{ok:true,orderNumber:orderRefHolder.number});
