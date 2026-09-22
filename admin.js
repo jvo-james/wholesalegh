@@ -110,6 +110,50 @@
       }
     },'Signing in');
   });
+
+  // Admin account recovery: keep both recovery actions separate from the sign-in handler
+  // so a recovery click can never submit the login form accidentally.
+  const adminPasswordRecovery=document.querySelector('[data-admin-password-recovery]');
+  const adminEmailRecovery=document.querySelector('[data-admin-email-recovery]');
+  const adminLoginForm=document.querySelector('[data-admin-login-form]');
+  const adminForgotPasswordEmail=document.querySelector('[data-admin-forgot-password-form] input[name=\"email\"]');
+  function showAdminRecovery(which){
+    if(adminLoginForm)adminLoginForm.hidden=Boolean(which);
+    document.querySelector('.admin-login-recovery-links')?.toggleAttribute('hidden',Boolean(which));
+    if(adminPasswordRecovery)adminPasswordRecovery.hidden=which!=='password';
+    if(adminEmailRecovery)adminEmailRecovery.hidden=which!=='email';
+    if(!which){
+      document.querySelector('[data-admin-password-recovery-message]')?.replaceChildren();
+      if(adminForgotPasswordEmail)adminForgotPasswordEmail.value=document.querySelector('[data-admin-login-form] input[name=email]')?.value||'';
+    }
+  }
+  document.querySelector('[data-admin-forgot-password]')?.addEventListener('click',()=>{
+    const currentEmail=document.querySelector('[data-admin-login-form] input[name=email]')?.value||'';
+    if(adminForgotPasswordEmail)adminForgotPasswordEmail.value=currentEmail;
+    document.querySelector('[data-admin-message]').textContent='';
+    showAdminRecovery('password');
+  });
+  document.querySelector('[data-admin-forgot-email]')?.addEventListener('click',()=>{document.querySelector('[data-admin-message]').textContent='';showAdminRecovery('email')});
+  document.querySelector('[data-admin-recovery-close]')?.addEventListener('click',()=>showAdminRecovery(''));
+  document.querySelector('[data-admin-email-recovery-close]')?.addEventListener('click',()=>showAdminRecovery(''));
+  document.querySelector('[data-admin-forgot-password-form]')?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const form=e.currentTarget,btn=form.querySelector('button[type=submit]'),email=String(new FormData(form).get('email')||'').trim().toLowerCase();
+    const out=document.querySelector('[data-admin-password-recovery-message]');
+    if(out)out.textContent='';
+    await WGH.withLoading(btn,async()=>{
+      try{
+        const auth=await ensureAdminAuth();
+        await auth.sendPasswordResetEmail(email);
+        if(out)out.className='auth-message auth-message-success';
+        if(out)out.textContent='If that email belongs to an admin account, a password reset link has been sent. Check your inbox and spam folder.';
+      }catch(err){
+        console.error('Admin password reset error',err);
+        if(out){out.className='auth-message';out.textContent=WGH.friendlyError(err);}
+      }
+    },'Sending reset link');
+  });
+
   document.querySelector('[data-admin-signout]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>adminAuth?.signOut(),'Signing out'));
 
   async function loadOverview(){
@@ -334,7 +378,7 @@ document.querySelector('[data-refresh-international]')?.addEventListener('click'
 document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadWholesale,'Refreshing'));
 document.querySelector('[data-refresh-reviews]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadReviews,'Refreshing'));
 document.querySelector('[data-refresh-abandoned]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAbandoned,'Refreshing'));
-document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadSubscribers,'Refreshing'));
+document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>{const loader=getViewLoader('subscribers');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');});
 document.querySelector('[data-refresh-messages]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadMessages,'Refreshing'));
 document.querySelector('[data-refresh-activity]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadActivity,'Refreshing'));
 document.querySelector('[data-refresh-analytics]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAnalytics,'Refreshing'));
