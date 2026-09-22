@@ -113,8 +113,13 @@
     const sale=!!side?.active&&Number(side.oldPrice)>Number(side.newPrice)&&Number(side.newPrice)===actual;
     const price=document.querySelector('[data-product-price]');
     const note=document.querySelector('[data-price-note]');
-    if(price)price.innerHTML=sale?`<span class="product-price-current">${WGH.money(actual)}</span><del class="product-price-old">${WGH.money(side.oldPrice)}</del>`:WGH.money(actual);
-    if(note)note.textContent=mode==='wholesale'?(sale?`${side.percent}% off wholesale · ${product.moq||6} piece minimum`:`Wholesale · ${product.moq||6} piece minimum`):(sale?`${side.percent}% off · limited-time pricing`:'Retail price');
+    if(price){
+      price.classList.toggle('is-sale',sale);
+      price.innerHTML=sale
+        ?`<span class="product-sale-price-kicker">SALE PRICE</span><span class="product-sale-price-row"><strong>${WGH.money(actual)}</strong><del>${WGH.money(side.oldPrice)}</del></span><span class="product-sale-comp">Comp. Value</span><span class="product-sale-copy">${Number(side.percent||Math.round((1-actual/side.oldPrice)*100))}% Off Sale! Prices as Marked</span>`
+        :`<span class="product-regular-price">${WGH.money(actual)}</span>`;
+    }
+    if(note)note.textContent=mode==='wholesale'?(sale?`${product.moq||6} piece minimum`:`Wholesale · ${product.moq||6} piece minimum`):'Retail price';
   }
 
   function render(){

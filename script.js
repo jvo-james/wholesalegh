@@ -122,19 +122,23 @@ WGH.productCard = (p,mode='retail') => {
   const actualPrice=mode==='wholesale'?(wholesaleReady?Number(p.wholesalePrice):0):Number(p.retailPrice||0);
   const saleActive=!!side?.active&&Number(side.oldPrice)>Number(side.newPrice)&&Number(side.newPrice)===actualPrice;
   const displayPrice=saleActive?side.newPrice:actualPrice;
-  const badge=side?.active?(p.discount?.badge||'Sale'):'';
-  const compare=saleActive?side.oldPrice:0;
+  const badge=saleActive?String(p.discount?.badge||'').trim():'';
+  const compare=saleActive?Number(side.oldPrice):0;
   const percent=saleActive?Number(side.percent||Math.round((1-displayPrice/compare)*100)):0;
-  const priceHtml=mode==='wholesale'&&!wholesaleReady?'<span class="product-price-pending">Wholesale unavailable</span>':saleActive?`<span class="product-price-current">${WGH.money(displayPrice)}</span><del class="product-price-old">${WGH.money(compare)}</del>`:`<span class="product-price-current">${WGH.money(displayPrice)}</span>`;
-  const saleMarkup=saleActive?`<div class="product-sale-stack"><span class="product-sale-percent">${percent}% OFF</span>${badge?`<span class="product-sale-label">${badge}</span>`:''}</div>`:'';
+  const priceHtml=mode==='wholesale'&&!wholesaleReady
+    ?'<span class="product-price-pending">Wholesale unavailable</span>'
+    :saleActive
+      ?`<span class="product-card-sale-price"><span class="product-price-line"><strong>${WGH.money(displayPrice)}</strong><del>${WGH.money(compare)}</del></span><small>Comp. Value</small><span class="product-card-sale-copy">${percent}% Off Sale! Prices as Marked</span></span>`
+      :`<span class="product-price-line"><strong>${WGH.money(displayPrice)}</strong></span>`;
+  const saleMarkup=saleActive&&badge?`<span class="product-sale-badge">${badge}</span>`:'';
   const baseHref=`product.html?id=${encodeURIComponent(p.id)}&mode=${mode}${preferred?`&colour=${encodeURIComponent(WGH.colourSlug(preferred))}`:''}`;
   const hoverDefault=colours.length>1?colours[1]:preferred;
   const hoverSrc=p.cardFeatureAlt||colourImagesFor(hoverDefault)[0]||firstImage;
   const hoverColour=p.cardFeatureAlt?preferred:hoverDefault;
-  return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a data-card-link href="${baseHref}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${firstImage}" alt="${p.name}" loading="lazy"><img class="hover-image" data-hover-colour="${hoverColour||''}" src="${hoverSrc}" alt="${p.name} alternate view" loading="${p.cardFeatureAlt?'eager':'lazy'}">${saleMarkup}</div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?(wholesaleReady?`MOQ ${p.moq} · mix colours & sizes`:'Retail only'):saleActive?(p.discount?.note||'Limited-time pricing'):'Made to order'}</p></div><strong class="product-price-block">${priceHtml}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map(c=>`<button type="button" data-card-colour="${c}" data-card-src="${colourImagesFor(c)[0]||firstImage}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${preferred||colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name} to wishlist" title="Save to wishlist"><i class="fa-regular fa-heart"></i><span>Save</span></button></article>`;
+  return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a data-card-link href="${baseHref}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${firstImage}" alt="${p.name}" loading="lazy"><img class="hover-image" data-hover-colour="${hoverColour||''}" src="${hoverSrc}" alt="${p.name} alternate view" loading="${p.cardFeatureAlt?'eager':'lazy'}">${saleMarkup}</div><div class="product-card-copy"><div><h3>${p.name}</h3><p>${mode==='wholesale'?(wholesaleReady?`MOQ ${p.moq} · mix colours & sizes`:'Retail only'):saleActive?'Prices as marked':'Made to order'}</p></div><strong class="product-price-block">${priceHtml}</strong></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map(c=>`<button type="button" data-card-colour="${c}" data-card-src="${colourImagesFor(c)[0]||firstImage}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${preferred||colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name} to wishlist" title="Save to wishlist"><i class="fa-regular fa-heart"></i><span>Save</span></button></article>`;
 };
 WGH.loadProducts = async()=>{try{const data=await WGH.api('/catalog');if(Array.isArray(data)&&data.length){const legacy=new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);const base=new Map(WGH.products.map(p=>[p.id,p]));data.filter(o=>!legacy.has(o.id)).forEach(o=>{const prev=base.get(o.id)||{};base.set(o.id,{...prev,...o})});WGH.products=[...base.values()].filter(p=>p.active!==false)}}catch{}return WGH.products};
-WGH.loadDiscountSettings = async()=>{if(WGH.discountSettingsPromise)return WGH.discountSettingsPromise;WGH.discountSettingsPromise=WGH.api('/storefront-discount').then(data=>{WGH.discountSettings=data||{active:false};return WGH.discountSettings}).catch(()=>{WGH.discountSettings={active:false};return WGH.discountSettings});return WGH.discountSettingsPromise};
+WGH.loadDiscountSettings = async()=>{try{const data=await WGH.api(`/storefront-discount?ts=${Date.now()}`);WGH.discountSettings=data||{showBanner:false,showModal:false};return WGH.discountSettings}catch{WGH.discountSettings={showBanner:false,showModal:false};return WGH.discountSettings}};
 WGH.productCreatedTime = p => { const value=p?.createdAt||p?.addedAt||p?.createdOn; const time=value?Date.parse(value):NaN; return Number.isFinite(time)?time:0; };
 WGH.latestProducts = (limit=12) => [...(WGH.products||[])].filter(p=>p.active!==false).sort((a,b)=>WGH.productCreatedTime(b)-WGH.productCreatedTime(a)).slice(0,limit);
 
@@ -451,23 +455,27 @@ function initNewsletter(){
 async function initDiscountExperience(){
   try{
     const settings=await WGH.loadDiscountSettings();
-    if(!settings?.active)return;
-    const bannerHtml=`<div class="sale-banner-inner"><div><span>${settings.modalKicker||'The sale edit'}</span><strong>${settings.headline||`Up to ${settings.upToPercent||40}% off`}</strong><p>${settings.subheadline||'Selected pieces, newly priced.'}</p></div><a class="button button-light" href="shop.html?sale=1">${settings.ctaText||'Shop the sale'}</a></div>`;
-    document.querySelectorAll('[data-discount-banner]').forEach(el=>{el.innerHTML=bannerHtml;el.hidden=false});
-    let dismissed=false;try{dismissed=sessionStorage.getItem('wgh_discount_modal_seen')==='1'}catch{}
-    if(dismissed)return;
-    try{sessionStorage.setItem('wgh_discount_modal_seen','1')}catch{}
+    const showBanner=settings?.showBanner===true || (settings?.showBanner===undefined&&settings?.active===true);
+    const showModal=settings?.showModal===true || (settings?.showModal===undefined&&settings?.active===true);
+    document.querySelectorAll('[data-discount-banner]').forEach(el=>{
+      if(!showBanner){el.hidden=true;el.innerHTML='';return;}
+      el.innerHTML=`<div class="sale-banner-inner"><div class="sale-banner-main"><span>SALE</span><strong>Up to 40% off</strong><p>Selected styles are now marked down.</p></div><a class="button button-light" href="shop.html?sale=1">Shop the sale <i class="fa-solid fa-arrow-right"></i></a></div>`;
+      el.hidden=false;
+    });
+    if(!showModal)return;
+    let seen=false;try{seen=sessionStorage.getItem('wgh_discount_modal_seen')==='1'}catch{}
+    if(seen)return;
     const modal=document.createElement('aside');
     modal.className='sale-modal';modal.setAttribute('aria-hidden','true');
-    modal.innerHTML=`<div class="sale-modal-backdrop" data-sale-close></div><div class="sale-modal-card" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title"><button class="sale-modal-close" type="button" aria-label="Close promotion" data-sale-close><span></span><span></span></button><div class="sale-modal-art"><span class="sale-modal-orbit orbit-a"></span><span class="sale-modal-orbit orbit-b"></span><span class="sale-modal-stamp">UP TO ${Number(settings.upToPercent||40)}%</span></div><div class="sale-modal-copy"><p class="eyebrow">${settings.modalKicker||'The sale edit'}</p><h2 id="sale-modal-title">${settings.modalTitle||`Up to ${Number(settings.upToPercent||40)}% off selected pieces.`}</h2><p>${settings.modalBody||'Fresh prices, same made-to-order care.'}</p><a class="button button-dark" href="shop.html?sale=1" data-sale-shop>${settings.ctaText||'Shop the sale'} <i class="fa-solid fa-arrow-right"></i></a><button class="sale-modal-dismiss" type="button" data-sale-close>Not now</button></div></div>`;
+    modal.innerHTML=`<div class="sale-modal-backdrop" data-sale-close></div><div class="sale-modal-card" role="dialog" aria-modal="true" aria-labelledby="sale-modal-title"><button class="sale-modal-close" type="button" aria-label="Close sale" data-sale-close><span></span><span></span></button><div class="sale-modal-art"><span class="sale-modal-word">SALE</span><strong>40%</strong><small>OFF</small></div><div class="sale-modal-copy"><span class="sale-modal-kicker">A little thank you</span><h2 id="sale-modal-title">Up to 40% off</h2><p>Some of our styles are on sale right now. The sale price is the new price you pay. Prices are as marked.</p><a class="button button-dark" href="shop.html?sale=1">Shop the sale <i class="fa-solid fa-arrow-right"></i></a><button class="sale-modal-dismiss" type="button" data-sale-close>Close</button></div></div>`;
     document.body.appendChild(modal);
-    const onKey=e=>{if(e.key==='Escape'&&document.body.contains(modal))close()};
-    const close=()=>{try{sessionStorage.setItem('wgh_discount_modal_seen','1')}catch{} modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('no-scroll');document.removeEventListener('keydown',onKey);setTimeout(()=>modal.remove(),260)};
+    const markSeen=()=>{try{sessionStorage.setItem('wgh_discount_modal_seen','1')}catch{}};
+    const close=()=>{markSeen();modal.classList.remove('open');modal.setAttribute('aria-hidden','true');document.body.classList.remove('no-scroll');document.removeEventListener('keydown',onKey);setTimeout(()=>modal.remove(),260)};
+    const onKey=e=>{if(e.key==='Escape')close()};
     modal.querySelectorAll('[data-sale-close]').forEach(btn=>btn.addEventListener('click',close));
-    modal.querySelector('[data-sale-shop]')?.addEventListener('click',()=>{try{sessionStorage.setItem('wgh_discount_modal_seen','1')}catch{}});
+    modal.querySelector('[href*="sale=1"]')?.addEventListener('click',markSeen);
     document.addEventListener('keydown',onKey);
-    modal.addEventListener('click',e=>{if(e.target===modal)close()});
-    requestAnimationFrame(()=>{modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('no-scroll');modal.querySelector('.sale-modal-close')?.focus()});
+    requestAnimationFrame(()=>{markSeen();modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('no-scroll');modal.querySelector('.sale-modal-close')?.focus()});
   }catch(err){console.warn('Discount experience failed',err)}
 }
 

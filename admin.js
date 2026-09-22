@@ -16,7 +16,7 @@
     adminBusyCount=Math.max(0,adminBusyCount+(on?1:-1));
     if(!adminViewLoading)setAdminPageLoading(adminBusyCount>0,'Updating');
   }
-  const VIEW_LABELS={overview:'Overview',orders:'Orders',transactions:'Transactions',international:'International orders',analytics:'Sales analytics',batches:'Production batches',products:'Products & inventory',discounts:'Discount studio',categories:'Categories',wholesale:'Wholesale',customers:'Customers',accounts:'Registered accounts',abandoned:'Abandoned carts',subscribers:'Subscribers',alerts:'Notifications',activity:'Activity history',settings:'Settings'};
+  const VIEW_LABELS={overview:'Overview',orders:'Orders',transactions:'Transactions',international:'International orders',analytics:'Sales analytics',batches:'Production batches',products:'Products & inventory',discounts:'Discounts',categories:'Categories',wholesale:'Wholesale',customers:'Customers',accounts:'Registered accounts',abandoned:'Abandoned carts',subscribers:'Subscribers',alerts:'Notifications',activity:'Activity history',settings:'Settings'};
   function showViewLoadError(name,err){
     const panel=document.querySelector(`[data-view-panel="${name}"]`);if(!panel)return;
     let box=panel.querySelector('[data-admin-view-error]');
@@ -299,46 +299,137 @@
   productForm?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('[type=submit]'),d=Object.fromEntries(new FormData(e.currentTarget)),id=d.id||d.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');await WGH.withLoading(btn,async()=>{await adminApi('/product-save',{...d,id,retailPrice:Number(d.retailPrice),wholesalePrice:d.wholesalePrice===''?null:Number(d.wholesalePrice),moq:Number(d.moq),colours:productColours().map(x=>String(x).trim()).filter(Boolean),colourHexes:productHexes(),featuredColour:productForm.querySelector('[data-featured-colour]')?.value||'',inventory:productInventory(),sizes:d.sizes.split(',').map(x=>x.trim()).filter(Boolean),images:d.images.split(/\n+/).map(x=>x.trim()).filter(Boolean),colourImages:Object.entries(imageColourAssignments).reduce((m,[url,c])=>{(m[c]||(m[c]=[])).push(url);return m},{}),available:!!productForm.elements.available?.checked,wholesaleAvailable:!!productForm.elements.wholesaleAvailable?.checked,active:true});WGH.showToast('Product saved.','success');closeProduct();await loadProducts()},'Saving product')});
   document.querySelector('[data-delete-product]')?.addEventListener('click',async e=>{const id=productForm.elements.id.value;if(!id)return;await WGH.withLoading(e.currentTarget,async()=>{await adminApi('/product-delete',{id});WGH.showToast('Product removed from storefront.','success');closeProduct();await loadProducts()},'Removing')});
 
-  let discountProducts=[],discountCampaign={};
+  let discountProducts=[];
+  let discountDisplay={showBanner:false,showModal:false};
   let discountStudioBound=false;
-  const discountBadgeOptions=['Big sale','Selling quickly','Limited drop','Price drop','Last call','Best seller'];
+  const discountBadgeOptions=['Big sale','Selling quickly','Limited time','Last call','Price drop'];
   const discountMoney=v=>Number.isFinite(Number(v))&&Number(v)>0?WGH.money(Number(v)):'—';
+  const discountEscape=value=>escape(value);
   function discountSideValues(product,mode){
     const side=mode==='wholesale'?product.discount?.wholesale:product.discount?.retail;
     const base=mode==='wholesale'?Number(product.baseWholesalePrice||product.wholesalePrice||0):Number(product.baseRetailPrice||product.retailPrice||0);
     return {active:side?.active===true,oldPrice:Number(side?.oldPrice||base||0),newPrice:Number(side?.newPrice||0)};
   }
-  function discountSelect(value=''){return `<option value="">No badge</option>${discountBadgeOptions.map(x=>`<option value="${escape(x)}" ${x===value?'selected':''}>${escape(x)}</option>`).join('')}`;}
+  function discountSelect(value=''){
+    return `<option value="">No badge</option>${discountBadgeOptions.map(x=>`<option value="${discountEscape(x)}" ${x===value?'selected':''}>${discountEscape(x)}</option>`).join('')}`;
+  }
+  function selectedDiscountProducts(){
+    return [...document.querySelectorAll('[data-discount-select]:checked')].map(x=>x.dataset.discountSelect).filter(Boolean);
+  }
+  function updateDiscountSelectionCount(){
+    const count=selectedDiscountProducts().length;
+    const out=document.querySelector('[data-discount-selection-count]');
+    const panel=document.querySelector('[data-discount-bulk-panel]');
+    if(out)out.textContent=String(count);
+    if(panel)panel.hidden=count===0;
+  }
+  function renderDiscountCategoryFilter(){
+    const select=document.querySelector('[data-discount-category-filter]');
+    if(!select)return;
+    const current=select.value||'all';
+    select.innerHTML='<option value="all">All categories</option>'+WGH.categories.map(c=>`<option value="${discountEscape(c.id)}">${discountEscape(c.name)}</option>`).join('');
+    select.value=[...select.options].some(o=>o.value===current)?current:'all';
+  }
   function renderDiscountStudio(){
-    const root=document.querySelector('[data-discount-products]'),campaignForm=document.querySelector('[data-discount-campaign-form]');if(!root||!campaignForm)return;
-    campaignForm.elements.active.checked=discountCampaign.active===true;campaignForm.elements.upToPercent.value=discountCampaign.upToPercent||40;campaignForm.elements.headline.value=discountCampaign.headline||'';campaignForm.elements.subheadline.value=discountCampaign.subheadline||'';campaignForm.elements.modalKicker.value=discountCampaign.modalKicker||'';campaignForm.elements.modalTitle.value=discountCampaign.modalTitle||'';campaignForm.elements.modalBody.value=discountCampaign.modalBody||'';campaignForm.elements.ctaText.value=discountCampaign.ctaText||'';campaignForm.elements.badge.value=discountCampaign.badge||'';campaignForm.elements.note.value=discountCampaign.note||'';
-    const q=(document.querySelector('[data-discount-search]')?.value||'').trim().toLowerCase(),list=discountProducts.filter(p=>!q||`${p.name} ${p.category}`.toLowerCase().includes(q));
-    root.innerHTML=list.map(p=>{const retail=discountSideValues(p,'retail'),wholesale=discountSideValues(p,'wholesale'),wholesaleReady=p.wholesaleAvailable!==false&&Number(p.baseWholesalePrice||p.wholesalePrice)>0,badge=p.discount?.badge||'';return `<article class="discount-product-card" data-discount-product="${escape(p.id)}"><label class="discount-product-select"><input type="checkbox" data-discount-select="${escape(p.id)}"><span>Select</span></label><div class="discount-product-media"><img src="${escape(p.image||'')}" alt="${escape(p.name)}"><span>${wholesaleReady?'Wholesale ready':'Retail focus'}</span></div><div class="discount-product-copy"><div class="discount-product-heading"><div><p class="eyebrow">${escape(WGH.categoryName?.(p.category)||p.category||'Collection')}</p><h3>${escape(p.name)}</h3></div><span class="discount-current-chip">Retail ${discountMoney(p.retailPrice)}</span></div><div class="discount-lane ${retail.active?'is-active':''}" data-discount-lane="retail"><div class="discount-lane-head"><label class="discount-lane-toggle"><input type="checkbox" data-discount-active="retail" ${retail.active?'checked':''}><span>Retail sale</span></label><small>${retail.active?`${retail.oldPrice>retail.newPrice?Math.round((1-retail.newPrice/retail.oldPrice)*100):0}% off`:'Not discounted'}</small></div><div class="discount-lane-fields"><label>Old amount<input min="0" step="0.01" data-discount-old="retail" value="${retail.oldPrice||''}" type="number"></label><span class="discount-arrow">→</span><label>New amount<input min="0" step="0.01" data-discount-new="retail" value="${retail.newPrice||''}" type="number"></label></div></div><div class="discount-lane ${wholesaleReady&&wholesale.active?'is-active':''} ${wholesaleReady?'':'is-disabled'}" data-discount-lane="wholesale"><div class="discount-lane-head"><label class="discount-lane-toggle"><input type="checkbox" data-discount-active="wholesale" ${wholesaleReady&&wholesale.active?'checked':''} ${wholesaleReady?'':'disabled'}><span>Wholesale sale</span></label><small>${wholesaleReady?(wholesale.active?`${wholesale.oldPrice>wholesale.newPrice?Math.round((1-wholesale.newPrice/wholesale.oldPrice)*100):0}% off`:'Available at regular wholesale price'):'Wholesale unavailable'}</small></div><div class="discount-lane-fields"><label>Old amount<input min="0" step="0.01" data-discount-old="wholesale" value="${wholesale.oldPrice||''}" type="number" ${wholesaleReady?'':'disabled'}></label><span class="discount-arrow">→</span><label>New amount<input min="0" step="0.01" data-discount-new="wholesale" value="${wholesale.newPrice||''}" type="number" ${wholesaleReady?'':'disabled'}></label></div></div><div class="discount-product-foot"><label>Badge<select data-discount-badge>${discountSelect(badge)}</select></label><label>Shopper note<input maxlength="90" data-discount-note value="${escape(p.discount?.note||'')}" placeholder="Selling quickly…"></label><button class="button button-dark" type="button" data-discount-save="${escape(p.id)}"><i class="fa-regular fa-floppy-disk"></i> Save</button></div></div></article>`;}).join('')||empty('No matching products','Try a different search.');
-    root.querySelectorAll('[data-discount-active]').forEach(input=>input.addEventListener('change',()=>input.closest('[data-discount-lane]')?.classList.toggle('is-active',input.checked)));root.querySelectorAll('[data-discount-select]').forEach(input=>input.addEventListener('change',updateDiscountSelectionCount));root.querySelectorAll('[data-discount-save]').forEach(btn=>btn.addEventListener('click',()=>saveDiscountProduct(btn.dataset.discountSave,btn)));updateDiscountSelectionCount();
+    const root=document.querySelector('[data-discount-products]');
+    if(!root)return;
+    renderDiscountCategoryFilter();
+    const showBanner=document.querySelector('[data-discount-show-banner]');
+    const showModal=document.querySelector('[data-discount-show-modal]');
+    if(showBanner)showBanner.checked=discountDisplay.showBanner===true;
+    if(showModal)showModal.checked=discountDisplay.showModal===true;
+    const q=(document.querySelector('[data-discount-search]')?.value||'').trim().toLowerCase();
+    const category=document.querySelector('[data-discount-category-filter]')?.value||'all';
+    const list=discountProducts.filter(p=>{
+      const hay=`${p.name||''} ${p.category||''} ${(p.colours||[]).join(' ')}`.toLowerCase();
+      return (!q||hay.includes(q))&&(category==='all'||p.category===category);
+    });
+    root.innerHTML=list.map(p=>{
+      const retail=discountSideValues(p,'retail');
+      const wholesale=discountSideValues(p,'wholesale');
+      const wholesaleReady=p.wholesaleAvailable!==false&&Number(p.baseWholesalePrice||p.wholesalePrice)>0;
+      const badge=p.discount?.badge||'';
+      const saleOn=retail.active||wholesale.active;
+      return `<article class="discount-product-card ${saleOn?'has-sale':''}" data-discount-product="${discountEscape(p.id)}">
+        <label class="discount-product-check"><input type="checkbox" data-discount-select="${discountEscape(p.id)}"><span>Select</span></label>
+        <div class="discount-product-image"><img src="${discountEscape(p.image||'')}" alt="${discountEscape(p.name)}" loading="lazy">${saleOn?'<span class="discount-product-status">On sale</span>':''}</div>
+        <div class="discount-product-body">
+          <div class="discount-product-title"><div><span>${discountEscape(WGH.categoryName?.(p.category)||p.category||'Product')}</span><h3>${discountEscape(p.name)}</h3></div><strong>${discountMoney(p.retailPrice)}</strong></div>
+          <div class="discount-admin-lane ${retail.active?'is-on':''}" data-discount-lane="retail">
+            <div class="discount-admin-lane-head"><label><input type="checkbox" data-discount-active="retail" ${retail.active?'checked':''}><span>Retail sale</span></label><small>${retail.active?`${retail.oldPrice>retail.newPrice?Math.round((1-retail.newPrice/retail.oldPrice)*100):0}% off`:'Off'}</small></div>
+            <div class="discount-admin-prices"><label>Old price<input min="0" step="0.01" inputmode="decimal" data-discount-old="retail" value="${retail.oldPrice||''}" type="number"></label><span>→</span><label>New price<input min="0" step="0.01" inputmode="decimal" data-discount-new="retail" value="${retail.newPrice||''}" type="number"></label></div>
+          </div>
+          <div class="discount-admin-lane ${wholesaleReady&&wholesale.active?'is-on':''} ${wholesaleReady?'':'is-off'}" data-discount-lane="wholesale">
+            <div class="discount-admin-lane-head"><label><input type="checkbox" data-discount-active="wholesale" ${wholesaleReady&&wholesale.active?'checked':''} ${wholesaleReady?'':'disabled'}><span>Wholesale sale</span></label><small>${wholesaleReady?(wholesale.active?`${wholesale.oldPrice>wholesale.newPrice?Math.round((1-wholesale.newPrice/wholesale.oldPrice)*100):0}% off`:'Available'):'Not available'}</small></div>
+            <div class="discount-admin-prices"><label>Old price<input min="0" step="0.01" inputmode="decimal" data-discount-old="wholesale" value="${wholesale.oldPrice||''}" type="number" ${wholesaleReady?'':'disabled'}></label><span>→</span><label>New price<input min="0" step="0.01" inputmode="decimal" data-discount-new="wholesale" value="${wholesale.newPrice||''}" type="number" ${wholesaleReady?'':'disabled'}></label></div>
+          </div>
+          <div class="discount-product-actions">
+            <label>Badge<select data-discount-badge>${discountSelect(badge)}</select></label>
+            <button class="button button-dark" type="button" data-discount-save="${discountEscape(p.id)}">Save</button>
+          </div>
+        </div>
+      </article>`;
+    }).join('')||'<div class="admin-empty"><span>0</span><h3>No products found</h3><p>Try another product name or category.</p></div>';
+    root.querySelectorAll('[data-discount-active]').forEach(input=>input.addEventListener('change',()=>{const lane=input.closest('[data-discount-lane]');lane?.classList.toggle('is-on',input.checked);lane?.classList.toggle('is-off',!input.checked||input.disabled)}));
+    root.querySelectorAll('[data-discount-select]').forEach(input=>input.addEventListener('change',updateDiscountSelectionCount));
+    root.querySelectorAll('[data-discount-save]').forEach(btn=>btn.addEventListener('click',()=>saveDiscountProduct(btn.dataset.discountSave,btn)));
+    updateDiscountSelectionCount();
   }
-  function updateDiscountSelectionCount(){const count=document.querySelectorAll('[data-discount-select]:checked').length,out=document.querySelector('[data-discount-selection-count]');if(out)out.textContent=`${count} selected`;}
-  function selectedDiscountProducts(){return [...document.querySelectorAll('[data-discount-select]:checked')].map(x=>x.dataset.discountSelect).filter(Boolean)}
-  function readDiscountCard(id){const card=document.querySelector(`[data-discount-product="${CSS.escape(id)}"]`);if(!card)return null;const lane=mode=>({active:!!card.querySelector(`[data-discount-active="${mode}"]`)?.checked,oldPrice:Number(card.querySelector(`[data-discount-old="${mode}"]`)?.value||0),newPrice:Number(card.querySelector(`[data-discount-new="${mode}"]`)?.value||0)}),retail=lane('retail'),wholesale=lane('wholesale');return {productId:id,retail,wholesale,badge:card.querySelector('[data-discount-badge]')?.value||'',note:card.querySelector('[data-discount-note]')?.value||'',active:retail.active||wholesale.active};}
-  async function saveDiscountProduct(id,button){const data=readDiscountCard(id);if(!data)return;await WGH.withLoading(button,async()=>{await adminApi('/discount-save',data);WGH.showToast('Discount saved.','success');await loadDiscounts()},'Saving sale');}
-  async function loadDiscounts(){const result=await adminApi('/discounts');discountProducts=Array.isArray(result.products)?result.products:[];discountCampaign=result.campaign||{};renderDiscountStudio();if(discountStudioBound)return;discountStudioBound=true;const campaignForm=document.querySelector('[data-discount-campaign-form]');campaignForm?.addEventListener('submit',async e=>{e.preventDefault();const btn=campaignForm.querySelector('[type=submit]'),d=Object.fromEntries(new FormData(campaignForm));await WGH.withLoading(btn,async()=>{await adminApi('/discount-settings-save',{...d,active:campaignForm.elements.active.checked,upToPercent:Number(d.upToPercent||40)});WGH.showToast('Sale campaign updated.','success');await loadDiscounts()},'Saving campaign')});document.querySelector('[data-discount-search]')?.addEventListener('input',renderDiscountStudio);document.querySelector('[data-discount-select-all]')?.addEventListener('click',()=>{const boxes=[...document.querySelectorAll('[data-discount-select]')],allSelected=boxes.length&&boxes.every(x=>x.checked);boxes.forEach(x=>x.checked=!allSelected);const btn=document.querySelector('[data-discount-select-all]');if(btn)btn.textContent=allSelected?'Select all products':'Clear selection';updateDiscountSelectionCount()});document.querySelector('[data-discount-bulk-apply]')?.addEventListener('click',async e=>{const ids=selectedDiscountProducts();if(!ids.length)return WGH.showToast('Select at least one product first.');const mode=document.querySelector('[data-discount-bulk-mode]')?.value||'retail',oldPrice=Number(document.querySelector('[data-discount-bulk-old]')?.value||0),newPrice=Number(document.querySelector('[data-discount-bulk-new]')?.value||0);if(!(oldPrice>0&&newPrice>0&&newPrice<oldPrice))return WGH.showToast('Enter a new amount lower than the old amount.');const badge=document.querySelector('[data-discount-bulk-badge]')?.value||'',note=document.querySelector('[data-discount-bulk-note]')?.value||'';const products=ids.map(id=>{const p=discountProducts.find(x=>x.id===id),r=discountSideValues(p,'retail'),w=discountSideValues(p,'wholesale');return {productId:id,active:true,retail:mode==='retail'?{active:true,oldPrice,newPrice}:r,wholesale:mode==='wholesale'&&p?.wholesaleAvailable!==false?{active:true,oldPrice,newPrice}:w,badge,note}});await WGH.withLoading(e.currentTarget,async()=>{await adminApi('/discount-bulk-save',{products});WGH.showToast(`Sale applied to ${ids.length} style${ids.length===1?'':'s'}.`,'success');await loadDiscounts()},'Applying sale')});document.querySelector('[data-discount-bulk-clear]')?.addEventListener('click',async e=>{const ids=selectedDiscountProducts();if(!ids.length)return WGH.showToast('Select at least one product first.');const mode=document.querySelector('[data-discount-bulk-mode]')?.value||'retail';const products=ids.map(id=>{const p=discountProducts.find(x=>x.id===id),r=discountSideValues(p,'retail'),w=discountSideValues(p,'wholesale');if(mode==='retail')r.active=false;else w.active=false;return {productId:id,retail:r,wholesale:w,active:r.active||w.active,badge:p?.discount?.badge||'',note:p?.discount?.note||''}});await WGH.withLoading(e.currentTarget,async()=>{await adminApi('/discount-bulk-save',{products});WGH.showToast('Selected discount lane cleared.','success');await loadDiscounts()},'Clearing sale')});}
-  async function loadCategoriesAdmin(){const [categoryResult,productResult]=await Promise.allSettled([adminApi('/categories'),adminApi('/products')]);if(categoryResult.status==='fulfilled'&&Array.isArray(categoryResult.value)){categories=categoryResult.value;WGH.categories=categories;}if(productResult.status==='fulfilled'&&Array.isArray(productResult.value))WGH.products=productResult.value.filter(p=>p.active!==false);if(categoryResult.status==='rejected'&&(!Array.isArray(categories)||!categories.length))throw categoryResult.reason;renderCategoriesAdmin();hydrateProductCategorySelect()}
-  function resetCategoryForm(){const f=document.querySelector('[data-category-form]');if(!f)return;f.reset();f.elements.id.value='';f.elements.sortOrder.value=99;f.elements.active.checked=true;document.querySelector('[data-category-editor-title]').textContent='Create category'}
-  function renderCategoriesAdmin(){
-    const root=document.querySelector('[data-admin-categories]'),count=document.querySelector('[data-category-count]');if(count)count.textContent=categories.length;if(!root)return;
-    const productCounts=new Map();WGH.products.forEach(p=>productCounts.set(p.category,(productCounts.get(p.category)||0)+1));
-    root.innerHTML=categories.map((c,index)=>{const n=productCounts.get(c.id)||0;return `<article class="admin-category-card"><div class="category-card-index">${String(index+1).padStart(2,'0')}</div><div class="category-card-main"><div class="category-card-title"><div><strong>${escape(c.name)}</strong><small>${escape(c.id)}</small></div><span class="status-pill ${c.active===false?'warning':''}">${c.active===false?'Hidden':'Live'}</span></div><div class="category-card-meta"><span><i class="fa-solid fa-shirt"></i> ${n} product${n===1?'':'s'}</span><span><i class="fa-solid fa-arrow-down-1-9"></i> Position ${Number(c.sortOrder||99)}</span>${c.system?'<span><i class="fa-solid fa-lock"></i> Core category</span>':'<span><i class="fa-regular fa-folder"></i> Custom category</span>'}</div></div><div class="category-card-actions"><button class="icon-action" type="button" data-edit-category="${escape(c.id)}" aria-label="Edit ${escape(c.name)}"><i class="fa-regular fa-pen-to-square"></i><span>Edit</span></button><button class="icon-action danger" type="button" data-remove-category="${escape(c.id)}" aria-label="Remove ${escape(c.name)}"><i class="fa-regular fa-trash-can"></i><span>Remove</span></button></div></article>`}).join('')||empty('No categories','Create a category to organize the storefront.');
-    root.querySelectorAll('[data-edit-category]').forEach(b=>b.onclick=()=>{const c=categories.find(x=>x.id===b.dataset.editCategory),f=document.querySelector('[data-category-form]');if(!c||!f)return;f.elements.id.value=c.id;f.elements.name.value=c.name;f.elements.sortOrder.value=c.sortOrder||99;f.elements.active.checked=c.active!==false;document.querySelector('[data-category-editor-title]').textContent=`Edit ${c.name}`;f.scrollIntoView({behavior:'smooth',block:'start'});f.elements.name.focus()});
-    root.querySelectorAll('[data-remove-category]').forEach(b=>b.onclick=async()=>{const c=categories.find(x=>x.id===b.dataset.removeCategory);if(!c)return;const n=productCounts.get(c.id)||0;if(n){WGH.showToast(`Move ${n} product${n===1?'':'s'} out of ${c.name} before removing it.`);return}if(!confirm(`Permanently remove ${c.name} from the storefront?`))return;await WGH.withLoading(b,async()=>{try{await adminApi('/category-delete',{id:c.id});WGH.showToast(`${c.name} removed.`, 'success');await loadCategoriesAdmin()}catch(err){WGH.showToast(WGH.friendlyError(err))}},'Removing')})
+  function readDiscountCard(id){
+    const card=document.querySelector(`[data-discount-product="${CSS.escape(id)}"]`);
+    if(!card)return null;
+    const lane=mode=>({active:!!card.querySelector(`[data-discount-active="${mode}"]`)?.checked,oldPrice:Number(card.querySelector(`[data-discount-old="${mode}"]`)?.value||0),newPrice:Number(card.querySelector(`[data-discount-new="${mode}"]`)?.value||0)});
+    const retail=lane('retail'),wholesale=lane('wholesale');
+    return {productId:id,retail,wholesale,badge:card.querySelector('[data-discount-badge]')?.value||'',active:retail.active||wholesale.active};
   }
-  document.querySelector('[data-category-form]')?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('[type=submit]'),d=Object.fromEntries(new FormData(e.currentTarget));d.active=e.currentTarget.elements.active.checked;await WGH.withLoading(btn,async()=>{await adminApi('/category-save',d);WGH.showToast('Category saved to the storefront.','success');resetCategoryForm();await loadCategoriesAdmin();await WGH.loadCategories()},'Saving category')});
-  document.querySelector('[data-add-category]')?.addEventListener('click',()=>{resetCategoryForm();document.querySelector('[data-category-form]')?.scrollIntoView({behavior:'smooth',block:'start'});document.querySelector('[data-category-form] input[name=name]')?.focus()});
-  document.querySelector('[data-cancel-category]')?.addEventListener('click',resetCategoryForm);
-
-  const manualModal=document.querySelector('[data-manual-order-modal]'),manualForm=document.querySelector('[data-manual-order-form]');
-  function hydrateManualProducts(){const sel=document.querySelector('[data-manual-product]');if(!sel)return;sel.innerHTML=WGH.products.map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('');const sync=()=>{const p=WGH.products.find(x=>x.id===sel.value),f=manualForm;if(!p||!f)return;const colour=f.elements.colour,size=f.elements.size;if(colour){const old=colour;const wrap=old.parentElement;let replacement=wrap.querySelector('select[data-manual-colour]');if(!replacement){replacement=document.createElement('select');replacement.name='colour';replacement.dataset.manualColour='';old.replaceWith(replacement)}replacement.innerHTML=(p.colours||[]).map(c=>`<option>${escape(c)}</option>`).join('')}if(size)size.innerHTML=(p.sizes||[]).map(z=>`<option>${escape(z)}</option>`).join('')};sel.onchange=sync;sync()}
-  document.querySelector('[data-manual-order]')?.addEventListener('click',async()=>{await WGH.loadProducts();hydrateManualProducts();manualModal.hidden=false;document.body.classList.add('no-scroll')});document.querySelectorAll('[data-close-manual-order]').forEach(b=>b.onclick=()=>{manualModal.hidden=true;document.body.classList.remove('no-scroll')});
-  manualForm?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('[type=submit]'),d=Object.fromEntries(new FormData(e.currentTarget));await WGH.withLoading(btn,async()=>{const result=await adminApi('/manual-order',d);WGH.showToast(`${result.orderNumber} created and assigned to production.`,'success');manualModal.hidden=true;document.body.classList.remove('no-scroll');e.currentTarget.reset();await loadOrders();await loadOverview()},'Creating order')});
-
+  async function saveDiscountProduct(id,button){
+    const data=readDiscountCard(id);
+    if(!data)return;
+    await WGH.withLoading(button,async()=>{await adminApi('/discount-save',data);WGH.showToast('Discount saved.','success');await loadDiscounts()},'Saving');
+  }
+  async function saveDiscountDisplay(button){
+    const payload={showBanner:!!document.querySelector('[data-discount-show-banner]')?.checked,showModal:!!document.querySelector('[data-discount-show-modal]')?.checked};
+    await WGH.withLoading(button,async()=>{await adminApi('/discount-settings-save',payload);discountDisplay=payload;WGH.showToast('Sale message updated.','success');await loadDiscounts()},'Saving');
+  }
+  async function loadDiscounts(){
+    const [result,categoryResult]=await Promise.all([adminApi('/discounts'),adminApi('/categories')]);
+    discountProducts=Array.isArray(result.products)?result.products:[];
+    if(Array.isArray(categoryResult))categories=categoryResult.filter(x=>x.active!==false),WGH.categories=categories;
+    discountDisplay=result.display||{showBanner:result.campaign?.showBanner===true,showModal:result.campaign?.showModal===true};
+    renderDiscountStudio();
+    if(discountStudioBound)return;
+    discountStudioBound=true;
+    document.querySelector('[data-discount-display-save]')?.addEventListener('click',e=>saveDiscountDisplay(e.currentTarget));
+    document.querySelector('[data-discount-search]')?.addEventListener('input',renderDiscountStudio);
+    document.querySelector('[data-discount-category-filter]')?.addEventListener('change',renderDiscountStudio);
+    document.querySelector('[data-discount-select-all]')?.addEventListener('click',()=>{
+      const boxes=[...document.querySelectorAll('[data-discount-select]')];
+      if(!boxes.length)return;
+      const all=boxes.every(x=>x.checked);
+      boxes.forEach(x=>x.checked=!all);
+      const btn=document.querySelector('[data-discount-select-all]');
+      if(btn)btn.textContent=all?'Select all shown':'Clear shown';
+      updateDiscountSelectionCount();
+    });
+    document.querySelector('[data-discount-clear-selection]')?.addEventListener('click',()=>{document.querySelectorAll('[data-discount-select]').forEach(x=>x.checked=false);const btn=document.querySelector('[data-discount-select-all]');if(btn)btn.textContent='Select all shown';updateDiscountSelectionCount()});
+    document.querySelector('[data-discount-bulk-apply]')?.addEventListener('click',async e=>{
+      const ids=selectedDiscountProducts();
+      if(!ids.length)return WGH.showToast('Select at least one product first.');
+      const mode=document.querySelector('[data-discount-bulk-mode]')?.value||'retail';
+      const oldPrice=Number(document.querySelector('[data-discount-bulk-old]')?.value||0);
+      const newPrice=Number(document.querySelector('[data-discount-bulk-new]')?.value||0);
+      if(!(oldPrice>0&&newPrice>0&&newPrice<oldPrice))return WGH.showToast('New price must be lower than old price.');
+      const badge=document.querySelector('[data-discount-bulk-badge]')?.value||'';
+      const products=ids.map(id=>{
+        const p=discountProducts.find(x=>x.id===id);
+        const r=discountSideValues(p,'retail'),w=discountSideValues(p,'wholesale');
+        if(mode==='retail')r.active=true,r.oldPrice=oldPrice,r.newPrice=newPrice;
+        else if(p?.wholesaleAvailable!==false&&Number(p.baseWholesalePrice||p.wholesalePrice)>0)w.active=true,w.oldPrice=oldPrice,w.newPrice=newPrice;
+        return {productId:id,retail:r,wholesale:w,active:r.active||w.active,badge};
+      });
+      await WGH.withLoading(e.currentTarget,async()=>{await adminApi('/discount-bulk-save',{products});WGH.showToast(`Discount added to ${ids.length} product${ids.length===1?'':'s'}.`,'success');await loadDiscounts()},'Saving');
+    });
+  }
 
   document.querySelector('[data-refresh-overview]')?.addEventListener('click',e=>runViewLoader('overview',()=>WGH.withLoading(e.currentTarget,loadOverview,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-batches]')?.addEventListener('click',e=>runViewLoader('batches',loadBatches,'Refreshing'));document.querySelector('[data-refresh-orders]')?.addEventListener('click',e=>runViewLoader('orders',loadOrders,'Refreshing'));document.querySelector('[data-refresh-products]')?.addEventListener('click',e=>runViewLoader('products',()=>WGH.withLoading(e.currentTarget,loadProducts,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-discounts]')?.addEventListener('click',e=>runViewLoader('discounts',()=>WGH.withLoading(e.currentTarget,loadDiscounts,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-categories]')?.addEventListener('click',e=>runViewLoader('categories',()=>WGH.withLoading(e.currentTarget,loadCategoriesAdmin,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-customers]')?.addEventListener('click',e=>runViewLoader('customers',loadCustomers,'Refreshing'));
   async function loadAnalytics(){await ensureOrders();const revenue=orders.reduce((s,o)=>s+Number(o.total||0),0),pieces=orders.reduce((s,o)=>s+Number(o.pieces||0),0),avg=orders.length?revenue/orders.length:0;const metrics=document.querySelector('[data-analytics-metrics]');if(metrics)metrics.innerHTML=[['Revenue',WGH.money(revenue)],['Average order',WGH.money(avg)],['Pieces',pieces],['Orders',orders.length]].map(([l,v],i)=>`<article class="admin-metric"><span>${i+1}</span><p>${l}</p><strong>${v}</strong></article>`).join('');const counts=Object.fromEntries(statuses.map(x=>[x,0]));orders.forEach(o=>counts[o.status]=(counts[o.status]||0)+1);const max=Math.max(1,...Object.values(counts));const bars=document.querySelector('[data-status-bars]');if(bars)bars.innerHTML=Object.entries(counts).filter(([,n])=>n).map(([k,n])=>`<div><span>${labels[k]||k}</span><i><b style="width:${n/max*100}%"></b></i><strong>${n}</strong></div>`).join('')||empty('No order data yet','Analytics will appear after the first order.');}
