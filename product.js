@@ -10,6 +10,8 @@
   const defaultColour=product.colours.includes(product.featuredColour)?product.featuredColour:product.colours[0];
   const requestedColour=params.get('colour');
   let mode=params.get('mode')==='wholesale'?'wholesale':'retail';
+  const wholesaleAvailable=product.wholesaleAvailable!==false&&Number(product.wholesalePrice)>0;
+  if(mode==='wholesale'&&!wholesaleAvailable)mode='retail';
   let colour=product.colours.find(c=>c===requestedColour||colourSlug(c)===colourSlug(requestedColour))||defaultColour;
   let size=product.sizes[1]||product.sizes[0];
   let qty=1;
@@ -25,6 +27,8 @@
   $('[data-product-description]').textContent=product.description||'';
   $('[data-product-category]').textContent=WGH.categoryName?.(product.category)||product.category||'Collection';
   $('[data-product-details]').textContent=product.details||'';
+  const wholesaleModeButton=document.querySelector('[data-purchase-mode="wholesale"]');
+  if(wholesaleModeButton) { wholesaleModeButton.hidden=!wholesaleAvailable; wholesaleModeButton.setAttribute('aria-hidden', wholesaleAvailable?'false':'true'); }
 
   function gallery(){
     const imgs=(product.colourImages?.[colour]?.length?product.colourImages[colour]:product.images)||[];
@@ -102,12 +106,22 @@
     });
   }
 
+
+  function renderPrice(){
+    const side=mode==='wholesale'?product.discount?.wholesale:product.discount?.retail;
+    const actual=Number(mode==='wholesale'?product.wholesalePrice:product.retailPrice)||0;
+    const sale=!!side?.active&&Number(side.oldPrice)>Number(side.newPrice)&&Number(side.newPrice)===actual;
+    const price=document.querySelector('[data-product-price]');
+    const note=document.querySelector('[data-price-note]');
+    if(price)price.innerHTML=sale?`<span class="product-price-current">${WGH.money(actual)}</span><del class="product-price-old">${WGH.money(side.oldPrice)}</del>`:WGH.money(actual);
+    if(note)note.textContent=mode==='wholesale'?(sale?`${side.percent}% off wholesale · ${product.moq||6} piece minimum`:`Wholesale · ${product.moq||6} piece minimum`):(sale?`${side.percent}% off · limited-time pricing`:'Retail price');
+  }
+
   function render(){
     document.querySelectorAll('[data-purchase-mode]').forEach(b=>b.classList.toggle('active',b.dataset.purchaseMode===mode));
     $('[data-retail-builder]').hidden=mode!=='retail';
     $('[data-wholesale-builder]').hidden=mode!=='wholesale';
-    $('[data-product-price]').textContent=mode==='wholesale'?(Number(product.wholesalePrice)>0?WGH.money(product.wholesalePrice):'Price pending'):WGH.money(product.retailPrice);
-    $('[data-price-note]').textContent=mode==='wholesale'?(Number(product.wholesalePrice)>0?'Wholesale price per piece':'Wholesale price will be added by admin'):'Retail price';
+    renderPrice();
     document.querySelectorAll('[data-colour]').forEach(b=>b.classList.toggle('active',b.dataset.colour===colour));
     document.querySelectorAll('[data-size]').forEach(b=>b.classList.toggle('active',b.dataset.size===size));
     $('[data-selected-colour]').textContent=colour;
@@ -124,14 +138,14 @@
     d.querySelector('.mini-cart-close').onclick=d.querySelector('[data-keep-shopping]').onclick=()=>d.classList.remove('open');
   }
 
-  document.querySelectorAll('[data-purchase-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.purchaseMode;render()});
+  document.querySelectorAll('[data-purchase-mode]').forEach(b=>b.onclick=()=>{if(b.dataset.purchaseMode==='wholesale'&&!wholesaleAvailable)return;mode=b.dataset.purchaseMode;render()});
   document.querySelectorAll('[data-colour]').forEach(b=>b.onclick=()=>{colour=b.dataset.colour;render();if(matchMedia('(max-width:820px)').matches)setTimeout(()=>document.querySelector('[data-product-gallery]')?.scrollIntoView({behavior:'smooth',block:'start'}),80)});
   document.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{size=b.dataset.size;render()});
   $('[data-qty-minus]').onclick=()=>{qty=Math.max(1,qty-1);render()};
   $('[data-qty-plus]').onclick=()=>{qty++;render()};
   $('[data-add-variant]').onclick=()=>{variants.push({colour:defaultColour,size:product.sizes[0],quantity:1});renderVariants();setTimeout(()=>document.querySelector('.wholesale-mix-card:last-child')?.scrollIntoView({behavior:'smooth',block:'nearest'}),20)};
   $('[data-add-to-bag]').onclick=()=>{
-    if(mode==='wholesale'&&!(Number(product.wholesalePrice)>0))return WGH.showToast('Wholesale price for this style has not been published yet.');
+    if(mode==='wholesale'&&!wholesaleAvailable)return WGH.showToast('Wholesale is not available for this style.');
     const total=mode==='wholesale'?variants.reduce((s,v)=>s+v.quantity,0):qty;
     if(mode==='wholesale'&&total<product.moq)return WGH.showToast(`Wholesale minimum is ${product.moq} pieces per style.`);
     const itemColour=mode==='wholesale'?variants[0]?.colour:colour;
@@ -150,7 +164,7 @@
   const details=$('[data-product-purchase] .product-sticky');
   const care=document.createElement('details');care.innerHTML=`<summary>Care instructions</summary><p>${product.care||'Follow the garment-care label supplied with your finished piece. Wash gently, avoid harsh bleach and store clean and dry.'}</p>`;details.appendChild(care);
   const save=document.createElement('button');save.type='button';save.className='product-save text-link';save.dataset.wishlist=product.id;save.innerHTML='<i class="fa-regular fa-heart"></i><span>Save to wishlist</span>';details.appendChild(save);WGH.bindProductCards(document);
-  const related=WGH.products.filter(p=>p.id!==product.id).slice(0,4);$('[data-related-products]').innerHTML=related.map(p=>WGH.productCard(p,mode)).join('');WGH.bindProductCards($('[data-related-products]'));
+  const related=WGH.products.filter(p=>p.id!==product.id&&(mode!=='wholesale'||(p.wholesaleAvailable!==false&&Number(p.wholesalePrice)>0))).slice(0,4);$('[data-related-products]').innerHTML=related.map(p=>WGH.productCard(p,mode)).join('');WGH.bindProductCards($('[data-related-products]'));
   const share=document.createElement('button');share.className='product-share text-link';share.type='button';share.innerHTML='<i class="fa-solid fa-arrow-up-from-bracket"></i> Share this colour';share.onclick=async()=>{try{await navigator.share({title:product.name,url:location.href})}catch{await navigator.clipboard?.writeText(location.href);WGH.showToast('Product link copied.','success')}};details.appendChild(share);
   try{const ids=JSON.parse(localStorage.getItem('wgh_recently_viewed')||'[]').filter(id=>id!==product.id),recent=WGH.products.filter(p=>ids.includes(p.id)).sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)).slice(0,5),root=$('[data-recently-viewed]'),sec=$('[data-recently-viewed-section]');if(recent.length&&root&&sec){sec.hidden=false;root.innerHTML=recent.map(p=>WGH.productCard(p,mode)).join('');WGH.bindProductCards(root)}}catch{}
   render();
