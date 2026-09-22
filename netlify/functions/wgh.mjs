@@ -477,6 +477,8 @@ async function getCategories(db) {
    run, pause or change a promotion without mutating base prices.
    ========================================================= */
 
+const DISCOUNT_CAMPAIGN_DOC_ID = "campaign-settings";
+
 const DISCOUNT_BADGES = new Set([
   "Big sale",
   "Selling quickly",
@@ -518,7 +520,7 @@ function normalizeDiscountDoc(data = {}, product = {}) {
 }
 
 async function getDiscountState(db) {
-  const campaignRef = db.collection("storeDiscounts").doc("__campaign__");
+  const campaignRef = db.collection("storeDiscounts").doc(DISCOUNT_CAMPAIGN_DOC_ID);
   const [campaignSnap, productSnap] = await Promise.all([
     campaignRef.get(),
     db.collection("storeDiscounts").get()
@@ -537,7 +539,7 @@ async function getDiscountState(db) {
 
   const products = new Map();
   for (const doc of productSnap.docs) {
-    if (doc.id !== "__campaign__") products.set(doc.id, doc.data() || {});
+    if (doc.id !== DISCOUNT_CAMPAIGN_DOC_ID) products.set(doc.id, doc.data() || {});
   }
 
   campaign.showBanner = campaign.showBanner === true || (campaign.showBanner === undefined && campaign.active === true);
@@ -4137,7 +4139,7 @@ export default async function handler(
       const showBanner = input.showBanner === true;
       const showModal = input.showModal === true;
       const db = getDb();
-      const ref = db.collection("storeDiscounts").doc("__campaign__");
+      const ref = db.collection("storeDiscounts").doc(DISCOUNT_CAMPAIGN_DOC_ID);
       const payload = {
         active: showBanner || showModal,
         showBanner,
