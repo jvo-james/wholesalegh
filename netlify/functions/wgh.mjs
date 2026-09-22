@@ -3982,7 +3982,8 @@ export default async function handler(
         active: state.campaign.active === true,
         showBanner: state.campaign.showBanner === true,
         showModal: state.campaign.showModal === true,
-        upToPercent: 40
+        upToPercent: 40,
+        updatedAt: timestampIso(state.campaign.updatedAt)
       });
     }
 
