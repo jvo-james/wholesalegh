@@ -86,8 +86,7 @@
   }
 
   setupSearch();
-  WGH.loadDiscountSettings();
-  document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;render()});
+    document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;render()});
   const bindCategoryButtons=()=>document.querySelectorAll('[data-category]').forEach(b=>b.onclick=()=>{category=b.dataset.category;render()});
   bindCategoryButtons();
   const pop=document.querySelector('[data-sort-popover]');

@@ -137,12 +137,48 @@ WGH.productCard = (p,mode='retail') => {
   const hoverColour=p.cardFeatureAlt?preferred:hoverDefault;
   return `<article class="product-card" data-product-card="${p.id}" data-feature-alt="${p.cardFeatureAlt?'1':'0'}"><a data-card-link href="${baseHref}" aria-label="View ${p.name}"><div class="product-card-image" data-card-gallery><img class="primary-image" data-card-image src="${firstImage}" alt="${p.name}" loading="lazy"><img class="hover-image" data-hover-colour="${hoverColour||''}" src="${hoverSrc}" alt="${p.name} alternate view" loading="${p.cardFeatureAlt?'eager':'lazy'}">${saleMarkup}</div><div class="product-card-copy"><div class="product-card-copy-main"><h3>${p.name}</h3><p>${mode==='wholesale'?(wholesaleReady?`MOQ ${p.moq} · mix colours & sizes`:'Retail only'):saleActive?'Prices as marked':'Made to order'}</p></div><div class="product-card-price-wrap"><span class="product-price-label">${mode==='wholesale'?'Wholesale price':'Retail price'}</span><strong class="product-price-block">${priceHtml}</strong></div></div></a>${colours.length?`<div class="card-colours" aria-label="Available colours">${colours.map(c=>`<button type="button" data-card-colour="${c}" data-card-src="${colourImagesFor(c)[0]||firstImage}" title="${c}" aria-label="Show ${c}"><i style="--swatch:${p.colourHexes?.[c]||WGH.colourValue(c)}"></i></button>`).join('')}<small data-card-colour-name>${preferred||colours[0]}</small></div>`:''}<button class="wishlist-card-button" type="button" data-wishlist="${p.id}" aria-label="Save ${p.name} to wishlist" title="Save to wishlist"><i class="fa-regular fa-heart"></i><span>Save</span></button></article>`;
 };
-WGH.loadProducts = async()=>{try{const data=await WGH.api('/catalog');if(Array.isArray(data)&&data.length){const legacy=new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);const base=new Map(WGH.products.map(p=>[p.id,p]));data.filter(o=>!legacy.has(o.id)).forEach(o=>{const prev=base.get(o.id)||{};base.set(o.id,{...prev,...o})});WGH.products=[...base.values()].filter(p=>p.active!==false)}}catch{}return WGH.products};
-WGH.loadDiscountSettings = async()=>{try{const data=await WGH.api(`/storefront-discount?ts=${Date.now()}`);WGH.discountSettings=data||{showBanner:false,showModal:false};return WGH.discountSettings}catch{WGH.discountSettings={showBanner:false,showModal:false};return WGH.discountSettings}};
-WGH.productCreatedTime = p => { const value=p?.createdAt||p?.addedAt||p?.createdOn; const time=value?Date.parse(value):NaN; return Number.isFinite(time)?time:0; };
-WGH.latestProducts = (limit=12) => [...(WGH.products||[])].filter(p=>p.active!==false).sort((a,b)=>WGH.productCreatedTime(b)-WGH.productCreatedTime(a)).slice(0,limit);
+let wghProductsLoadPromise=null,wghProductsLoadedAt=0;
+let wghDiscountLoadPromise=null,wghDiscountLoadedAt=0;
+let wghCategoriesLoadPromise=null,wghCategoriesLoadedAt=0;
+const WGH_CLIENT_CACHE_MS={products:30000,discount:10000,categories:120000};
 
-WGH.loadCategories = async()=>{try{const data=await WGH.api('/categories');if(Array.isArray(data)&&data.length)WGH.categories=data.filter(x=>x.active!==false)}catch{}return WGH.categories};
+WGH.loadProducts=async()=>{
+  if(wghProductsLoadedAt&&Date.now()-wghProductsLoadedAt<WGH_CLIENT_CACHE_MS.products)return WGH.products;
+  if(wghProductsLoadPromise)return wghProductsLoadPromise;
+  wghProductsLoadPromise=(async()=>{
+    try{
+      const data=await WGH.api('/catalog');
+      if(Array.isArray(data)&&data.length){
+        const legacy=new Set(['sculpt-column-dress','contour-button-top','signature-two-piece','second-skin-tee','tailored-flow-pants','soft-drape-mini','clean-line-vest','soft-knit-set']);
+        const base=new Map(WGH.products.map(p=>[p.id,p]));
+        data.filter(o=>!legacy.has(o.id)).forEach(o=>{const prev=base.get(o.id)||{};base.set(o.id,{...prev,...o})});
+        WGH.products=[...base.values()].filter(p=>p.active!==false);
+      }
+      wghProductsLoadedAt=Date.now();
+    }catch{}
+    return WGH.products;
+  })();
+  try{return await wghProductsLoadPromise}finally{wghProductsLoadPromise=null}
+};
+WGH.loadDiscountSettings=async()=>{
+  if(wghDiscountLoadedAt&&Date.now()-wghDiscountLoadedAt<WGH_CLIENT_CACHE_MS.discount)return WGH.discountSettings;
+  if(wghDiscountLoadPromise)return wghDiscountLoadPromise;
+  wghDiscountLoadPromise=(async()=>{
+    try{const data=await WGH.api('/storefront-discount');WGH.discountSettings=data||{showBanner:false,showModal:false};wghDiscountLoadedAt=Date.now();}
+    catch{WGH.discountSettings={showBanner:false,showModal:false};}
+    return WGH.discountSettings;
+  })();
+  try{return await wghDiscountLoadPromise}finally{wghDiscountLoadPromise=null}
+};
+WGH.productCreatedTime=p=>{const value=p?.createdAt||p?.addedAt||p?.createdOn;const time=value?Date.parse(value):NaN;return Number.isFinite(time)?time:0};
+WGH.latestProducts=(limit=12)=>[...(WGH.products||[])].filter(p=>p.active!==false).sort((a,b)=>WGH.productCreatedTime(b)-WGH.productCreatedTime(a)).slice(0,limit);
+
+WGH.loadCategories=async()=>{
+  if(wghCategoriesLoadedAt&&Date.now()-wghCategoriesLoadedAt<WGH_CLIENT_CACHE_MS.categories)return WGH.categories;
+  if(wghCategoriesLoadPromise)return wghCategoriesLoadPromise;
+  wghCategoriesLoadPromise=(async()=>{try{const data=await WGH.api('/categories');if(Array.isArray(data)&&data.length)WGH.categories=data.filter(x=>x.active!==false);wghCategoriesLoadedAt=Date.now()}catch{}return WGH.categories})();
+  try{return await wghCategoriesLoadPromise}finally{wghCategoriesLoadPromise=null}
+};
 WGH.categoryName = id => (WGH.categories.find(x=>x.id===id)?.name || String(id||'Collection').replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
 WGH.bindProductCards = root=>{
   (root||document).querySelectorAll('[data-product-card]').forEach(card=>{

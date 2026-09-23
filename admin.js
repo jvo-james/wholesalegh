@@ -4,6 +4,8 @@
   const escape=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
   let adminBusyCount=0,adminViewLoading=false,viewLoadToken=0;
+  let ordersLoadedAt=0,ordersLoadPromise=null,batchesLoadedAt=0,batchesLoadPromise=null,notificationsLoadedAt=0,notificationsLoadPromise=null;
+  let operationalSummary={activeOrders:0,openBatches:0};
   function setAdminPageLoading(on,label='Loading'){
     const el=document.querySelector('[data-admin-page-loader]');
     if(!el)return;
@@ -32,7 +34,30 @@
   }
   async function adminRequest(path,body,prefix=true){const auth=await ensureAdminAuth(),user=auth.currentUser;if(!user)throw new Error('Please sign in to admin again.');const token=await user.getIdToken(),opts={method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${token}`}};if(body!==undefined){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}const res=await fetch(`${WGH.API_BASE}${prefix?'/admin':''}${path}`,opts),data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Admin request failed.');return data}
   async function adminApi(path,body){adminBusy(true);try{return await adminRequest(path,body,true)}finally{adminBusy(false)}}
-  async function ensureOrders(force=false){if(!force&&orders.length)return orders;orders=await adminApi('/orders-all');return orders;}
+  async function ensureOrders(force=false){
+    const fresh=ordersLoadedAt&&Date.now()-ordersLoadedAt<60000;
+    if(!force&&fresh)return orders;
+    if(!force&&ordersLoadPromise)return ordersLoadPromise;
+    const path=force?'/orders-all?refresh=1':'/orders-all';
+    ordersLoadPromise=adminApi(path).then(data=>{orders=Array.isArray(data)?data:[];ordersLoadedAt=Date.now();operationalSummary.activeOrders=orders.filter(o=>o.status!=='delivered').length;return orders});
+    try{return await ordersLoadPromise}finally{ordersLoadPromise=null}
+  }
+  async function ensureBatches(force=false){
+    const fresh=batchesLoadedAt&&Date.now()-batchesLoadedAt<60000;
+    if(!force&&fresh)return batches;
+    if(!force&&batchesLoadPromise)return batchesLoadPromise;
+    const path=force?'/batches?refresh=1':'/batches';
+    batchesLoadPromise=adminApi(path).then(data=>{batches=Array.isArray(data)?data:[];batchesLoadedAt=Date.now();operationalSummary.openBatches=batches.filter(b=>!b.locked&&String(b.status||'').toUpperCase()!=='CLOSED').length;return batches});
+    try{return await batchesLoadPromise}finally{batchesLoadPromise=null}
+  }
+  async function ensureNotifications(force=false){
+    const fresh=notificationsLoadedAt&&Date.now()-notificationsLoadedAt<30000;
+    if(!force&&fresh)return notifications;
+    if(!force&&notificationsLoadPromise)return notificationsLoadPromise;
+    const path=force?'/notifications?refresh=1':'/notifications';
+    notificationsLoadPromise=adminApi(path).then(data=>{notifications=Array.isArray(data)?data:[];notificationsLoadedAt=Date.now();return notifications});
+    try{return await notificationsLoadPromise}finally{notificationsLoadPromise=null}
+  }
   function getViewLoader(name){
     switch(name){
       case 'overview': return loadOverview;
@@ -58,7 +83,7 @@
   function showView(name){
     if(!ADMIN_VIEWS.includes(name))name='overview';
     location.hash=name;document.querySelectorAll('[data-admin-view]').forEach(b=>b.classList.toggle('active',b.dataset.adminView===name));document.querySelectorAll('[data-view-panel]').forEach(p=>{const active=p.dataset.viewPanel===name;p.hidden=!active;p.classList.toggle('active',active)});document.body.classList.remove('admin-menu-open');window.scrollTo({top:0,behavior:'instant'});
-    const loader=getViewLoader(name);if(loader)runViewLoader(name,loader);
+    const loader=getViewLoader(name);return loader?runViewLoader(name,loader):Promise.resolve();
   }
   document.querySelectorAll('[data-admin-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.adminView)));document.querySelectorAll('[data-jump-view]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.jumpView)));document.querySelector('[data-admin-menu]')?.addEventListener('click',()=>document.body.classList.toggle('admin-menu-open'));
 
@@ -80,7 +105,7 @@
     if(!user){login.hidden=false;app.hidden=true;return;}
     login.hidden=true;app.hidden=false;message.textContent='';const emailEl=document.querySelector('[data-admin-current-email]');if(emailEl)emailEl.textContent=user.email||'';
     const view=ADMIN_VIEWS.includes(location.hash.slice(1))?location.hash.slice(1):'overview';
-    try{showView(view);showNotificationPopoverOnLoad()}catch(err){console.error('Admin view error',err);WGH.showToast(WGH.friendlyError(err))}
+    try{await showView(view);showNotificationPopoverOnLoad()}catch(err){console.error('Admin view error',err);WGH.showToast(WGH.friendlyError(err))}
   }
 
   async function waitForAuth(){
@@ -158,18 +183,21 @@
 
   document.querySelector('[data-admin-signout]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>adminAuth?.signOut(),'Signing out'));
 
-  async function loadOverview(){
-    const [overview,recentBatches,allOrders]=await Promise.all([adminApi('/overview'),adminApi('/batches'),adminApi('/orders-all')]);batches=recentBatches;orders=Array.isArray(allOrders)?allOrders:[];
+  async function loadOverview(force=false){
+    const overview=await adminApi(force?'/overview?refresh=1':'/overview');
+    operationalSummary.activeOrders=Number(overview.activeOrders||0);
+    operationalSummary.openBatches=Number(overview.openBatches||0);
     document.querySelector('[data-overview-metrics]').innerHTML=[['Total orders',overview.orders],['Active orders',overview.activeOrders],['Pieces in production',overview.pieces],['Revenue',WGH.money(overview.revenue)]].map(([l,v])=>`<article class="admin-metric"><p>${l}</p><strong>${v}</strong></article>`).join('');
-    const batchOverview=document.querySelector('[data-overview-batches]');if(batchOverview)batchOverview.innerHTML=batches.slice(0,5).map(batchRow).join('')||empty('No production batches yet','A production batch will appear automatically after the first paid order is assigned.');
-    document.querySelector('[data-overview-orders]').innerHTML=orders.slice(0,6).map(orderRow).join('')||empty('No orders yet','Paid website orders and manually created orders will appear here.');
+    const batchOverview=document.querySelector('[data-overview-batches]');if(batchOverview)batchOverview.innerHTML=(overview.recentBatches||[]).map(batchRow).join('')||empty('No production batches yet','A production batch will appear automatically after the first paid order is assigned.');
+    const orderOverview=document.querySelector('[data-overview-orders]');if(orderOverview)orderOverview.innerHTML=(overview.recentOrders||[]).map(orderRow).join('')||empty('No orders yet','Paid website orders and manually created orders will appear here.');
+    orders=[];batches=[];ordersLoadedAt=0;batchesLoadedAt=0;
     await loadNotificationPreview();
   }
   const empty=(title,copy)=>`<div class="admin-empty compact"><h3>${title}</h3><p>${copy}</p></div>`;
   const batchRow=b=>{const pct=Math.min(100,Math.round(Number(b.usedCapacity||0)/Math.max(1,Number(b.capacity||1))*100));return `<button class="admin-batch-row" data-open-batch="${escape(b.id)}"><div><span>${escape(b.status||'OPEN')}</span><strong>${escape(WGH.prettyBatch(b.batchName||b.id))}</strong></div><div class="batch-mini-cap"><span>${b.usedCapacity||0}/${b.capacity||0} pieces</span><i><b style="width:${pct}%"></b></i></div></button>`};
   const orderRow=o=>`<div class="admin-order-row"><div><strong>${escape(o.orderNumber)}</strong><span>${escape(o.customerName||o.customerEmail)}</span></div><div><span>${escape(WGH.prettyBatch(o.batchName)||'')}</span><strong>${labels[o.status]||'In progress'}</strong></div></div>`;
 
-  async function loadBatches(){const btn=document.querySelector('[data-refresh-batches]');await WGH.withLoading(btn,async()=>{batches=await adminApi('/batches');renderBatchList();if(selectedBatch&&batches.some(b=>b.id===selectedBatch))await openBatch(selectedBatch)},'Refreshing')}
+  async function loadBatches(force=false){const btn=document.querySelector('[data-refresh-batches]');await WGH.withLoading(btn,async()=>{await ensureBatches(force);renderBatchList();if(selectedBatch&&batches.some(b=>b.id===selectedBatch))await openBatch(selectedBatch)},'Refreshing')}
   function renderBatchList(){const list=document.querySelector('[data-batch-list]');list.innerHTML=`<div class="admin-card-head"><div><p class="eyebrow">Batches</p><h2>${batches.length} production cycles</h2></div></div>${batches.map(b=>batchRow(b).replace('admin-batch-row"','admin-batch-row '+(selectedBatch===b.id?'active':'')+'"')).join('')||empty('No production batches yet','Once a paid order is assigned to a cycle, that batch will appear here.')}`;list.querySelectorAll('[data-open-batch]').forEach(b=>b.addEventListener('click',()=>openBatch(b.dataset.openBatch)));}
   async function openBatch(id){selectedBatch=id;renderBatchList();const detail=document.querySelector('[data-batch-detail]');detail.innerHTML=`<div class="admin-loading"><span class="page-spinner"></span><p>Loading production sheet</p></div>`;try{const batch=batches.find(b=>b.id===id);const batchOrders=await adminApi(`/orders?batchId=${encodeURIComponent(id)}`);renderBatchDetail(batch,batchOrders)}catch(err){detail.innerHTML=empty('Could not load this batch',WGH.friendlyError(err))}}
   function aggregate(batchOrders){const map={};batchOrders.forEach(o=>(o.items||[]).forEach(item=>{const p=map[item.name]||(map[item.name]={total:0,colours:{}});p.total+=Number(item.totalQuantity||0);(item.variants||[]).forEach(v=>{p.colours[v.colour]=p.colours[v.colour]||{};p.colours[v.colour][v.size]=(p.colours[v.colour][v.size]||0)+Number(v.quantity||0)})}));return map}
@@ -207,7 +235,7 @@
   function orderAdminCard(o){return `<article class="batch-order-card"><div><strong>${escape(o.orderNumber)}</strong><span>${escape(o.customerName||o.customerEmail)}</span><small>${o.pieces} pieces · ${escape(o.estimatedDelivery)}</small></div><select data-status-order="${escape(o.orderNumber)}">${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${labels[s]}</option>`).join('')}</select></article>`}
   function bindStatus(root,source){root.querySelectorAll('[data-status-order]').forEach(select=>select.addEventListener('change',async()=>{select.disabled=true;const original=source.find(o=>o.orderNumber===select.dataset.statusOrder)?.status;try{await adminApi('/status',{orderNumber:select.dataset.statusOrder,status:select.value});WGH.showToast('Order stage updated and the customer will be notified.','success');const target=source.find(o=>o.orderNumber===select.dataset.statusOrder);if(target)target.status=select.value;}catch(err){select.value=original||select.value;WGH.showToast(err)}finally{select.disabled=false}}));}
 
-  async function loadOrders(){const btn=document.querySelector('[data-refresh-orders]');await WGH.withLoading(btn,async()=>{orders=await adminApi('/orders-all');renderOrders()},'Refreshing')}
+  async function loadOrders(force=false){const btn=document.querySelector('[data-refresh-orders]');await WGH.withLoading(btn,async()=>{await ensureOrders(force);renderOrders()},'Refreshing')}
   function renderOrders(){const q=(document.querySelector('[data-order-search]').value||'').toLowerCase(),filter=document.querySelector('[data-order-filter]').value;const rows=orders.filter(o=>(filter==='all'||o.status===filter)&&`${o.orderNumber} ${o.customerName} ${o.customerEmail}`.toLowerCase().includes(q));document.querySelector('[data-orders-table]').innerHTML=rows.map(o=>`<tr class="admin-click-row" data-order-detail="${escape(o.orderNumber)}"><td><input class="order-select-check" type="checkbox" data-order-select="${escape(o.orderNumber)}"></td><td><strong>${escape(o.orderNumber)}</strong><small>${date(o.createdAt)} · ${time(o.createdAt)}</small></td><td>${escape(o.customerName)}<small>${escape(o.customerEmail)}</small></td><td>${escape(WGH.prettyBatch(o.batchName))}</td><td>${o.pieces}</td><td>${WGH.money(o.total)}</td><td>${escape(o.estimatedDelivery)}</td><td><select data-status-order="${escape(o.orderNumber)}">${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${labels[s]}</option>`).join('')}</select></td></tr>`).join('')||`<tr><td colspan="8">No matching orders.</td></tr>`;document.querySelector('[data-orders-mobile]').innerHTML=rows.map(o=>`<article class="admin-mobile-card admin-click-row" data-order-detail="${escape(o.orderNumber)}"><div><label class="mobile-order-check"><input type="checkbox" data-order-select="${escape(o.orderNumber)}"> <strong>${escape(o.orderNumber)}</strong></label><span>${escape(o.customerName)}</span></div><p>${date(o.createdAt)} · ${time(o.createdAt)} · ${o.pieces} pieces · ${WGH.money(o.total)} · ${escape(WGH.prettyBatch(o.batchName))}</p><select data-status-order="${escape(o.orderNumber)}">${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${labels[s]}</option>`).join('')}</select></article>`).join('');document.querySelectorAll('[data-order-detail]').forEach(b=>b.onclick=e=>{if(e.target.closest('select,[data-status-order]'))return;openOrderDetail(b.dataset.orderDetail)});document.querySelectorAll('[data-status-order]').forEach(el=>el.addEventListener('click',e=>e.stopPropagation()));bindStatus(document.querySelector('[data-view-panel="orders"]'),orders);bindBulkOrderSelection()}
   document.querySelector('[data-order-search]')?.addEventListener('input',renderOrders);document.querySelector('[data-order-filter]')?.addEventListener('change',renderOrders);
 
@@ -227,7 +255,7 @@
     panel.innerHTML=`<button class="drawer-close admin-order-close" type="button" data-admin-order-close aria-label="Close order details"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button><div class="order-panel-hero"><p class="eyebrow">${escape(o.orderNumber)}</p><h2>${escape(o.customerName||'Customer')}</h2><div class="order-panel-chips"><span>${labels[o.status]||o.status}</span><span>${escape(o.paymentStatus||'paid')}</span></div></div><section class="order-panel-section"><div class="order-panel-section-title"><span>Customer</span><strong>Contact and delivery</strong></div><div class="admin-detail-grid"><div><span>Email</span><strong>${escape(o.customerEmail||'Not provided')}</strong></div><div><span>Phone</span><strong>${escape(o.customerPhone||'Not provided')}</strong></div><div><span>Fulfilment</span><strong>${escape(o.delivery?.fulfilment||'Delivery')}</strong></div><div><span>Destination</span><strong>${escape([o.delivery?.address,o.delivery?.city,o.delivery?.region,o.delivery?.country].filter(Boolean).join(', ')||'Not recorded')}</strong></div></div></section><section class="order-panel-section"><div class="order-panel-section-title"><span>Order</span><strong>What the customer ordered</strong></div><div class="admin-order-items">${items||'<p class="muted-copy">No item details recorded.</p>'}</div></section><section class="order-panel-section"><div class="order-panel-section-title"><span>Payment</span><strong>Financial summary</strong></div><div class="admin-detail-grid"><div><span>Batch</span><strong>${escape(WGH.prettyBatch(o.batchName)||'Unassigned')}</strong></div><div><span>Reference</span><strong class="wrap-reference">${escape(o.paymentReference||'Not recorded')}</strong></div><div><span>Created</span><strong>${date(o.createdAt)} · ${time(o.createdAt)}</strong></div><div><span>Total pieces</span><strong>${Number(o.pieces||0)}</strong></div></div><div class="order-money-breakdown"><span>Subtotal <b>${WGH.money(o.subtotal)}</b></span><span>Processing <b>${WGH.money(o.processingFee)}</b></span><span>Delivery <b>${WGH.money(o.deliveryFee)}</b></span><strong>Total <b>${WGH.money(o.total)}</b></strong></div></section><div class="order-detail-actions"><button class="button button-outline" type="button" data-print-packing><i class="fa-solid fa-print"></i> Print packing slip</button></div><div class="audit-block"><p class="eyebrow">Status history</p><ol>${history||'<li>No changes recorded yet.</li>'}</ol></div><div class="audit-block"><p class="eyebrow">Internal notes</p>${notes||'<p class="muted-copy">No internal notes yet.</p>'}<form class="stack-form" data-order-note-form><label>Add note<textarea name="note" rows="3" required></textarea></label><button class="button button-dark" type="submit">Save internal note</button></form></div>`;
     panel.querySelector('[data-admin-order-close]').onclick=WGH.closeLayers;
     panel.querySelector('[data-print-packing]').onclick=()=>printOrders([o.orderNumber]);
-    panel.querySelector('[data-order-note-form]').onsubmit=async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button'),note=new FormData(e.currentTarget).get('note');await WGH.withLoading(btn,async()=>{await adminApi('/order-note',{orderNumber:o.orderNumber,note});orders=await adminApi('/orders-all');WGH.showToast('Internal note saved.','success');openOrderDetail(o.orderNumber)},'Saving note')};
+    panel.querySelector('[data-order-note-form]').onsubmit=async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button'),note=new FormData(e.currentTarget).get('note');await WGH.withLoading(btn,async()=>{await adminApi('/order-note',{orderNumber:o.orderNumber,note});await ensureOrders(true);WGH.showToast('Internal note saved.','success');openOrderDetail(o.orderNumber)},'Saving note')};
     WGH.openLayer(panel);
   }
 
@@ -238,7 +266,7 @@
     if(!panel){panel=document.createElement('aside');panel.className='side-panel admin-order-panel';panel.dataset.adminCustomerPanel='';panel.setAttribute('aria-hidden','true');document.body.appendChild(panel)}
     let customerOrders=[];
     try{
-      const all=await ensureOrders(true);
+      const all=await ensureOrders(false);
       customerOrders=all.filter(o=>{
         const email=String(o.customerEmail||'').trim().toLowerCase();
         const phone=String(o.customerPhone||'').trim();
@@ -250,7 +278,7 @@
     panel.querySelectorAll('[data-order-detail]').forEach(b=>b.onclick=()=>{WGH.closeLayer(panel);openOrderDetail(b.dataset.orderDetail)});
     WGH.openLayer(panel);
   }
-  async function loadCustomers(){const btn=document.querySelector('[data-refresh-customers]');await WGH.withLoading(btn,async()=>{customers=await adminApi('/customers');renderCustomers()},'Refreshing')}
+  async function loadCustomers(force=false){const btn=document.querySelector('[data-refresh-customers]');await WGH.withLoading(btn,async()=>{customers=await adminApi(force?'/customers?refresh=1':'/customers');renderCustomers()},'Refreshing')}
   function renderCustomers(){document.querySelector('[data-customers-table]').innerHTML=customers.map((c,i)=>`<tr class="admin-click-row" data-customer-index="${i}"><td><strong>${escape(c.name||'Customer')}</strong><small>${escape(c.email)}</small></td><td>${escape(c.phone)}</td><td>${c.orders}</td><td>${c.pieces}</td><td>${WGH.money(c.spent)}</td><td>${date(c.lastOrder)}</td></tr>`).join('')||`<tr><td colspan="6">No customers or registered shoppers yet.</td></tr>`;document.querySelector('[data-customers-mobile]').innerHTML=customers.map((c,i)=>`<article class="admin-mobile-card admin-click-row" data-customer-index="${i}"><div><strong>${escape(c.name||'Customer')}</strong><span>${escape(c.email)}</span></div><p>${c.orders} orders · ${c.pieces} pieces · ${WGH.money(c.spent)}</p></article>`).join('');document.querySelectorAll('[data-customer-index]').forEach(el=>el.onclick=()=>openCustomerDetail(customers[+el.dataset.customerIndex]))}
   const date=v=>v?new Date(v).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'-';
   const time=v=>v?new Date(v).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'-';
@@ -493,13 +521,13 @@
     });
   }
 
-  document.querySelector('[data-refresh-overview]')?.addEventListener('click',e=>runViewLoader('overview',()=>WGH.withLoading(e.currentTarget,loadOverview,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-batches]')?.addEventListener('click',e=>runViewLoader('batches',loadBatches,'Refreshing'));document.querySelector('[data-refresh-orders]')?.addEventListener('click',e=>runViewLoader('orders',loadOrders,'Refreshing'));document.querySelector('[data-refresh-products]')?.addEventListener('click',e=>runViewLoader('products',()=>WGH.withLoading(e.currentTarget,loadProducts,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-discounts]')?.addEventListener('click',e=>runViewLoader('discounts',()=>WGH.withLoading(e.currentTarget,loadDiscounts,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-categories]')?.addEventListener('click',e=>runViewLoader('categories',()=>WGH.withLoading(e.currentTarget,loadCategoriesAdmin,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-customers]')?.addEventListener('click',e=>runViewLoader('customers',loadCustomers,'Refreshing'));
-  async function loadAnalytics(){await ensureOrders(true);const revenue=orders.reduce((s,o)=>s+Number(o.total||0),0),pieces=orders.reduce((s,o)=>s+Number(o.pieces||0),0),avg=orders.length?revenue/orders.length:0;const metrics=document.querySelector('[data-analytics-metrics]');if(metrics)metrics.innerHTML=[['Revenue',WGH.money(revenue)],['Average order',WGH.money(avg)],['Pieces',pieces],['Orders',orders.length]].map(([l,v],i)=>`<article class="admin-metric"><span>${i+1}</span><p>${l}</p><strong>${v}</strong></article>`).join('');const counts=Object.fromEntries(statuses.map(x=>[x,0]));orders.forEach(o=>counts[o.status]=(counts[o.status]||0)+1);const max=Math.max(1,...Object.values(counts));const bars=document.querySelector('[data-status-bars]');if(bars)bars.innerHTML=Object.entries(counts).filter(([,n])=>n).map(([k,n])=>`<div><span>${labels[k]||k}</span><i><b style="width:${n/max*100}%"></b></i><strong>${n}</strong></div>`).join('')||empty('No order data yet','Analytics will appear after the first order.');}
+  document.querySelector('[data-refresh-overview]')?.addEventListener('click',e=>runViewLoader('overview',()=>WGH.withLoading(e.currentTarget,()=>loadOverview(true),'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-batches]')?.addEventListener('click',e=>runViewLoader('batches',()=>loadBatches(true),'Refreshing'));document.querySelector('[data-refresh-orders]')?.addEventListener('click',e=>runViewLoader('orders',()=>loadOrders(true),'Refreshing'));document.querySelector('[data-refresh-products]')?.addEventListener('click',e=>runViewLoader('products',()=>WGH.withLoading(e.currentTarget,loadProducts,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-discounts]')?.addEventListener('click',e=>runViewLoader('discounts',()=>WGH.withLoading(e.currentTarget,loadDiscounts,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-categories]')?.addEventListener('click',e=>runViewLoader('categories',()=>WGH.withLoading(e.currentTarget,loadCategoriesAdmin,'Refreshing'),'Refreshing'));document.querySelector('[data-refresh-customers]')?.addEventListener('click',e=>runViewLoader('customers',()=>loadCustomers(true),'Refreshing'));
+  async function loadAnalytics(force=false){await ensureOrders(force);const revenue=orders.reduce((s,o)=>s+Number(o.total||0),0),pieces=orders.reduce((s,o)=>s+Number(o.pieces||0),0),avg=orders.length?revenue/orders.length:0;const metrics=document.querySelector('[data-analytics-metrics]');if(metrics)metrics.innerHTML=[['Revenue',WGH.money(revenue)],['Average order',WGH.money(avg)],['Pieces',pieces],['Orders',orders.length]].map(([l,v],i)=>`<article class="admin-metric"><span>${i+1}</span><p>${l}</p><strong>${v}</strong></article>`).join('');const counts=Object.fromEntries(statuses.map(x=>[x,0]));orders.forEach(o=>counts[o.status]=(counts[o.status]||0)+1);const max=Math.max(1,...Object.values(counts));const bars=document.querySelector('[data-status-bars]');if(bars)bars.innerHTML=Object.entries(counts).filter(([,n])=>n).map(([k,n])=>`<div><span>${labels[k]||k}</span><i><b style="width:${n/max*100}%"></b></i><strong>${n}</strong></div>`).join('')||empty('No order data yet','Analytics will appear after the first order.');}
   async function notificationGo(n){
     const target=n?.target||'overview';
     showView(target);
     if(target==='orders' && n?.orderNumber){
-      await ensureOrders();
+      await ensureOrders(false);
       setTimeout(()=>openOrderDetail(n.orderNumber),80);
     }
   }
@@ -515,15 +543,13 @@
     if(button)return WGH.withLoading(button,run,'Clearing');
     return run();
   }
-  async function loadAlerts(){
-    try{notifications=await adminApi('/notifications')||[]}catch(e){notifications=[];console.warn('Could not load saved notifications',e)}
-    try{await ensureOrders(true)}catch(e){console.warn('Could not load orders for live alerts',e)}
-    try{if(!batches.length)batches=await adminApi('/batches')}catch(e){console.warn('Could not load batches for live alerts',e)}
+  async function loadAlerts(force=false){
+    try{await ensureNotifications(force)}catch(e){notifications=[];console.warn('Could not load saved notifications',e)}
     const operational=[];
-    const activeOrders=orders.filter(o=>!['delivered'].includes(o.status));
-    if(activeOrders.length)operational.push({id:'live-orders',live:true,title:`${activeOrders.length} active order${activeOrders.length===1?'':'s'}`,message:'Open Orders to review current customer orders.',target:'orders',icon:'fa-bag-shopping'});
-    const openBatches=batches.filter(b=>String(b.status||'').toUpperCase()==='OPEN');
-    if(openBatches.length)operational.push({id:'live-batches',live:true,title:`${openBatches.length} open production batch${openBatches.length===1?'':'es'}`,message:'Open Production batches to review capacity and production.',target:'batches',icon:'fa-layer-group'});
+    const activeCount=Number(operationalSummary.activeOrders||0);
+    if(activeCount)operational.push({id:'live-orders',live:true,title:`${activeCount} active order${activeCount===1?'':'s'}`,message:'Open Orders to review current customer orders.',target:'orders',icon:'fa-bag-shopping'});
+    const openCount=Number(operationalSummary.openBatches||0);
+    if(openCount)operational.push({id:'live-batches',live:true,title:`${openCount} open production batch${openCount===1?'':'es'}`,message:'Open Production batches to review capacity and production.',target:'batches',icon:'fa-layer-group'});
     const all=[...notifications.map(n=>({...n,icon:n.type==='order'?'fa-bag-shopping':'fa-bell'})),...operational];
     const el=document.querySelector('[data-admin-alerts]');
     if(el)el.innerHTML=all.length?`<div class="notification-feed-head"><div><strong>${notifications.filter(n=>!n.read).length} unread</strong><span>Saved notifications and live operational alerts</span></div>${notifications.length?'<button class="button button-outline" type="button" data-clear-notifications>Clear all</button>':''}</div>${all.map(n=>`<article class="admin-notification-row ${n.read?'read':''}" data-notification-row><button class="admin-notification-main" type="button" data-notification-open data-notification-id="${escape(n.id||'')}" data-notification-target="${escape(n.target||'overview')}" data-notification-order="${escape(n.orderNumber||'')}"><i class="fa-solid ${n.icon||'fa-bell'}"></i><div><strong>${escape(n.title)}</strong><p>${escape(n.message||n.copy||'')}</p></div><span>${n.live?'Live':date(n.createdAt)}</span></button>${n.live?'':`<button class="notification-delete" type="button" data-notification-delete="${escape(n.id||'')}" aria-label="Delete notification"><i class="fa-solid fa-xmark"></i></button>`}</article>`).join('')}`:empty('Nothing needs attention','New paid orders and production alerts will appear here.');
@@ -532,11 +558,11 @@
     el?.querySelectorAll('[data-notification-open]').forEach(b=>b.onclick=async()=>{const n={id:b.dataset.notificationId,target:b.dataset.notificationTarget,orderNumber:b.dataset.notificationOrder};if(n.id&&!n.id.startsWith('live-'))await adminApi('/notification-read',{id:n.id});await notificationGo(n)});
   }
 
-  async function loadTransactions(){
+  async function loadTransactions(force=false){
     const root=document.querySelector('[data-transactions-table]'),metrics=document.querySelector('[data-transaction-metrics]');
     if(root)root.innerHTML='<tr><td colspan="6"><div class="admin-inline-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading transactions...</div></td></tr>';
     try{
-      const tx=await adminApi('/transactions');
+      const tx=await ensureOrders(force);
       const paid=tx.filter(o=>String(o.paymentStatus||'').toLowerCase()==='paid'),manual=tx.filter(o=>String(o.paymentStatus||'').toLowerCase()==='manual'),value=tx.reduce((s,o)=>s+Number(o.total||0),0);
       if(metrics)metrics.innerHTML=[['Recorded payments',tx.length],['Paid online',paid.length],['Manual orders',manual.length],['Payment value',WGH.money(value)]].map(([l,v])=>`<article class="admin-metric"><p>${l}</p><strong>${v}</strong></article>`).join('');
       if(root)root.innerHTML=tx.map(o=>`<tr class="admin-click-row" data-order-detail="${escape(o.orderNumber)}"><td><strong>${escape(o.orderNumber)}</strong><small>${date(o.createdAt)} · ${time(o.createdAt)}</small></td><td><strong>${escape(o.customerName||'Customer')}</strong><small>${escape(o.customerEmail||'')}</small></td><td><code class="transaction-ref">${escape(o.paymentReference||'Not recorded')}</code></td><td><span class="status-pill ${String(o.paymentStatus).toLowerCase()==='paid'?'':'warning'}">${escape(o.paymentStatus||'Recorded')}</span></td><td><strong>${WGH.money(o.total)}</strong></td><td>${dateTime(o.createdAt)}</td></tr>`).join('')||'<tr><td colspan="6"><div class="admin-empty-row"><strong>No transactions found.</strong><span>If an order exists in Orders, press Refresh. All recorded orders are included.</span></div></td></tr>';
@@ -548,21 +574,20 @@
   async function loadReviews(){const root=document.querySelector('[data-reviews-list]');try{const data=await adminApi('/reviews');root.innerHTML=data.length?data.map(x=>`<article class="admin-notification"><i class="fa-solid fa-star"></i><div><strong>${escape(x.name||x.email||'Customer review')}</strong><p>${escape(x.review||x.message||'')}</p></div><span>${escape(x.rating||'')}</span></article>`).join(''):empty('No reviews yet','Approved customer reviews will appear here.')}catch(e){root.innerHTML=empty('Reviews unavailable',WGH.friendlyError(e))}}
   async function loadAbandoned(){const root=document.querySelector('[data-abandoned-list]');try{const data=await adminApi('/abandoned');const active=data.filter(x=>!x.dismissed);root.innerHTML=active.length?active.sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))).map(x=>`<article class="abandoned-cart-card ${x.recovered?'recovered':''}"><div class="abandoned-cart-head"><div><span>${x.recovered?'Recovered':'Needs follow-up'}</span><strong>${escape(x.name||x.email||x.phone||'Checkout visitor')}</strong><small>${escape(x.email||'')} ${x.phone?`· ${escape(x.phone)}`:''}${x.userId&&!x.email?' · Registered account':''}</small></div><b>${WGH.money(x.value||0)}</b></div><div class="abandoned-items">${(x.items||[]).slice(0,4).map(i=>`<span>${escape(i.name)} <b>×${Number(i.totalQuantity||1)}</b></span>`).join('')}</div><footer><span>${Number(x.pieces||0)} pieces · ${date(x.updatedAt||x.createdAt)}</span><div>${x.phone&&!x.recovered?`<a class="button button-outline" target="_blank" rel="noopener" href="https://wa.me/${String(x.phone).replace(/\D/g,'').replace(/^0/,'233')}?text=${encodeURIComponent(`Hi ${x.name||''}, you left some pieces in your cart at The Wholesale Ghana. If you need help completing your order, I’m happy to assist.`)}"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>`:''}${(x.email||x.userId)&&!x.recovered?`<button class="button button-dark" type="button" data-email-cart="${escape(x.id)}"><i class="fa-regular fa-envelope"></i> Email</button>`:''}<button class="button button-outline" type="button" data-dismiss-cart="${escape(x.id)}">Dismiss</button></div></footer></article>`).join(''):empty('No carts need follow-up','Checkout carts will appear here after a shopper enters contact details and leaves without paying.');root.querySelectorAll('[data-dismiss-cart]').forEach(b=>b.onclick=async()=>{await WGH.withLoading(b,async()=>{await adminApi('/abandoned-action',{id:b.dataset.dismissCart,action:'dismiss'});await loadAbandoned()},'Dismissing')});root.querySelectorAll('[data-email-cart]').forEach(b=>b.onclick=async()=>{await WGH.withLoading(b,async()=>{const result=await adminApi('/abandoned-email',{id:b.dataset.emailCart});WGH.showToast(`Recovery email sent to ${result.email}.`,'success');await loadAbandoned()},'Sending')})}catch(e){root.innerHTML=empty('Abandoned carts unavailable',WGH.friendlyError(e))}}
   async function loadMessages(){const root=document.querySelector('[data-messages-list]');try{const data=await adminApi('/messages');root.innerHTML=data.length?data.map(x=>`<article class="admin-notification"><i class="fa-solid fa-comment"></i><div><strong>${escape(x.name||x.email||'Message')}</strong><p>${escape(x.message||'')}</p></div><span>${date(x.createdAt)}</span></article>`).join(''):empty('Inbox is clear','New connected-form messages will appear here.')}catch(e){root.innerHTML=empty('Inbox is clear','No messages are available yet.')}}
-  async function loadActivity(){await ensureOrders(true);if(!batches.length){try{batches=await adminApi('/batches')}catch{}}const items=[];orders.forEach(o=>(o.statusHistory||[]).forEach(h=>items.push({at:h.at,title:`${o.orderNumber} · ${labels[h.status]||h.status}`,copy:h.by?`Changed by ${h.by}`:'Order status updated'})));orders.forEach(o=>(o.adminNotes||[]).forEach(n=>items.push({at:n.at,title:`${o.orderNumber} · Internal note`,copy:`${n.by||'Admin'}: ${n.note}`})));batches.forEach(b=>(b.deliveryWindowHistory||[]).forEach(h=>items.push({at:h.at,title:`${WGH.prettyBatch(b.batchName||b.id)} · Delivery window changed`,copy:`${h.by||'Admin'} changed ${h.previous||'the previous estimate'} to ${h.current||'the new estimate'}`})));items.sort((a,b)=>String(b.at).localeCompare(String(a.at)));const root=document.querySelector('[data-activity-list]');if(root)root.innerHTML=items.length?items.slice(0,200).map(x=>`<article class="admin-notification"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${escape(x.title)}</strong><p>${escape(x.copy)}</p></div><span>${dateTime(x.at)}</span></article>`).join(''):empty('No activity yet','Status changes and admin notes will create an audit trail here.')}
+  async function loadActivity(force=false){await ensureOrders(force);if(!batches.length){try{await ensureBatches(force)}catch{}}const items=[];orders.forEach(o=>(o.statusHistory||[]).forEach(h=>items.push({at:h.at,title:`${o.orderNumber} · ${labels[h.status]||h.status}`,copy:h.by?`Changed by ${h.by}`:'Order status updated'})));orders.forEach(o=>(o.adminNotes||[]).forEach(n=>items.push({at:n.at,title:`${o.orderNumber} · Internal note`,copy:`${n.by||'Admin'}: ${n.note}`})));batches.forEach(b=>(b.deliveryWindowHistory||[]).forEach(h=>items.push({at:h.at,title:`${WGH.prettyBatch(b.batchName||b.id)} · Delivery window changed`,copy:`${h.by||'Admin'} changed ${h.previous||'the previous estimate'} to ${h.current||'the new estimate'}`})));items.sort((a,b)=>String(b.at).localeCompare(String(a.at)));const root=document.querySelector('[data-activity-list]');if(root)root.innerHTML=items.length?items.slice(0,200).map(x=>`<article class="admin-notification"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>${escape(x.title)}</strong><p>${escape(x.copy)}</p></div><span>${dateTime(x.at)}</span></article>`).join(''):empty('No activity yet','Status changes and admin notes will create an audit trail here.')}
 
   async function loadSettings(){const settings=await adminApi('/settings');const f=document.querySelector('[data-store-settings-form]');if(f){['businessName','businessEmail','whatsapp','instagram','batchCapacity','defaultMoq','pickupAddress'].forEach(k=>{if(f.elements[k])f.elements[k].value=settings[k]??(k==='batchCapacity'?150:k==='defaultMoq'?6:'')})}}
-  document.querySelector('[data-refresh-transactions]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadTransactions,'Refreshing'));
-document.querySelector('[data-refresh-international]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadInternational,'Refreshing'));
-document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadWholesale,'Refreshing'));
+  document.querySelector('[data-refresh-transactions]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadTransactions(true),'Refreshing'));
+document.querySelector('[data-refresh-international]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadInternational(true),'Refreshing'));
+document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadWholesale(true),'Refreshing'));
 document.querySelector('[data-refresh-reviews]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadReviews,'Refreshing'));
 document.querySelector('[data-refresh-abandoned]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAbandoned,'Refreshing'));
 document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>{const loader=getViewLoader('subscribers');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');});
 document.querySelector('[data-refresh-messages]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadMessages,'Refreshing'));
-document.querySelector('[data-refresh-activity]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadActivity,'Refreshing'));
-document.querySelector('[data-refresh-analytics]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAnalytics,'Refreshing'));
-document.querySelector('[data-refresh-alerts]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAlerts,'Refreshing'));
+document.querySelector('[data-refresh-activity]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadActivity(true),'Refreshing'));
+document.querySelector('[data-refresh-analytics]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadAnalytics(true),'Refreshing'));
+document.querySelector('[data-refresh-alerts]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadAlerts(true),'Refreshing'));
 document.querySelector('[data-refresh-settings]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadSettings,'Refreshing'));
-  document.querySelectorAll('[data-admin-view]').forEach(btn=>btn.addEventListener('click',()=>{const v=btn.dataset.adminView;if(v==='analytics')loadAnalytics();if(v==='alerts')loadAlerts();if(v==='settings')loadSettings();}));
 
   document.querySelector('[data-store-settings-form]')?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button');await WGH.withLoading(btn,async()=>{await adminApi('/settings-save',Object.fromEntries(new FormData(e.currentTarget)));WGH.showToast('Store settings saved.','success')},'Saving settings')});
   document.querySelector('[data-admin-password-form]')?.addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('button'),password=String(new FormData(e.currentTarget).get('password')||'');await WGH.withLoading(btn,async()=>{await adminAuth.currentUser.updatePassword(password);e.currentTarget.reset();WGH.showToast('Admin password changed.','success')},'Updating password')});
@@ -599,10 +624,10 @@ document.querySelector('[data-refresh-settings]')?.addEventListener('click',e=>W
     if(code==='GH'||country==='gh'||country.includes('ghana'))return false;
     return Boolean(country);
   }
-  async function loadInternational(){
+  async function loadInternational(force=false){
     const root=document.querySelector('[data-international-list]');
     try{
-      const all=await ensureOrders(true);
+      const all=await ensureOrders(force);
       const items=all.filter(isInternationalOrder);
       if(!root)return;
       root.innerHTML=items.length?items.map(o=>`<article class="admin-notification-row" data-order-detail="${escape(o.orderNumber)}"><div><strong>${escape(o.orderNumber)}</strong><p>${escape(o.customerName||o.customerEmail||'Customer')} · ${escape([o.delivery?.city,o.delivery?.country].filter(Boolean).join(', ')||'International destination')}</p><small>${o.pieces||0} pieces · ${WGH.money(o.total||0)} · ${escape(labels[o.status]||o.status||'Order confirmed')}</small></div><span>${date(o.createdAt)}</span></article>`).join(''):empty('No international orders','Orders with a destination outside Ghana will appear here.');
@@ -610,10 +635,10 @@ document.querySelector('[data-refresh-settings]')?.addEventListener('click',e=>W
     }catch(err){if(root)root.innerHTML=empty('Could not load International orders',WGH.friendlyError(err));throw err}
   }
   function isWholesaleItem(item){return String(item?.mode||item?.orderType||'').toLowerCase()==='wholesale';}
-  async function loadWholesale(){
+  async function loadWholesale(force=false){
     const metrics=document.querySelector('[data-wholesale-metrics]'),root=document.querySelector('[data-wholesale-products]'),ordersRoot=document.querySelector('[data-wholesale-orders]');
     try{
-      const [products,all]=await Promise.all([adminApi('/products'),ensureOrders(true)]);
+      const [products,all]=await Promise.all([adminApi('/products'),ensureOrders(force)]);
       const wholesaleProducts=(Array.isArray(products)?products:[]).filter(p=>p.wholesaleAvailable!==false&&Number(p.wholesalePrice)>0&&p.active!==false);
       const wholesaleOrders=all.filter(o=>(o.items||[]).some(isWholesaleItem));
       window.__adminWholesaleOrders=wholesaleOrders;
@@ -642,21 +667,16 @@ document.querySelector('[data-refresh-settings]')?.addEventListener('click',e=>W
   document.querySelector('[data-wholesale-order-search]')?.addEventListener('input',renderWholesaleOrders);
   document.querySelector('[data-wholesale-order-filter]')?.addEventListener('change',renderWholesaleOrders);
 
-  let notificationOpen=false;async function loadNotificationPreview(){
+  let notificationOpen=false;async function loadNotificationPreview(force=false){
     try{
-      const stored=await adminApi('/notifications');
-      notifications=Array.isArray(stored)?stored:[];
+      await ensureNotifications(force);
     }catch(e){
       console.warn('Could not load saved notifications',e);
       notifications=[];
     }
-    try{
-      if(!orders.length)await ensureOrders(true);
-    }catch(e){console.warn('Could not load live order alerts',e)}
-    try{
-      if(!batches.length)batches=await adminApi('/batches');
-    }catch(e){console.warn('Could not load live batch alerts',e)}
-    const live=[];const active=orders.filter(o=>o.status!=='delivered');if(active.length)live.push({id:'live-orders',live:true,title:`${active.length} active order${active.length===1?'':'s'}`,message:'Review current orders',target:'orders',icon:'fa-bag-shopping'});
+    // Live counts come from the already-loaded operational summary. Avoid
+    // downloading full collections just to render the notification popover.
+    const live=[];const activeCount=Number(operationalSummary.activeOrders||0);if(activeCount)live.push({id:'live-orders',live:true,title:`${activeCount} active order${activeCount===1?'':'s'}`,message:'Review current orders',target:'orders',icon:'fa-bag-shopping'});
     const persistent=notifications.map(n=>({...n,icon:n.type==='order'?'fa-bag-shopping':n.type==='batch'?'fa-layer-group':'fa-bell'})),items=[...persistent,...live],unread=persistent.filter(x=>!x.read).length+live.length;
     document.querySelectorAll('[data-admin-notification-count]').forEach(x=>{x.textContent=unread;x.hidden=unread===0});
     document.querySelectorAll('[data-notification-preview]').forEach(root=>{root.innerHTML=items.length?items.slice(0,7).map(x=>`<div class="notification-preview-row ${x.read?'read':''}"><button type="button" class="notification-preview-main" data-notif-view="${escape(x.target||'overview')}" data-notif-id="${escape(x.id||'')}" data-notif-order="${escape(x.orderNumber||'')}"><i class="fa-solid ${x.icon}"></i><span><strong>${escape(x.title)}</strong><small>${escape(x.message||'')}</small></span>${!x.read&&!x.live?'<b></b>':''}</button>${x.live?'':`<button class="notification-preview-delete" type="button" data-notif-delete="${escape(x.id||'')}" aria-label="Delete notification"><i class="fa-solid fa-xmark"></i></button>`}</div>`).join(''):'<div class="notification-empty">Nothing needs attention right now.</div>';});
