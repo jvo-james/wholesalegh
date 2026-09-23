@@ -347,6 +347,47 @@ export function dispatchedEmail(order) {
   });
 }
 
+export function deliveryWindowChangedEmail(order = {}, previousWindow = "", currentWindow = "") {
+  const firstName = clean(order.customer?.firstName || order.firstName || "there");
+  const batchName = clean(order.batchName || "your production batch");
+  const title = "Your delivery estimate has changed";
+  const intro = `Hi ${escapeHtml(firstName)}, the estimated delivery window for order <strong>${escapeHtml(order.orderNumber || "")}</strong> has been updated.`;
+  const content = `
+    <div style="margin-top:24px;padding:18px 18px 16px;background:${BRAND.soft};border:1px solid ${BRAND.border};">
+      <div style="font-size:10px;line-height:1.4;letter-spacing:.12em;text-transform:uppercase;color:${BRAND.muted};">Production batch</div>
+      <div style="margin-top:7px;font-size:16px;line-height:1.45;font-weight:700;color:${BRAND.text};">${escapeHtml(batchName)}</div>
+      ${previousWindow ? `<div style="margin-top:14px;font-size:12px;line-height:1.5;color:${BRAND.muted};">Previous estimate: ${escapeHtml(previousWindow)}</div>` : ""}
+      <div style="margin-top:5px;font-size:20px;line-height:1.35;font-weight:700;color:${BRAND.text};">${escapeHtml(currentWindow)}</div>
+    </div>
+    <p style="margin:18px 0 0;font-size:14px;line-height:1.7;color:${BRAND.muted};">This is now the current estimated delivery window for your order. We’ll keep your production progress up to date as it moves through each stage.</p>
+  `;
+  return {
+    subject: `Order ${clean(order.orderNumber)} — delivery estimate updated`,
+    text: textLines(
+      `Hi ${firstName},`,
+      "",
+      `The estimated delivery window for order ${clean(order.orderNumber)} has been updated.`,
+      `Production batch: ${batchName}`,
+      previousWindow ? `Previous estimate: ${previousWindow}` : "",
+      `New estimated delivery: ${currentWindow}`,
+      "",
+      `Track your order: ${trackingUrl(order.orderNumber, order.customer?.email || order.customerEmail || "")}`,
+      "",
+      "The Wholesale Ghana · 0533357961"
+    ),
+    html: layout({
+      preview: `Your estimated delivery window is now ${currentWindow}`,
+      eyebrow: "Order update",
+      title,
+      intro,
+      content,
+      buttonText: "Track your order",
+      buttonUrl: trackingUrl(order.orderNumber, order.customer?.email || order.customerEmail || ""),
+      footerNote: "Estimated dates can move slightly as production and delivery progress. This message reflects the latest window for your order."
+    })
+  };
+}
+
 export function deliveredEmail(order) {
   return statusEmail({
     order,
