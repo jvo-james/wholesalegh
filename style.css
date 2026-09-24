@@ -3799,3 +3799,19 @@ body.modern-checkout [hidden]{display:none!important;}
 .customer-order-link{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;text-align:left;border:0;border-top:1px solid rgba(24,23,19,.10);background:transparent;padding:14px 0;cursor:pointer;color:inherit}
 .customer-order-link span{display:grid;gap:4px}.customer-order-link strong{font-size:12px}.customer-order-link small{font-size:10px;color:#7d756e}.customer-order-link b{font-size:12px}
 @media(max-width:600px){.customer-detail-summary{grid-template-columns:1fr 1fr}.customer-detail-summary>div:last-child{grid-column:1/-1}}
+
+/* =========================================================
+   DESKTOP ADMIN FRAME ALIGNMENT FIX
+   The sidebar is fixed at 272px. The older 245px shell padding
+   was being combined with the newer 272px content offset which
+   created a large gap between the sidebar and the admin tabs.
+   Keep the mobile layout exactly as it is.
+   ========================================================= */
+@media(min-width:1001px){
+  .admin-app-shell{padding-left:0!important}
+  .admin-content{
+    margin-left:272px!important;
+    width:calc(100% - 272px)!important;
+    max-width:none!important;
+  }
+}
