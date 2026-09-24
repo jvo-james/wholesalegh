@@ -1161,7 +1161,7 @@ async function findAvailableBatch(
       return {
         id,ref:db.collection("productionBatches").doc(id),batchNumber:offset+1,
         batchName:`Batch ${String(offset+1).padStart(2,"0")}`,capacity:capacityDefault,usedCapacity:0,
-        startDate:start,closeDate:close,
+        start,startDate:start,close,closeDate:close,
         estimatedDeliveryStart:addDays(close,Number(env("DELIVERY_MIN_DAYS")||14)),
         estimatedDeliveryEnd:addDays(close,Number(env("DELIVERY_MAX_DAYS")||21)),locked:false
       };
@@ -1175,7 +1175,8 @@ async function findAvailableBatch(
       return {
         id,ref:found.ref,batchNumber,
         batchName:data.batchName||`Batch ${String(batchNumber).padStart(2,"0")}`,capacity,usedCapacity:used,
-        startDate:deliveryDateValue(data.startDate)||start,closeDate:deliveryDateValue(data.closeDate)||close,
+        start:deliveryDateValue(data.startDate)||start,startDate:deliveryDateValue(data.startDate)||start,
+        close:deliveryDateValue(data.closeDate)||close,closeDate:deliveryDateValue(data.closeDate)||close,
         estimatedDeliveryStart:deliveryDateValue(data.estimatedDeliveryStart)||addDays(close,Number(env("DELIVERY_MIN_DAYS")||14)),
         estimatedDeliveryEnd:deliveryDateValue(data.estimatedDeliveryEnd)||addDays(close,Number(env("DELIVERY_MAX_DAYS")||21)),
         locked:Boolean(data.locked)
@@ -1469,7 +1470,7 @@ async function completePaidOrder(
               ) || 21
             );
 
-          const batchDelivery = resolveBatchDeliveryWindow(batchData, batch.close);
+          const batchDelivery = resolveBatchDeliveryWindow(batchData, batch.closeDate || batch.close);
           const earliest = batchDelivery.start;
           const latest = batchDelivery.end;
           const estimatedDelivery = batchDelivery.estimatedDelivery;
@@ -1502,7 +1503,7 @@ async function completePaidOrder(
             batchCloseDate:
               admin.firestore.Timestamp
                 .fromDate(
-                  batch.close
+                  batch.closeDate || batch.close
                 ),
 
             estimatedDelivery,
