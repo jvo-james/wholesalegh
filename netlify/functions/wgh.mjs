@@ -11,8 +11,7 @@ import {
   qualityControlEmail,
   packagedEmail,
   dispatchedEmail,
-  deliveredEmail,
-  deliveryWindowChangedEmail
+  deliveredEmail
 } from "./email-templates.mjs";
 
 
@@ -112,44 +111,6 @@ function getPath(request) {
   }
 
   return path.replace(/\/+$/, "") || "/";
-}
-
-
-/* ---------------------------------------------------------
-   Short-lived cache for read-heavy data on warm Netlify
-   function instances. Affected writes invalidate the keys.
-   --------------------------------------------------------- */
-const READ_CACHE = new Map();
-
-async function cachedRead(key, ttlMs, loader, { force = false } = {}) {
-  if (force) READ_CACHE.delete(key);
-  const now = Date.now();
-  const hit = READ_CACHE.get(key);
-  if (!force && hit?.value !== undefined && hit.expiresAt > now) return hit.value;
-  if (!force && hit?.promise) return hit.promise;
-
-  const promise = Promise.resolve().then(loader).then(value => {
-    READ_CACHE.set(key, { value, expiresAt: Date.now() + Math.max(0, Number(ttlMs) || 0) });
-    return value;
-  }).catch(error => {
-    const current = READ_CACHE.get(key);
-    if (current?.promise === promise) READ_CACHE.delete(key);
-    throw error;
-  });
-  READ_CACHE.set(key, { promise });
-  return promise;
-}
-
-function invalidateCache(...keys) {
-  keys.flat().forEach(key => { if (key) READ_CACHE.delete(key); });
-}
-
-function invalidateCatalogCaches() {
-  invalidateCache('catalog:active','catalog:all','discount:state','discount:campaign');
-}
-
-function invalidateAdminOrderCaches() {
-  invalidateCache('orders:all','batches:all','admin:overview');
 }
 
 
@@ -502,16 +463,11 @@ const DEFAULT_CATEGORIES = [
   {id:"basics",name:"Basics",sortOrder:50,active:true,system:true}
 ];
 
-async function getCategories(db, { includeInactive = false } = {}) {
-  const key = includeInactive ? "categories:all" : "categories:active";
-  return cachedRead(key, 60000, async () => {
-    const snap = await db.collection("storeCategories").get();
-    const map = new Map(DEFAULT_CATEGORIES.map(x => [x.id, {...x}]));
-    for (const doc of snap.docs) map.set(doc.id, {id:doc.id, ...(map.get(doc.id)||{}), ...doc.data()});
-    return [...map.values()]
-      .filter(x => includeInactive || x.active !== false)
-      .sort((a,b)=>Number(a.sortOrder||999)-Number(b.sortOrder||999)||String(a.name||a.id).localeCompare(String(b.name||b.id)));
-  });
+async function getCategories(db) {
+  const snap = await db.collection("storeCategories").get();
+  const map = new Map(DEFAULT_CATEGORIES.map(x => [x.id, {...x}]));
+  for (const doc of snap.docs) map.set(doc.id, {id:doc.id, ...(map.get(doc.id)||{}), ...doc.data()});
+  return [...map.values()].filter(x => x.active !== false).sort((a,b)=>Number(a.sortOrder||999)-Number(b.sortOrder||999)||String(a.name||a.id).localeCompare(String(b.name||b.id)));
 }
 
 
@@ -563,41 +519,36 @@ function normalizeDiscountDoc(data = {}, product = {}) {
   };
 }
 
-async function getDiscountCampaign(db) {
-  return cachedRead("discount:campaign", 15000, async () => {
-    const snap = await db.collection("storeDiscounts").doc(DISCOUNT_CAMPAIGN_DOC_ID).get();
-    let campaign = {active:false,showBanner:false,showModal:false,upToPercent:40};
-    if (snap.exists) campaign = {...campaign,...(snap.data()||{})};
-    campaign.showBanner = campaign.showBanner === true || (campaign.showBanner === undefined && campaign.active === true);
-    campaign.showModal = campaign.showModal === true || (campaign.showModal === undefined && campaign.active === true);
-    campaign.active = campaign.showBanner || campaign.showModal;
-    campaign.upToPercent = 40;
-    campaign.updatedAt = campaign.updatedAt || null;
-    return campaign;
-  });
-}
-
 async function getDiscountState(db) {
-  return cachedRead("discount:state", 30000, async () => {
-    // The campaign document is part of the collection snapshot, so do not
-    // issue a second Firestore read for the same document.
-    const productSnap = await db.collection("storeDiscounts").get();
-    let campaign = {active:false,showBanner:false,showModal:false,upToPercent:40};
-    const products = new Map();
-    for (const doc of productSnap.docs) {
-      const data = doc.data() || {};
-      if (doc.id === DISCOUNT_CAMPAIGN_DOC_ID) campaign = {...campaign,...data};
-      else products.set(doc.id, data);
-    }
-    campaign.showBanner = campaign.showBanner === true || (campaign.showBanner === undefined && campaign.active === true);
-    campaign.showModal = campaign.showModal === true || (campaign.showModal === undefined && campaign.active === true);
-    campaign.active = campaign.showBanner || campaign.showModal;
-    campaign.upToPercent = 40;
-    campaign.updatedAt = campaign.updatedAt || null;
-    return {campaign,products};
-  });
-}
+  const campaignRef = db.collection("storeDiscounts").doc(DISCOUNT_CAMPAIGN_DOC_ID);
+  const [campaignSnap, productSnap] = await Promise.all([
+    campaignRef.get(),
+    db.collection("storeDiscounts").get()
+  ]);
 
+  let campaign = {
+    active: false,
+    showBanner: false,
+    showModal: false,
+    upToPercent: 40
+  };
+
+  if (campaignSnap.exists) {
+    campaign = { ...campaign, ...(campaignSnap.data() || {}) };
+  }
+
+  const products = new Map();
+  for (const doc of productSnap.docs) {
+    if (doc.id !== DISCOUNT_CAMPAIGN_DOC_ID) products.set(doc.id, doc.data() || {});
+  }
+
+  campaign.showBanner = campaign.showBanner === true || (campaign.showBanner === undefined && campaign.active === true);
+  campaign.showModal = campaign.showModal === true || (campaign.showModal === undefined && campaign.active === true);
+  campaign.active = campaign.showBanner || campaign.showModal;
+  campaign.upToPercent = 40;
+  campaign.updatedAt = campaign.updatedAt || null;
+  return { campaign, products };
+}
 
 function applyDiscountToProduct(product, discountData) {
   const base = { ...product };
@@ -616,32 +567,29 @@ function applyDiscountToProduct(product, discountData) {
 }
 
 async function getEffectiveCatalog(db, { includeInactive = false } = {}) {
-  const key = includeInactive ? "catalog:all" : "catalog:active";
-  return cachedRead(key, 30000, async () => {
-    const [productSnap, overrideSnap, discountState] = await Promise.all([
-      db.collection("products").get(),
-      db.collection("productOverrides").get(),
-      getDiscountState(db)
-    ]);
-    const effective = new Map(Object.entries(SERVER_CATALOG).map(([id, product]) => [id, { id, ...product, active:true }]));
-    productSnap.docs.forEach(doc => {
-      if (LEGACY_PRODUCT_IDS.has(doc.id)) return;
-      const current = effective.get(doc.id) || {id:doc.id};
-      const data = doc.data() || {};
-      const createdAt = data.createdAt || doc.createTime || current.createdAt || null;
-      effective.set(doc.id, { ...current, ...data, id:doc.id, createdAt });
-    });
-    overrideSnap.docs.forEach(doc => {
-      if (LEGACY_PRODUCT_IDS.has(doc.id)) return;
-      const current = effective.get(doc.id) || {id:doc.id};
-      const data = doc.data() || {};
-      const createdAt = data.createdAt || current.createdAt || (!SERVER_CATALOG[doc.id] ? doc.createTime : null);
-      effective.set(doc.id, { ...current, ...data, id:doc.id, createdAt });
-    });
-    return [...effective.values()]
-      .filter(product => includeInactive || product.active !== false)
-      .map(product => applyDiscountToProduct(product, discountState.products.get(product.id)));
+  const [productSnap, overrideSnap, discountState] = await Promise.all([
+    db.collection("products").get(),
+    db.collection("productOverrides").get(),
+    getDiscountState(db)
+  ]);
+  const effective = new Map(Object.entries(SERVER_CATALOG).map(([id, product]) => [id, { id, ...product, active:true }]));
+  productSnap.docs.forEach(doc => {
+    if (LEGACY_PRODUCT_IDS.has(doc.id)) return;
+    const current = effective.get(doc.id) || {id:doc.id};
+    const data = doc.data() || {};
+    const createdAt = data.createdAt || doc.createTime || current.createdAt || null;
+    effective.set(doc.id, { ...current, ...data, id:doc.id, createdAt });
   });
+  overrideSnap.docs.forEach(doc => {
+    if (LEGACY_PRODUCT_IDS.has(doc.id)) return;
+    const current = effective.get(doc.id) || {id:doc.id};
+    const data = doc.data() || {};
+    const createdAt = data.createdAt || current.createdAt || (!SERVER_CATALOG[doc.id] ? doc.createTime : null);
+    effective.set(doc.id, { ...current, ...data, id:doc.id, createdAt });
+  });
+  return [...effective.values()]
+    .filter(product => includeInactive || product.active !== false)
+    .map(product => applyDiscountToProduct(product, discountState.products.get(product.id)));
 }
 
 async function createAdminNotification(db, notification) {
@@ -657,27 +605,9 @@ async function createAdminNotification(db, notification) {
       read: false,
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     }, {merge:true});
-    invalidateCache("notifications:admin");
   } catch (error) {
     console.error("Admin notification write failed", error);
   }
-}
-
-
-async function getCachedUsers(db, { marketingOnly = false, force = false } = {}) {
-  const key=marketingOnly?"users:marketing":"users:all";
-  return cachedRead(key,120000,async()=>{
-    const query=marketingOnly?db.collection("users").where("marketingConsent","==",true).limit(1500):db.collection("users").limit(1500);
-    const snap=await query.get();
-    return snap.docs.map(doc=>({id:doc.id,...doc.data()}));
-  }, {force});
-}
-
-async function getCachedMailingList(db, { force = false } = {}) {
-  return cachedRead("mailingList:subscribers",120000,async()=>{
-    const snap=await db.collection("mailingList").limit(1500).get();
-    return snap.docs.map(doc=>({id:doc.id,...doc.data()}));
-  }, {force});
 }
 
 
@@ -724,89 +654,38 @@ function mondaySundayFor(date) {
 }
 
 
-function deliveryDateValue(value) {
-  if (!value) return null;
-  if (typeof value?.toDate === "function") return value.toDate();
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function resolveBatchDeliveryWindow(batchData = {}, closeDate = null) {
-  const close = deliveryDateValue(batchData.closeDate) || deliveryDateValue(closeDate) || new Date();
-  const defaultStart = addDays(close, Number(env("DELIVERY_MIN_DAYS") || 14));
-  const defaultEnd = addDays(close, Number(env("DELIVERY_MAX_DAYS") || 21));
-  const customStart = deliveryDateValue(batchData.estimatedDeliveryStart);
-  const customEnd = deliveryDateValue(batchData.estimatedDeliveryEnd);
-  const start = customStart || defaultStart;
-  const end = customEnd || defaultEnd;
-  return {
-    start,
-    end,
-    estimatedDelivery: formatDeliveryRange(start, end),
-    overridden: Boolean(customStart && customEnd)
-  };
-}
-
-async function getProductionBatchesForOrders(db, batchIds = []) {
-  const ids = [...new Set(batchIds.map(id => String(id || "")).filter(Boolean))];
-  if (!ids.length) return [];
-  const cacheKey = `batches:by-orders:${ids.slice().sort().join(",")}`;
-  return cachedRead(cacheKey, 30000, async () => {
-    const chunks = [];
-    for (let i = 0; i < ids.length; i += 10) chunks.push(ids.slice(i, i + 10));
-    const snapshots = await Promise.all(chunks.map(chunk =>
-      db.collection("productionBatches")
-        .where(admin.firestore.FieldPath.documentId(), "in", chunk)
-        .get()
-    ));
-    return snapshots.flatMap(snap => snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-  });
-}
-
-async function applyCurrentBatchDelivery(db, orders = []) {
-  if (!orders.length) return orders;
-  const batchIds = [...new Set(orders.map(order => String(order.batchId || "")).filter(Boolean))];
-  if (!batchIds.length) return orders;
-  const batches = new Map((await getProductionBatchesForOrders(db, batchIds)).map(batch => [batch.id, batch]));
-  return orders.map(order => {
-    const batch = batches.get(String(order.batchId || ""));
-    if (!batch) return order;
-    const window = resolveBatchDeliveryWindow(batch, batch.closeDate);
-    return {
-      ...order,
-      batchName: order.batchName || batch.batchName || batch.id,
-      estimatedDelivery: window.estimatedDelivery,
-      estimatedDeliveryStart: window.start.toISOString(),
-      estimatedDeliveryEnd: window.end.toISOString(),
-      originalEstimatedDelivery: order.originalEstimatedDelivery || order.estimatedDelivery || window.estimatedDelivery
-    };
-  });
-}
-
 /* =========================================================
    SERIALIZERS
    ========================================================= */
 
 function serializeBatch(doc) {
   const batch = doc.data();
-  const window = resolveBatchDeliveryWindow(batch, batch.closeDate);
 
   return {
     id: doc.id,
-    batchName: batch.batchName || doc.id,
-    batchNumber: Number(batch.batchNumber || 0),
-    capacity: Number(batch.capacity || 0),
-    usedCapacity: Number(batch.usedCapacity || 0),
-    status: batch.status || "OPEN",
-    startDate: timestampIso(batch.startDate),
-    closeDate: timestampIso(batch.closeDate),
-    estimatedDelivery: window.estimatedDelivery,
-    estimatedDeliveryStart: window.start.toISOString(),
-    estimatedDeliveryEnd: window.end.toISOString(),
-    deliveryWindowOverridden: window.overridden,
-    deliveryWindowUpdatedAt: timestampIso(batch.deliveryWindowUpdatedAt),
-    deliveryWindowUpdatedBy: batch.deliveryWindowUpdatedBy || "",
-    deliveryWindowHistory: Array.isArray(batch.deliveryWindowHistory) ? batch.deliveryWindowHistory : [],
+
+    batchName:
+      batch.batchName ||
+      doc.id,
+
+    batchNumber:
+      Number(batch.batchNumber || 0),
+
+    capacity:
+      Number(batch.capacity || 0),
+
+    usedCapacity:
+      Number(batch.usedCapacity || 0),
+
+    status:
+      batch.status || "OPEN",
+
+    startDate:
+      timestampIso(batch.startDate),
+
+    closeDate:
+      timestampIso(batch.closeDate),
+
     locked: Boolean(batch.locked),
     lockedBy: batch.lockedBy || "",
     lockedAt: timestampIso(batch.lockedAt)
@@ -814,14 +693,12 @@ function serializeBatch(doc) {
 }
 
 
-async function getAllOrders(db, { force = false } = {}) {
-  return cachedRead("orders:all", 30000, async () => {
-    // Fetch the complete orders collection directly. The admin dashboard does
-    // not need a Firestore cursor/orderBy query here, which avoids requiring a
-    // custom composite or collection-group index just to populate admin views.
-    const snapshot = await db.collection("orders").get();
-    return applyCurrentBatchDelivery(db, snapshot.docs.map(serializeOrder));
-  }, {force});
+async function getAllOrders(db) {
+  // Fetch the complete orders collection directly. The admin dashboard does
+  // not need a Firestore cursor/orderBy query here, which avoids requiring a
+  // custom composite or collection-group index just to populate admin views.
+  const snapshot = await db.collection("orders").get();
+  return snapshot.docs.map(serializeOrder);
 }
 
 function serializeOrder(doc) {
@@ -1124,14 +1001,32 @@ async function serverCart(
    ========================================================= */
 
 async function defaultCapacity(db) {
-  return cachedRead("settings:store", 60000, async () => {
-    const snapshot = await db.collection("settings").doc("store").get();
-    if (snapshot.exists) {
-      const value = Number(snapshot.data().batchCapacity);
-      if (Number.isFinite(value) && value > 0) return value;
+  const snapshot = await db
+    .collection("settings")
+    .doc("store")
+    .get();
+
+  if (snapshot.exists) {
+    const value = Number(
+      snapshot.data()
+        .batchCapacity
+    );
+
+    if (
+      Number.isFinite(value) &&
+      value > 0
+    ) {
+      return value;
     }
-    return Number(env("DEFAULT_BATCH_CAPACITY")) || 150;
-  });
+  }
+
+  return (
+    Number(
+      env(
+        "DEFAULT_BATCH_CAPACITY"
+      )
+    ) || 150
+  );
 }
 
 
@@ -1139,51 +1034,98 @@ async function findAvailableBatch(
   db,
   pieces
 ) {
-  const capacityDefault = await defaultCapacity(db);
-  const currentCycle = mondaySundayFor(new Date());
-  const firstStart = admin.firestore.Timestamp.fromDate(currentCycle.start);
-  const snapshot = await db.collection("productionBatches")
-    .where("startDate", ">=", firstStart)
-    .orderBy("startDate", "asc")
-    .limit(54)
-    .get();
-  const existing = new Map(snapshot.docs.map(doc => [doc.id, {id:doc.id,ref:doc.ref,...doc.data()}]));
+  const capacityDefault =
+    await defaultCapacity(db);
 
-  for (let offset=0; offset<54; offset++) {
-    const start = new Date(currentCycle.start);
-    start.setUTCDate(start.getUTCDate()+offset*7);
-    const close = new Date(currentCycle.close);
-    close.setUTCDate(close.getUTCDate()+offset*7);
-    const id=start.toISOString().slice(0,10);
-    const found=existing.get(id);
+  const currentCycle =
+    mondaySundayFor(
+      new Date()
+    );
 
-    if(!found){
-      return {
-        id,ref:db.collection("productionBatches").doc(id),batchNumber:offset+1,
-        batchName:`Batch ${String(offset+1).padStart(2,"0")}`,capacity:capacityDefault,usedCapacity:0,
-        start,startDate:start,close,closeDate:close,
-        estimatedDeliveryStart:addDays(close,Number(env("DELIVERY_MIN_DAYS")||14)),
-        estimatedDeliveryEnd:addDays(close,Number(env("DELIVERY_MAX_DAYS")||21)),locked:false
-      };
+  for (
+    let offset = 0;
+    offset < 54;
+    offset++
+  ) {
+    const start =
+      new Date(
+        currentCycle.start
+      );
+
+    start.setUTCDate(
+      start.getUTCDate() +
+        offset * 7
+    );
+
+    const close =
+      new Date(
+        currentCycle.close
+      );
+
+    close.setUTCDate(
+      close.getUTCDate() +
+        offset * 7
+    );
+
+    const id =
+      start
+        .toISOString()
+        .slice(0, 10);
+
+    const ref = db
+      .collection(
+        "productionBatches"
+      )
+      .doc(id);
+
+    const snapshot =
+      await ref.get();
+
+    const data =
+      snapshot.exists
+        ? snapshot.data()
+        : {};
+
+    const capacity =
+      Number(
+        data.capacity ||
+        capacityDefault
+      );
+
+    const usedCapacity =
+      Number(
+        data.usedCapacity ||
+        0
+      );
+
+    if (data.locked === true) {
+      continue;
     }
 
-    const data=found;
-    if(data.locked===true)continue;
-    const capacity=Number(data.capacity||capacityDefault),used=Number(data.usedCapacity||0);
-    if(used+pieces<=capacity){
-      const batchNumber=Number(data.batchNumber||offset+1);
+    if (
+      usedCapacity +
+        pieces <=
+      capacity
+    ) {
       return {
-        id,ref:found.ref,batchNumber,
-        batchName:data.batchName||`Batch ${String(batchNumber).padStart(2,"0")}`,capacity,usedCapacity:used,
-        start:deliveryDateValue(data.startDate)||start,startDate:deliveryDateValue(data.startDate)||start,
-        close:deliveryDateValue(data.closeDate)||close,closeDate:deliveryDateValue(data.closeDate)||close,
-        estimatedDeliveryStart:deliveryDateValue(data.estimatedDeliveryStart)||addDays(close,Number(env("DELIVERY_MIN_DAYS")||14)),
-        estimatedDeliveryEnd:deliveryDateValue(data.estimatedDeliveryEnd)||addDays(close,Number(env("DELIVERY_MAX_DAYS")||21)),
-        locked:Boolean(data.locked)
+        ref,
+        id,
+        start,
+        close,
+        capacity,
+        usedCapacity,
+        batchNumber:
+          Number(
+            data.batchNumber ||
+            0
+          )
       };
     }
   }
-  throw new Error("Production capacity is full for the next 54 weeks. Please contact the store.");
+
+  throw new Error(
+    "Our upcoming production cycles are currently full. Please contact us for help with your order."
+  );
 }
 
 
@@ -1470,10 +1412,23 @@ async function completePaidOrder(
               ) || 21
             );
 
-          const batchDelivery = resolveBatchDeliveryWindow(batchData, batch.closeDate || batch.close);
-          const earliest = batchDelivery.start;
-          const latest = batchDelivery.end;
-          const estimatedDelivery = batchDelivery.estimatedDelivery;
+          const earliest =
+            addDays(
+              batch.close,
+              minDays
+            );
+
+          const latest =
+            addDays(
+              batch.close,
+              maxDays
+            );
+
+          const estimatedDelivery =
+            formatDeliveryRange(
+              earliest,
+              latest
+            );
 
           const orderRef =
             db
@@ -1503,11 +1458,10 @@ async function completePaidOrder(
             batchCloseDate:
               admin.firestore.Timestamp
                 .fromDate(
-                  batch.closeDate || batch.close
+                  batch.close
                 ),
 
             estimatedDelivery,
-            originalEstimatedDelivery: estimatedDelivery,
 
             estimatedDeliveryStart:
               admin.firestore.Timestamp
@@ -1704,7 +1658,6 @@ async function completePaidOrder(
       "We could not assign this order to a production cycle. Please contact us so we can assist you."
     );
   }
-  if (newlyCreated) invalidateCache("orders:all","batches:admin-list","batches:all","admin:overview","admin:accounts");
 
 
   /*
@@ -2048,22 +2001,7 @@ export default async function handler(
        =============================================== */
 
     if (path === "/capacity-preview" && method === "POST") {
-      const input=await readBody(request);
-      const pieces=Math.max(1,Number(input.pieces||1));
-      const db=getDb();
-      const batch=await findAvailableBatch(db,pieces);
-      const remaining=Math.max(0,Number(batch.capacity||0)-Number(batch.usedCapacity||0)-pieces);
-      const ratio=(Number(batch.usedCapacity||0)+pieces)/Math.max(1,Number(batch.capacity||1));
-      return json(200,{
-        ok:true,
-        batchId:batch.id,
-        batchName:`Batch ${String(batch.batchNumber||0).padStart(2,"0")}`,
-        remaining,capacity:batch.capacity,usedCapacity:batch.usedCapacity,
-        limited:ratio>=.75,veryLimited:ratio>=.9,
-        estimatedDelivery:batch.estimatedDelivery,
-        estimatedDeliveryStart:batch.estimatedDeliveryStart.toISOString(),
-        estimatedDeliveryEnd:batch.estimatedDeliveryEnd.toISOString()
-      });
+      const input=await readBody(request);const pieces=Math.max(1,Number(input.pieces||1));const db=getDb();const batch=await findAvailableBatch(db,pieces);const remaining=Math.max(0,Number(batch.capacity||0)-Number(batch.usedCapacity||0)-pieces);const ratio=(Number(batch.usedCapacity||0)+pieces)/Math.max(1,Number(batch.capacity||1));return json(200,{ok:true,remaining,capacity:batch.capacity,usedCapacity:batch.usedCapacity,limited:ratio>=.75,veryLimited:ratio>=.9});
     }
 
     if (path === "/account/begin-signup" && method === "POST") {
@@ -2197,7 +2135,6 @@ export default async function handler(
       if (data.marketingConsent ?? marketingConsent) {
         await db.collection("mailingList").doc(crypto.createHash("sha256").update(email).digest("hex")).set({email,firstName:safeText(data.firstName,80),lastName:safeText(data.lastName,80),name:`${safeText(data.firstName,80)} ${safeText(data.lastName,80)}`.trim(),source:"account-signup-opt-in", subscribed:true, consentedAt:admin.firestore.FieldValue.serverTimestamp(), createdAt:admin.firestore.FieldValue.serverTimestamp(), updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
       }
-      invalidateCache("users:all","users:marketing","mailingList:subscribers");
       await ref.delete();
       const customToken = await admin.auth().createCustomToken(created.uid);
       return json(200, { ok: true, customToken });
@@ -2289,7 +2226,6 @@ export default async function handler(
             merge: true
           }
         );
-      invalidateCache("users:all","users:marketing","admin:accounts");
 
       return json(
         200,
@@ -2744,7 +2680,6 @@ export default async function handler(
       if(!ok){await ref.update({attempts:admin.firestore.FieldValue.increment(1)});throw new Error("That code is not correct.");}
       await admin.auth().updateUser(user.uid,{email,emailVerified:true});
       await getDb().collection("users").doc(user.uid).set({email,emailVerified:true,emailVerifiedAt:admin.firestore.FieldValue.serverTimestamp(),updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-      invalidateCache("users:all","users:marketing");
       await ref.delete(); return json(200,{ok:true,email});
     }
 
@@ -2823,10 +2758,16 @@ export default async function handler(
 
 
       const orders =
-        (await applyCurrentBatchDelivery(db, [...merged.values()]))
+        [...merged.values()]
           .sort(
             (a, b) =>
-              String(b.createdAt).localeCompare(String(a.createdAt))
+              String(
+                b.createdAt
+              ).localeCompare(
+                String(
+                  a.createdAt
+                )
+              )
           );
 
 
@@ -3287,16 +3228,24 @@ export default async function handler(
       }
 
 
-      const currentOrder = (await applyCurrentBatchDelivery(db, [serializeOrder(snapshot)]))[0];
-
       return json(
         200,
         {
-          orderNumber: currentOrder.orderNumber,
-          batchName: currentOrder.batchName,
-          estimatedDelivery: currentOrder.estimatedDelivery,
-          status: currentOrder.status,
-          statusHistory: currentOrder.statusHistory || []
+          orderNumber:
+            order.orderNumber,
+
+          batchName:
+            order.batchName,
+
+          estimatedDelivery:
+            order.estimatedDelivery,
+
+          status:
+            order.status,
+
+          statusHistory:
+            order.statusHistory ||
+            []
         }
       );
     }
@@ -3311,27 +3260,110 @@ export default async function handler(
         "/admin/overview" &&
       method === "GET"
     ) {
-      await requireAdmin(request);
-      const db=getDb();
-      const url=new URL(request.url);
-      const force=url.searchParams.get("refresh")==="1";
-      const overview=await cachedRead("admin:overview",15000,async()=>{
-        const [ordersSnapshot,batchesSnapshot]=await Promise.all([
-          db.collection("orders").limit(500).get(),
-          db.collection("productionBatches").orderBy("startDate","desc").limit(52).get()
+      await requireAdmin(
+        request
+      );
+
+      const db =
+        getDb();
+
+
+      const [
+        ordersSnapshot,
+        batchesSnapshot
+      ] =
+        await Promise.all([
+          db
+            .collection(
+              "orders"
+            )
+            .limit(500)
+            .get(),
+
+          db
+            .collection(
+              "productionBatches"
+            )
+            .limit(100)
+            .get()
         ]);
-        const orders=ordersSnapshot.docs.map(serializeOrder);
-        const batches=batchesSnapshot.docs.map(serializeBatch);
-        const revenue=orders.reduce((sum,order)=>sum+order.total,0);
-        const pieces=orders.reduce((sum,order)=>sum+order.pieces,0);
-        const activeOrders=orders.filter(order=>order.status!=="delivered").length;
-        const customers=new Set(orders.map(order=>order.customerEmail).filter(Boolean)).size;
-        const openBatches=batches.filter(batch=>!batch.locked&&String(batch.status||"").toUpperCase()!=="CLOSED").length;
-        const recentOrders=[...orders].sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||""))).slice(0,6);
-        const recentBatches=[...batches].sort((a,b)=>String(b.startDate||b.id||"").localeCompare(String(a.startDate||a.id||""))).slice(0,5);
-        return {orders:orders.length,activeOrders,revenue,pieces,customers,batches:batches.length,openBatches,recentOrders,recentBatches};
-      },{force});
-      return json(200,overview);
+
+
+      const orders =
+        ordersSnapshot.docs.map(
+          serializeOrder
+        );
+
+
+      const batches =
+        batchesSnapshot.docs.map(
+          serializeBatch
+        );
+
+
+      const revenue =
+        orders.reduce(
+          (
+            sum,
+            order
+          ) =>
+            sum +
+            order.total,
+          0
+        );
+
+
+      const pieces =
+        orders.reduce(
+          (
+            sum,
+            order
+          ) =>
+            sum +
+            order.pieces,
+          0
+        );
+
+
+      const activeOrders =
+        orders.filter(
+          (order) =>
+            order.status !==
+            "delivered"
+        ).length;
+
+
+      const customers =
+        new Set(
+          orders
+            .map(
+              (order) =>
+                order.customerEmail
+            )
+            .filter(
+              Boolean
+            )
+        ).size;
+
+
+      return json(
+        200,
+        {
+          orders:
+            orders.length,
+
+          activeOrders,
+
+          revenue,
+
+          pieces,
+
+          customers,
+
+          batches:
+            batches.length
+        }
+      );
     }
 
 
@@ -3344,15 +3376,33 @@ export default async function handler(
         "/admin/batches" &&
       method === "GET"
     ) {
-      await requireAdmin(request);
-      const db=getDb();
-      const url=new URL(request.url);
-      const force=url.searchParams.get("refresh")==="1";
-      const items=await cachedRead("batches:admin-list",15000,async()=>{
-        const snapshot=await db.collection("productionBatches").orderBy("startDate","desc").limit(52).get();
-        return snapshot.docs.map(serializeBatch);
-      },{force});
-      return json(200,items);
+      await requireAdmin(
+        request
+      );
+
+      const db =
+        getDb();
+
+
+      const snapshot =
+        await db
+          .collection(
+            "productionBatches"
+          )
+          .orderBy(
+            "startDate",
+            "desc"
+          )
+          .limit(52)
+          .get();
+
+
+      return json(
+        200,
+        snapshot.docs.map(
+          serializeBatch
+        )
+      );
     }
 
 
@@ -3420,51 +3470,91 @@ export default async function handler(
 
     if (path === "/admin/transactions" && method === "GET") {
       await requireAdmin(request);
-      const url=new URL(request.url);
-      const items=await getAllOrders(getDb(),{force:url.searchParams.get("refresh")==="1"});
+      const items=await getAllOrders(getDb());
       items.sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
       return json(200,items);
     }
 
+    /* ===============================================
+       ADMIN PENDING PAYMENTS
+       These are payment sessions that have not yet been
+       converted into an official order. The create-order
+       action re-verifies Paystack before assigning the next
+       order number.
+       =============================================== */
+    if (path === "/admin/pending-payments" && method === "GET") {
+      await requireAdmin(request);
+      const snap = await getDb().collection("pendingPayments").get();
+      const items = snap.docs
+        .map(doc => {
+          const x = doc.data() || {};
+          return {
+            id: doc.id,
+            reference: x.reference || doc.id,
+            status: x.status || "pending_payment",
+            customer: x.customer || {},
+            items: Array.isArray(x.items) ? x.items : [],
+            subtotal: Number(x.subtotal || 0),
+            processingFee: Number(x.processingFee || 0),
+            deliveryFee: Number(x.deliveryFee || 0),
+            total: Number(x.total || 0),
+            pieces: Number(x.pieces || 0),
+            userId: x.userId || null,
+            createdAt: timestampIso(x.createdAt),
+            completedAt: timestampIso(x.completedAt),
+            orderNumber: x.orderNumber || ""
+          };
+        })
+        .filter(item => item.status !== "completed" && !item.orderNumber)
+        .sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+      return json(200, items);
+    }
+
+    if (path === "/admin/confirm-pending-payment" && method === "POST") {
+      const adminUser = await requireAdmin(request);
+      const input = await readBody(request);
+      const reference = safeText(input.reference, 120);
+      if (!reference) throw new Error("Choose a pending payment first.");
+      const result = await completePaidOrder(reference);
+      if (result.newlyCreated && result.order?.orderNumber) {
+        await getDb().collection("pendingPayments").doc(reference).set({
+          confirmedBy: adminUser.email || adminUser.uid || "Admin",
+          confirmedAt: admin.firestore.FieldValue.serverTimestamp(),
+          confirmationSource: "admin_pending_payments"
+        }, {merge:true});
+      }
+      return json(200, result);
+    }
+
     if (path === "/admin/orders-page" && method === "GET") {
       await requireAdmin(request);
-      const url=new URL(request.url);
-      const items=await getAllOrders(getDb(),{force:url.searchParams.get("refresh")==="1"});
+      const items=await getAllOrders(getDb());
       items.sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
       return json(200,{items,nextCursor:null});
     }
 
     if (path === "/admin/notifications" && method === "GET") {
       await requireAdmin(request);
-      const db=getDb();
-      const url=new URL(request.url);
-      const force=url.searchParams.get("refresh")==="1";
-      const items=await cachedRead("notifications:admin",15000,async()=>{
-        const snap=await db.collection("adminNotifications").limit(100).get();
-        const data=snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}));
-        data.sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
-        return data;
-      },{force});
+      const snap=await getDb().collection("adminNotifications").limit(100).get();
+      const items=snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}));
+      items.sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
       return json(200,items);
     }
     if (path === "/admin/notification-read" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request);
       if(input.all){const snap=await getDb().collection("adminNotifications").where("read","==",false).limit(200).get();const batch=getDb().batch();snap.docs.forEach(d=>batch.update(d.ref,{read:true,readAt:admin.firestore.FieldValue.serverTimestamp()}));await batch.commit();}
       else {const id=safeText(input.id,120);if(id)await getDb().collection("adminNotifications").doc(id).set({read:true,readAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});}
-      invalidateCache("notifications:admin");
       return json(200,{ok:true});
     }
     if (path === "/admin/notification-delete" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request), id=safeText(input.id,120);
       if(!id) throw new Error("Choose a notification.");
       await getDb().collection("adminNotifications").doc(id).delete();
-      invalidateCache("notifications:admin");
       return json(200,{ok:true});
     }
     if (path === "/admin/notifications-clear" && method === "POST") {
       await requireAdmin(request); const db=getDb(); let deleted=0;
       while(true){const snap=await db.collection("adminNotifications").limit(200).get();if(snap.empty)break;const batch=db.batch();snap.docs.forEach(d=>batch.delete(d.ref));await batch.commit();deleted+=snap.size;if(snap.size<200)break;}
-      invalidateCache("notifications:admin");
       return json(200,{ok:true,deleted});
     }
 
@@ -3477,10 +3567,16 @@ export default async function handler(
         "/admin/orders-all" &&
       method === "GET"
     ) {
-      await requireAdmin(request);
-      const db=getDb();
-      const url=new URL(request.url);
-      const orders=await getAllOrders(db,{force:url.searchParams.get("refresh")==="1"});
+      await requireAdmin(
+        request
+      );
+
+
+      const db =
+        getDb();
+
+
+      const orders = await getAllOrders(db);
       orders.sort((a,b)=>String(b.createdAt||b.orderNumber||"").localeCompare(String(a.createdAt||a.orderNumber||"")));
 
 
@@ -3500,77 +3596,96 @@ export default async function handler(
         "/admin/customers" &&
       method === "GET"
     ) {
-      await requireAdmin(request);
+      await requireAdmin(
+        request
+      );
 
-      const db = getDb();
-      const url=new URL(request.url);
-      const force=url.searchParams.get("refresh")==="1";
-      const [orderList, userList] = await Promise.all([
-        getAllOrders(db,{force}),
-        getCachedUsers(db,{force})
-      ]);
 
-      const customers = new Map();
-      const keyFor = (email, phone, name) => {
-        const cleanEmail = String(email || "").trim().toLowerCase();
-        if (cleanEmail) return `email:${cleanEmail}`;
-        const cleanPhone = String(phone || "").trim();
-        if (cleanPhone) return `phone:${cleanPhone}`;
-        const cleanName = String(name || "").trim().toLowerCase();
-        return cleanName ? `name:${cleanName}` : "";
-      };
+      const db =
+        getDb();
 
-      // Start with registered accounts so customers who opted in or created
-      // an account but have not ordered yet are still visible here.
-      userList.forEach(doc => {
-        const x = doc || {};
-        const name = `${x.firstName || ""} ${x.lastName || ""}`.trim();
-        const email = String(x.email || "").trim().toLowerCase();
-        const phone = String(x.phone || "").trim();
-        const key = keyFor(email, phone, name);
-        if (!key) return;
-        customers.set(key, {
-          name,
-          email,
-          phone,
-          orders: 0,
-          pieces: 0,
-          spent: 0,
-          lastOrder: "",
-          registered: true
-        });
-      });
 
-      orderList.forEach(order => {
-        const key = keyFor(order.customerEmail, order.customerPhone, order.customerName);
-        if (!key) return;
-        const customer = customers.get(key) || {
-          name: order.customerName || "Customer",
-          email: order.customerEmail || "",
-          phone: order.customerPhone || "",
-          orders: 0,
-          pieces: 0,
-          spent: 0,
-          lastOrder: "",
-          registered: false
-        };
-        if (!customer.name && order.customerName) customer.name = order.customerName;
-        if (!customer.email && order.customerEmail) customer.email = order.customerEmail;
-        if (!customer.phone && order.customerPhone) customer.phone = order.customerPhone;
-        customer.orders += 1;
-        customer.pieces += Number(order.pieces || 0);
-        customer.spent += Number(order.total || 0);
-        if (String(order.createdAt || "") > String(customer.lastOrder || "")) customer.lastOrder = order.createdAt || "";
-        customers.set(key, customer);
-      });
+      const snapshot =
+        await getAllOrders(db);
+
+
+      const customers =
+        new Map();
+
+
+      snapshot
+        .forEach(
+          (order) => {
+            const key =
+              order.customerEmail ||
+              order.customerPhone ||
+              order.customerName;
+
+            if (!key) {
+              return;
+            }
+
+            const customer =
+              customers.get(
+                key
+              ) || {
+                name:
+                  order.customerName,
+
+                email:
+                  order.customerEmail,
+
+                phone:
+                  order.customerPhone,
+
+                orders: 0,
+
+                pieces: 0,
+
+                spent: 0,
+
+                lastOrder: ""
+              };
+
+
+            customer.orders += 1;
+
+            customer.pieces +=
+              order.pieces;
+
+            customer.spent +=
+              order.total;
+
+
+            if (
+              String(
+                order.createdAt
+              ) >
+              String(
+                customer.lastOrder
+              )
+            ) {
+              customer.lastOrder =
+                order.createdAt;
+            }
+
+
+            customers.set(
+              key,
+              customer
+            );
+          }
+        );
+
 
       return json(
         200,
-        [...customers.values()].sort((a, b) =>
-          Number(b.spent || 0) - Number(a.spent || 0) ||
-          String(b.lastOrder || "").localeCompare(String(a.lastOrder || "")) ||
-          String(a.name || a.email || "").localeCompare(String(b.name || b.email || ""))
-        )
+        [...customers.values()]
+          .sort(
+            (a, b) =>
+              b.spent -
+              a.spent
+          )
       );
     }
 
@@ -3714,7 +3829,6 @@ export default async function handler(
           admin.firestore.FieldValue
             .serverTimestamp()
       });
-      invalidateCache("batches:admin-list","batches:all","admin:overview");
 
 
       return json(
@@ -3851,7 +3965,6 @@ export default async function handler(
           admin.firestore.FieldValue
             .serverTimestamp()
       });
-      invalidateCache("orders:all","admin:overview");
 
 
       /*
@@ -3928,7 +4041,14 @@ export default async function handler(
     }
 
     if (path === "/storefront-discount" && method === "GET") {
-      return json(200, await getDiscountCampaign(getDb()));
+      const state = await getDiscountState(getDb());
+      return json(200, {
+        active: state.campaign.active === true,
+        showBanner: state.campaign.showBanner === true,
+        showModal: state.campaign.showModal === true,
+        upToPercent: 40,
+        updatedAt: timestampIso(state.campaign.updatedAt)
+      });
     }
 
     if (path === "/categories" && method === "GET") {
@@ -3963,13 +4083,12 @@ export default async function handler(
       const db=getDb();
       const id=crypto.createHash("sha256").update(email).digest("hex");
       await db.collection("mailingList").doc(id).set({email,subscribed:true,source:"storefront",updatedAt:admin.firestore.FieldValue.serverTimestamp(),createdAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-      invalidateCache("mailingList:subscribers");
       return json(200,{ok:true});
     }
 
     if (path === "/admin/categories" && method === "GET") {
       await requireAdmin(request);
-      return json(200, await getCategories(getDb(), { includeInactive:true }));
+      return json(200, await getCategories(getDb()));
     }
     if (path === "/admin/category-save" && method === "POST") {
       const adminUser=await requireAdmin(request), input=await readBody(request);
@@ -3978,7 +4097,6 @@ export default async function handler(
       if(!id) id=name.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
       if(!id||!name) throw new Error("Add a category name first.");
       await getDb().collection("storeCategories").doc(id).set({name,sortOrder:Math.max(1,Number(input.sortOrder||99)),active:input.active!==false,system:DEFAULT_CATEGORIES.some(x=>x.id===id),updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-      invalidateCache("categories:all","categories:active");
       return json(200,{ok:true,id});
     }
     if (path === "/admin/category-delete" && method === "POST") {
@@ -3989,7 +4107,6 @@ export default async function handler(
       overrides.docs.forEach(doc=>effective.set(doc.id,{...(effective.get(doc.id)||{id:doc.id}),...doc.data()}));
       if([...effective.values()].some(x=>x.active!==false&&x.category===id)) throw new Error("Move products out of this category before removing it.");
       await getDb().collection("storeCategories").doc(id).set({active:false,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-      invalidateCache("categories:all","categories:active");
       return json(200,{ok:true});
     }
 
@@ -4036,14 +4153,11 @@ export default async function handler(
       else if (!SERVER_CATALOG[id]) payload.createdAt = admin.firestore.FieldValue.serverTimestamp();
       else payload.createdAt = null;
       await db.collection("productOverrides").doc(id).set(payload,{merge:true});
-      invalidateCatalogCaches();
       return json(200,{ok:true,id});
     }
     if (path === "/admin/product-delete" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request); const id=safeText(input.id,80); if(!id) throw new Error("Choose a product.");
-      await getDb().collection("productOverrides").doc(id).set({active:false,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-      invalidateCatalogCaches();
-      return json(200,{ok:true});
+      await getDb().collection("productOverrides").doc(id).set({active:false,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true}); return json(200,{ok:true});
     }
 
 
@@ -4093,7 +4207,6 @@ export default async function handler(
       if (savedBanner !== showBanner || savedModal !== showModal) {
         throw new Error("The sale display settings could not be saved. Please try again.");
       }
-      invalidateCatalogCaches();
       return json(200,{ok:true,showBanner:savedBanner,showModal:savedModal});
     }
 
@@ -4110,7 +4223,6 @@ export default async function handler(
       const note = safeText(input.note,90).trim();
       const active = input.active === true && (retail.active || wholesale.active);
       await getDb().collection("storeDiscounts").doc(id).set({active, retail, wholesale, badge, note, updatedBy:adminUser.email||adminUser.uid, updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-      invalidateCatalogCaches();
       return json(200,{ok:true,id});
     }
 
@@ -4134,7 +4246,6 @@ export default async function handler(
         batch.set(db.collection("storeDiscounts").doc(product.id),{active,retail,wholesale,badge,note,updatedBy:adminUser.email||adminUser.uid,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
       }
       await batch.commit();
-      invalidateCatalogCaches();
       return json(200,{ok:true,saved:entries.length});
     }
 
@@ -4144,11 +4255,10 @@ export default async function handler(
       const products=await getEffectiveCatalog(db); const product=products.find(p=>p.id===productId&&p.active!==false); if(!product)throw new Error("Choose a valid product."); if(mode==="wholesale"&&product.wholesaleAvailable===false)throw new Error(`${product.name} is currently retail-only.`);
       const pieces=quantity,price=Number(mode==="wholesale"?product.wholesalePrice:product.retailPrice),subtotal=price*quantity,deliveryFee=Math.max(0,Number(input.deliveryFee||0)),total=subtotal+deliveryFee;
       const batch=await findAvailableBatch(db,pieces); const counterRef=db.collection("counters").doc("orders"); const orderRefHolder={};
-      await db.runTransaction(async tx=>{const [counterSnap,batchSnap]=await Promise.all([tx.get(counterRef),tx.get(batch.ref)]);const counter=counterSnap.exists?counterSnap.data():{},batchData=batchSnap.exists?batchSnap.data():{};const orderSequence=Number(counter.orderSeq||0)+1;let batchSequence=Number(batchData.batchNumber||0);if(!batchSequence)batchSequence=Number(counter.batchCounter||0)+1;const orderNumber=`WGH-${String(orderSequence).padStart(3,"0")}`,batchName=`Batch ${String(batchSequence).padStart(2,"0")}`;const batchDelivery=resolveBatchDeliveryWindow(batchData,batch.close),earliest=batchDelivery.start,latest=batchDelivery.end,estimatedDelivery=batchDelivery.estimatedDelivery,nowIso=new Date().toISOString();const orderRef=db.collection("orders").doc(orderNumber);orderRefHolder.number=orderNumber;
+      await db.runTransaction(async tx=>{const [counterSnap,batchSnap]=await Promise.all([tx.get(counterRef),tx.get(batch.ref)]);const counter=counterSnap.exists?counterSnap.data():{},batchData=batchSnap.exists?batchSnap.data():{};const orderSequence=Number(counter.orderSeq||0)+1;let batchSequence=Number(batchData.batchNumber||0);if(!batchSequence)batchSequence=Number(counter.batchCounter||0)+1;const orderNumber=`WGH-${String(orderSequence).padStart(3,"0")}`,batchName=`Batch ${String(batchSequence).padStart(2,"0")}`;const earliest=addDays(batch.close,Number(env("DELIVERY_MIN_DAYS")||14)),latest=addDays(batch.close,Number(env("DELIVERY_MAX_DAYS")||21)),estimatedDelivery=formatDeliveryRange(earliest,latest),nowIso=new Date().toISOString();const orderRef=db.collection("orders").doc(orderNumber);orderRefHolder.number=orderNumber;
         tx.set(orderRef,{orderNumber,userId:null,batchId:batch.id,batchName,batchCloseDate:admin.firestore.Timestamp.fromDate(batch.close),estimatedDelivery,estimatedDeliveryStart:admin.firestore.Timestamp.fromDate(earliest),estimatedDeliveryEnd:admin.firestore.Timestamp.fromDate(latest),customer:{firstName:safeText(input.firstName,80),lastName:safeText(input.lastName,80),email:safeText(input.email,160).toLowerCase(),phone:safeText(input.phone,40)},items:[{id:product.id,name:product.name,image:product.images?.[0]||"",mode,totalQuantity:quantity,unitPrice:price,originalUnitPrice:Number(mode==="wholesale"?(product.discount?.wholesale?.oldPrice||product.wholesalePrice):(product.discount?.retail?.oldPrice||product.retailPrice)),discountPercent:Number(mode==="wholesale"?(product.discount?.wholesale?.percent||0):(product.discount?.retail?.percent||0)),variants:[{colour:safeText(input.colour,40),size:safeText(input.size,20),quantity}]}],pieces,pieceCount:pieces,subtotal,processingFee:0,deliveryFee,total,paymentReference:"MANUAL",paymentStatus:"manual",status:"cycle_assigned",adminNotes:input.note?[{note:safeText(input.note,800),by:adminUser.email||adminUser.uid,at:nowIso}]:[],createdAt:admin.firestore.FieldValue.serverTimestamp(),statusHistory:[{status:"order_confirmed",at:nowIso},{status:"payment_received",at:nowIso},{status:"cycle_assigned",at:nowIso}]});
         tx.set(batch.ref,{batchNumber:batchSequence,batchName,startDate:admin.firestore.Timestamp.fromDate(batch.start),closeDate:admin.firestore.Timestamp.fromDate(batch.close),capacity:batch.capacity,usedCapacity:Number(batchData.usedCapacity||0)+pieces,status:"OPEN",updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});tx.set(counterRef,{orderSeq:orderSequence,batchCounter:Math.max(Number(counter.batchCounter||0),batchSequence)},{merge:true});});
       await createAdminNotification(db,{type:"order",title:`Manual order ${orderRefHolder.number} created`,message:`A manual ${mode} order for ${quantity} piece${quantity===1?"":"s"} was added.`,orderNumber:orderRefHolder.number,target:"orders"});
-      invalidateCache("orders:all","batches:admin-list","batches:all","admin:overview","admin:accounts");
       return json(200,{ok:true,orderNumber:orderRefHolder.number});
     }
 
@@ -4162,168 +4272,22 @@ export default async function handler(
     if (path === "/admin/order-note" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const orderNumber=safeText(input.orderNumber,40).toUpperCase(),note=safeText(input.note,800); if(!orderNumber||!note)throw new Error("Add an internal note first.");
       const ref=getDb().collection("orders").doc(orderNumber); const snap=await ref.get(); if(!snap.exists)throw new Error("Order not found.");
-      await ref.update({adminNotes:admin.firestore.FieldValue.arrayUnion({note,by:adminUser.email||adminUser.uid,at:new Date().toISOString()}),updatedAt:admin.firestore.FieldValue.serverTimestamp()});
-      invalidateCache("orders:all");
-      return json(200,{ok:true});
+      await ref.update({adminNotes:admin.firestore.FieldValue.arrayUnion({note,by:adminUser.email||adminUser.uid,at:new Date().toISOString()}),updatedAt:admin.firestore.FieldValue.serverTimestamp()}); return json(200,{ok:true});
     }
-    if (path === "/admin/batch-delivery-window" && method === "POST") {
-      const adminUser = await requireAdmin(request);
-      const input = await readBody(request);
-      const batchId = safeText(input.batchId,80);
-      const startText = safeText(input.startDate,20);
-      const endText = safeText(input.endDate,20);
-      if (!batchId) throw new Error("Choose a production batch.");
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(startText) || !/^\d{4}-\d{2}-\d{2}$/.test(endText)) throw new Error("Choose both delivery dates.");
-      const start = new Date(`${startText}T00:00:00.000Z`);
-      const end = new Date(`${endText}T23:59:59.999Z`);
-      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) throw new Error("The delivery end date must be on or after the start date.");
-      const db = getDb();
-      const batchRef = db.collection("productionBatches").doc(batchId);
-      const batchSnap = await batchRef.get();
-      if (!batchSnap.exists) throw new Error("Production batch not found.");
-      const batchData = batchSnap.data() || {};
-      const oldWindow = resolveBatchDeliveryWindow(batchData, batchData.closeDate);
-      const historyEntry = {
-        at: new Date().toISOString(),
-        by: adminUser.email || adminUser.uid,
-        previous: oldWindow.estimatedDelivery,
-        current: formatDeliveryRange(start,end)
-      };
-      await batchRef.set({
-        estimatedDeliveryStart: admin.firestore.Timestamp.fromDate(start),
-        estimatedDeliveryEnd: admin.firestore.Timestamp.fromDate(end),
-        estimatedDelivery: formatDeliveryRange(start,end),
-        deliveryWindowOverridden: true,
-        deliveryWindowUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        deliveryWindowUpdatedBy: adminUser.email || adminUser.uid,
-        deliveryWindowHistory: admin.firestore.FieldValue.arrayUnion(historyEntry),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, {merge:true});
-
-      const ordersSnap = await db.collection("orders").where("batchId","==",batchId).get();
-      const orders = ordersSnap.docs.map(doc => ({ref:doc.ref, ...serializeOrder(doc)}));
-      const writeChunks=[];
-      for(let i=0;i<orders.length;i+=400){
-        const batchWrite=db.batch();
-        orders.slice(i,i+400).forEach(order=>{
-          batchWrite.set(order.ref,{
-            originalEstimatedDelivery: order.originalEstimatedDelivery || order.estimatedDelivery || oldWindow.estimatedDelivery,
-            estimatedDelivery: formatDeliveryRange(start,end),
-            estimatedDeliveryStart: admin.firestore.Timestamp.fromDate(start),
-            estimatedDeliveryEnd: admin.firestore.Timestamp.fromDate(end),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-          },{merge:true});
-        });
-        writeChunks.push(batchWrite.commit());
-      }
-      await Promise.all(writeChunks);
-      invalidateCache("batches:admin-list","batches:all","orders:all","admin:overview","admin:accounts");
-
-      await createAdminNotification(db,{
-        type:"batch",
-        title:`${batchData.batchName || batchId} delivery window changed`,
-        message:`Delivery is now estimated for ${formatDeliveryRange(start,end)}.`,
-        target:"batches"
-      });
-
-      const emailJobs=[];
-      const seenEmails=new Set();
-      for(const order of orders){
-        const email=String(order.customerEmail||"").trim().toLowerCase();
-        if(!email || seenEmails.has(email)) continue;
-        seenEmails.add(email);
-        emailJobs.push((async()=>{
-          try{
-            await sendTemplate(email, deliveryWindowChangedEmail({
-              ...emailReadyOrder(order),
-              batchName: batchData.batchName || order.batchName || batchId
-            }, oldWindow.estimatedDelivery, formatDeliveryRange(start,end)));
-            return true;
-          }catch(error){
-            console.error("Delivery-window email failed:",error);
-            return false;
-          }
-        })());
-      }
-      const emailResults=await Promise.all(emailJobs);
-      return json(200,{
-        ok:true,
-        estimatedDelivery:formatDeliveryRange(start,end),
-        estimatedDeliveryStart:start.toISOString(),
-        estimatedDeliveryEnd:end.toISOString(),
-        ordersUpdated:orders.length,
-        emailsSent:emailResults.filter(Boolean).length
-      });
-    }
-
     if (path === "/admin/batch-lock" && method === "POST") {
       const adminUser=await requireAdmin(request); const input=await readBody(request); const batchId=safeText(input.batchId,80); if(!batchId)throw new Error("Choose a batch."); const locked=Boolean(input.locked);
-      await getDb().collection("productionBatches").doc(batchId).set({locked,lockedBy:adminUser.email||adminUser.uid,lockedAt:locked?admin.firestore.FieldValue.serverTimestamp():null,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true});
-      invalidateCache("batches:admin-list","batches:all","admin:overview");
-      return json(200,{ok:true,locked});
+      await getDb().collection("productionBatches").doc(batchId).set({locked,lockedBy:adminUser.email||adminUser.uid,lockedAt:locked?admin.firestore.FieldValue.serverTimestamp():null,updatedAt:admin.firestore.FieldValue.serverTimestamp()},{merge:true}); return json(200,{ok:true,locked});
     }
     if (path === "/admin/settings-save" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request); const payload={businessName:safeText(input.businessName,120),businessEmail:safeText(input.businessEmail,160),whatsapp:safeText(input.whatsapp,50),instagram:safeText(input.instagram,120),currency:safeText(input.currency,10)||"GHS",batchCapacity:Math.max(1,Number(input.batchCapacity||150)),defaultMoq:Math.max(1,Number(input.defaultMoq||6)),pickupAddress:safeText(input.pickupAddress,220),updatedAt:admin.firestore.FieldValue.serverTimestamp()};
-      await getDb().collection("settings").doc("store").set(payload,{merge:true});
-      invalidateCache("settings:store","admin:accounts");
-      return json(200,{ok:true});
+      await getDb().collection("settings").doc("store").set(payload,{merge:true}); return json(200,{ok:true});
     }
 
     if (path === "/admin/subscribers" && method === "GET") {
       await requireAdmin(request);
-      const db = getDb();
-      const url=new URL(request.url);
-      const force=url.searchParams.get("refresh")==="1";
-      const [mailList, userList] = await Promise.all([
-        getCachedMailingList(db,{force}),
-        getCachedUsers(db,{marketingOnly:true,force})
-      ]);
-      const byEmail = new Map();
-
-      mailList.forEach(d => {
-        const x = d || {};
-        const email = String(x.email || '').trim().toLowerCase();
-        if (!email || x.subscribed === false) return;
-        byEmail.set(email, {
-          id: d.id,
-          ...x,
-          email,
-          createdAt: timestampIso(x.createdAt),
-          updatedAt: timestampIso(x.updatedAt),
-          source: x.source || 'newsletter'
-        });
-      });
-
-      // Some older account signups saved marketingConsent on users but never
-      // got a mailingList record. Bring those people into the same audience.
-      userList.forEach(d => {
-        const x = d || {};
-        if (x.marketingConsent !== true) return;
-        const email = String(x.email || '').trim().toLowerCase();
-        if (!email) return;
-        const existing = byEmail.get(email);
-        if (existing) {
-          existing.firstName = existing.firstName || x.firstName || '';
-          existing.lastName = existing.lastName || x.lastName || '';
-          existing.name = existing.name || `${x.firstName || ''} ${x.lastName || ''}`.trim();
-          existing.source = existing.source || 'account-signup-opt-in';
-          return;
-        }
-        byEmail.set(email, {
-          id: d.id,
-          email,
-          firstName: x.firstName || '',
-          lastName: x.lastName || '',
-          name: `${x.firstName || ''} ${x.lastName || ''}`.trim(),
-          subscribed: true,
-          source: 'account-signup-opt-in',
-          createdAt: timestampIso(x.createdAt),
-          updatedAt: timestampIso(x.updatedAt || x.createdAt)
-        });
-      });
-
-      const subscribers = [...byEmail.values()];
-      return json(200, subscribers.sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))));
+      const mailSnap=await getDb().collection("mailingList").limit(1500).get();
+      const subscribers=mailSnap.docs.map(d=>{const x=d.data();return {id:d.id,...x,email:String(x.email||'').trim().toLowerCase(),createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),source:x.source||'newsletter'}}).filter(x=>x.email&&x.subscribed!==false);
+      return json(200,subscribers.sort((a,b)=>String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||''))));
     }
     if (path === "/admin/reviews" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("reviews").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt)}))); }
     if (path === "/admin/abandoned" && method === "GET") { await requireAdmin(request); const snap=await getDb().collection("abandonedCarts").limit(500).get(); return json(200,snap.docs.map(d=>({id:d.id,...d.data(),createdAt:timestampIso(d.data().createdAt),updatedAt:timestampIso(d.data().updatedAt)}))); }
@@ -4350,27 +4314,14 @@ export default async function handler(
     }
 
     if (path === "/admin/accounts" && method === "GET") {
-      await requireAdmin(request);
-      const db=getDb();
-      const url=new URL(request.url);
-      const force=url.searchParams.get("refresh")==="1";
-      const accounts=await cachedRead("admin:accounts",60000,async()=>{
-        const [users,ordersSnap]=await Promise.all([getCachedUsers(db),db.collection("orders").limit(1000).get()]);
-        const counts=new Map();
-        ordersSnap.docs.map(serializeOrder).forEach(o=>{const k=String(o.customerEmail||'').toLowerCase();if(k)counts.set(k,(counts.get(k)||0)+1)});
-        return users.map(x=>({id:x.id,firstName:x.firstName||'',lastName:x.lastName||'',email:x.email||'',phone:x.phone||'',createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),orderCount:counts.get(String(x.email||'').toLowerCase())||0})).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
-      },{force});
-      return json(200,accounts);
+      await requireAdmin(request); const db=getDb(); const [usersSnap,ordersSnap]=await Promise.all([db.collection("users").limit(1500).get(),db.collection("orders").limit(1000).get()]);
+      const counts=new Map();ordersSnap.docs.map(serializeOrder).forEach(o=>{const k=String(o.customerEmail||'').toLowerCase();if(k)counts.set(k,(counts.get(k)||0)+1)});
+      return json(200,usersSnap.docs.map(d=>{const x=d.data();return {id:d.id,firstName:x.firstName||'',lastName:x.lastName||'',email:x.email||'',phone:x.phone||'',createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),orderCount:counts.get(String(x.email||'').toLowerCase())||0}}).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))));
     }
 
     if (path === "/admin/broadcast" && method === "POST") {
       await requireAdmin(request); const input=await readBody(request),subject=safeText(input.subject,140),message=safeText(input.message,5000); if(!subject||!message)throw new Error("Add an email subject and message first.");
-      const db=getDb();
-      const [mailList,userList]=await Promise.all([getCachedMailingList(db),getCachedUsers(db)]);
-      const audience=new Map();
-      mailList.forEach(d=>{const x=d||{};const email=String(x.email||'').trim().toLowerCase();if(email&&x.subscribed!==false)audience.set(email,true);});
-      userList.forEach(d=>{const x=d||{};const email=String(x.email||'').trim().toLowerCase();if(email&&x.marketingConsent===true)audience.set(email,true);});
-      const emails=[...audience.keys()]; let sent=0,failed=0;
+      const db=getDb(),mailSnap=await db.collection("mailingList").limit(1500).get(); const emails=[...new Set(mailSnap.docs.map(d=>d.data()).filter(x=>x.subscribed!==false).map(x=>String(x.email||'').trim().toLowerCase()).filter(Boolean))]; let sent=0,failed=0;
       const escapedSubject=subject.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       const escapedMessage=message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       const site=(env("SITE_URL")||"https://thewholesalegh.shop").replace(/\/+$/,""), html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#f4f0ea;font-family:Arial,Helvetica,sans-serif;color:#171412"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:28px 14px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#fff;border:1px solid #ded7d0"><tr><td style="padding:26px 30px;border-bottom:1px solid #ded7d0;font-size:16px;font-weight:700;letter-spacing:.13em">THE WHOLESALE GHANA</td></tr><tr><td style="padding:34px 30px"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#725545">Subscriber update</div><h1 style="font-family:Georgia,serif;font-weight:400;font-size:30px;line-height:1.15;margin:12px 0 18px">${escapedSubject}</h1><div style="font-size:15px;line-height:1.7;white-space:pre-line;color:#514b47">${escapedMessage}</div><p style="margin:26px 0 0;padding-top:18px;border-top:1px solid #ded7d0;font-size:11px;line-height:1.65;color:#6f6862">The Wholesale Ghana · Joy City & The Clock Bar · 0533357961 · @the.wholesalegh<br><a href="${site}" style="color:#171412">${site.replace(/^https?:\/\//,"")}</a></p></td></tr></table></td></tr></table></body></html>`;
