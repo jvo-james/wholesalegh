@@ -1,6 +1,6 @@
 (() => {
   const login=document.querySelector('[data-admin-login]'),app=document.querySelector('[data-admin-app]'),message=document.querySelector('[data-admin-message]');
-  const statuses=WGH.statuses,labels=WGH.statusLabels;let batches=[],orders=[],customers=[],accounts=[],categories=[],notifications=[],pendingPayments=[],selectedBatch=null,adminAuth=null; const ADMIN_VIEWS=['overview','orders','transactions','international','analytics','batches','products','discounts','categories','wholesale','customers','accounts','abandoned','subscribers','alerts','activity','settings'];
+  const statuses=WGH.statuses,labels=WGH.statusLabels;let batches=[],orders=[],customers=[],accounts=[],categories=[],notifications=[],pendingPayments=[],selectedBatch=null,adminAuth=null; const ADMIN_VIEWS=['overview','orders','pending-payments','transactions','international','analytics','batches','products','discounts','categories','wholesale','customers','accounts','abandoned','subscribers','alerts','activity','settings'];
   const escape=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
   let adminBusyCount=0,adminViewLoading=false,viewLoadToken=0;
