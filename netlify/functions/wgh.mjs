@@ -4330,11 +4330,15 @@ export default async function handler(
         getCachedUsers(db,{marketingOnly:true,force})
       ]);
       const byEmail = new Map();
+      const unsubscribedEmails = new Set(mailList
+        .filter(d => d && d.subscribed === false)
+        .map(d => String(d.email || '').trim().toLowerCase())
+        .filter(Boolean));
 
       mailList.forEach(d => {
         const x = d || {};
         const email = String(x.email || '').trim().toLowerCase();
-        if (!email || x.subscribed === false) return;
+        if (!email || x.subscribed === false || unsubscribedEmails.has(email)) return;
         byEmail.set(email, {
           id: d.id,
           ...x,
@@ -4351,7 +4355,7 @@ export default async function handler(
         const x = d || {};
         if (x.marketingConsent !== true) return;
         const email = String(x.email || '').trim().toLowerCase();
-        if (!email) return;
+        if (!email || unsubscribedEmails.has(email)) return;
         const existing = byEmail.get(email);
         if (existing) {
           existing.firstName = existing.firstName || x.firstName || '';
@@ -4415,12 +4419,13 @@ export default async function handler(
     }
 
     if (path === "/admin/broadcast" && method === "POST") {
-      await requireAdmin(request); const input=await readBody(request),subject=safeText(input.subject,140),message=safeText(input.message,5000); if(!subject||!message)throw new Error("Add an email subject and message first.");
+      await requireAdmin(request); const input=await readBody(request); if(input.confirmAllSubscribers!==true)throw new Error("Confirm that this email should be sent to all opted-in customers."); const subject=safeText(input.subject,140),message=safeText(input.message,5000); if(!subject||!message)throw new Error("Add an email subject and message first.");
       const db=getDb();
       const [mailList,userList]=await Promise.all([getCachedMailingList(db),getCachedUsers(db)]);
+      const unsubscribedEmails=new Set(mailList.filter(d=>d&&d.subscribed===false).map(d=>String(d.email||'').trim().toLowerCase()).filter(Boolean));
       const audience=new Map();
-      mailList.forEach(d=>{const x=d||{};const email=String(x.email||'').trim().toLowerCase();if(email&&x.subscribed!==false)audience.set(email,true);});
-      userList.forEach(d=>{const x=d||{};const email=String(x.email||'').trim().toLowerCase();if(email&&x.marketingConsent===true)audience.set(email,true);});
+      mailList.forEach(d=>{const x=d||{};const email=String(x.email||'').trim().toLowerCase();if(email&&x.subscribed!==false&&!unsubscribedEmails.has(email))audience.set(email,true);});
+      userList.forEach(d=>{const x=d||{};const email=String(x.email||'').trim().toLowerCase();if(email&&x.marketingConsent===true&&!unsubscribedEmails.has(email))audience.set(email,true);});
       const emails=[...audience.keys()]; let sent=0,failed=0;
       const escapedSubject=subject.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       const escapedMessage=message.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
