@@ -648,7 +648,43 @@ document.querySelector('[data-refresh-international]')?.addEventListener('click'
 document.querySelector('[data-refresh-wholesale]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadWholesale(true),'Refreshing'));
 document.querySelector('[data-refresh-reviews]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadReviews,'Refreshing'));
 document.querySelector('[data-refresh-abandoned]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadAbandoned,'Refreshing'));
-document.querySelector('[data-refresh-subscribers]')?.addEventListener('click',e=>{const loader=getViewLoader('subscribers');if(loader)return WGH.withLoading(e.currentTarget,loader,'Refreshing');});
+const broadcastForm=document.querySelector('[data-broadcast-form]');
+const broadcastConfirm=broadcastForm?.querySelector('[name="confirmAllSubscribers"]');
+const broadcastSubmit=broadcastForm?.querySelector('[type="submit"]');
+const broadcastMessage=document.querySelector('[data-broadcast-message]');
+const syncBroadcastSubmit=()=>{if(broadcastSubmit&&!broadcastSubmit.classList.contains('is-loading'))broadcastSubmit.disabled=!broadcastConfirm?.checked;};
+broadcastConfirm?.addEventListener('change',syncBroadcastSubmit);
+syncBroadcastSubmit();
+broadcastForm?.addEventListener('submit',async e=>{
+  e.preventDefault();
+  if(!broadcastConfirm?.checked){if(broadcastMessage)broadcastMessage.textContent='Check the confirmation box before sending this email.';return;}
+  const form=e.currentTarget,btn=broadcastSubmit;
+  if(!btn)return;
+  const values=new FormData(form);
+  if(broadcastMessage){broadcastMessage.classList.remove('auth-message-success');broadcastMessage.textContent='Preparing your email broadcast…';}
+  await WGH.withLoading(btn,async()=>{
+    try{
+      const result=await adminApi('/broadcast',{
+        subject:String(values.get('subject')||'').trim(),
+        message:String(values.get('message')||'').trim(),
+        confirmAllSubscribers:broadcastConfirm.checked
+      });
+      const sent=Number(result.sent||0),failed=Number(result.failed||0),total=Number(result.total||0);
+      if(broadcastMessage){
+        broadcastMessage.textContent=`Broadcast complete: ${sent} email${sent===1?'':'s'} sent, ${failed} failed, from ${total} opted-in recipient${total===1?'':'s'}.`;
+        broadcastMessage.classList.toggle('auth-message-success',failed===0&&sent>0);
+      }
+      if(failed===0&&sent>0)WGH.showToast(`Email sent to ${sent} opted-in recipient${sent===1?'':'s'}.`,'success');
+      form.elements.subject.value='';
+      form.elements.message.value='';
+      broadcastConfirm.checked=false;
+    }catch(err){
+      if(broadcastMessage){broadcastMessage.textContent=WGH.friendlyError(err);broadcastMessage.classList.remove('auth-message-success');}
+      WGH.showToast(WGH.friendlyError(err));
+    }
+  },'Sending email');
+  syncBroadcastSubmit();
+});
 document.querySelector('[data-refresh-messages]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,loadMessages,'Refreshing'));
 document.querySelector('[data-refresh-activity]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadActivity(true),'Refreshing'));
 document.querySelector('[data-refresh-analytics]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadAnalytics(true),'Refreshing'));
