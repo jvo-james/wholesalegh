@@ -1,6 +1,6 @@
 (() => {
   const login=document.querySelector('[data-admin-login]'),app=document.querySelector('[data-admin-app]'),message=document.querySelector('[data-admin-message]');
-  const statuses=WGH.statuses,labels=WGH.statusLabels;let batches=[],orders=[],customers=[],accounts=[],categories=[],notifications=[],pendingPayments=[],selectedBatch=null,adminAuth=null; const ADMIN_VIEWS=['overview','orders','pending-payments','transactions','international','analytics','batches','products','discounts','categories','wholesale','customers','accounts','abandoned','subscribers','alerts','activity','settings'];
+  const statuses=WGH.statuses,labels=WGH.statusLabels;let batches=[],orders=[],customers=[],accounts=[],categories=[],notifications=[],pendingPayments=[],selectedBatch=null,adminAuth=null; const ADMIN_VIEWS=['overview','orders','pending-payments','transactions','international','analytics','batches','products','discounts','categories','wholesale','customers','accounts','abandoned','subscribers','purchasers','alerts','activity','settings'];
   const escape=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 
   let adminBusyCount=0,adminViewLoading=false,viewLoadToken=0;
@@ -18,7 +18,7 @@
     adminBusyCount=Math.max(0,adminBusyCount+(on?1:-1));
     if(!adminViewLoading)setAdminPageLoading(adminBusyCount>0,'Updating');
   }
-  const VIEW_LABELS={overview:'Overview',orders:'Orders','pending-payments':'Pending payments',transactions:'Transactions',international:'International orders',analytics:'Sales analytics',batches:'Production batches',products:'Products & inventory',discounts:'Discounts',categories:'Categories',wholesale:'Wholesale',customers:'Customers',accounts:'Registered accounts',abandoned:'Abandoned carts',subscribers:'Subscribers',alerts:'Notifications',activity:'Activity history',settings:'Settings'};
+  const VIEW_LABELS={overview:'Overview',orders:'Orders','pending-payments':'Pending payments',transactions:'Transactions',international:'International orders',analytics:'Sales analytics',batches:'Production batches',products:'Products & inventory',discounts:'Discounts',categories:'Categories',wholesale:'Wholesale',customers:'Customers',accounts:'Registered accounts',abandoned:'Abandoned carts',subscribers:'Subscribers',purchasers:'Past purchasers',alerts:'Notifications',activity:'Activity history',settings:'Settings'};
   function showViewLoadError(name,err){
     const panel=document.querySelector(`[data-view-panel="${name}"]`);if(!panel)return;
     let box=panel.querySelector('[data-admin-view-error]');
@@ -75,6 +75,7 @@
       case 'accounts': return loadAccounts;
       case 'abandoned': return loadAbandoned;
       case 'subscribers': return loadSubscribers;
+      case 'purchasers': return loadPurchasers;
       case 'alerts': return loadAlerts;
       case 'activity': return loadActivity;
       case 'settings': return loadSettings;
@@ -718,6 +719,77 @@ document.querySelector('[data-refresh-settings]')?.addEventListener('click',e=>W
   document.querySelector('[data-cancel-category]')?.addEventListener('click',resetCategoryForm);
 
   async function loadSubscribers(){const root=document.querySelector('[data-subscribers-table]');try{const data=await adminApi('/subscribers');if(root)root.innerHTML=data.map(x=>`<tr><td><strong>${escape(x.email)}</strong></td><td>${escape(x.name||[x.firstName,x.lastName].filter(Boolean).join(' ')||'-')}</td><td><span class="status-pill">Subscribed</span><small>${escape(x.source||'')}</small></td><td>${dateTime(x.updatedAt||x.createdAt)}</td></tr>`).join('')||'<tr><td colspan="4">No subscribers yet.</td></tr>';return data;}catch(err){if(root)root.innerHTML=`<tr><td colspan="4"><div class="admin-empty-row error"><strong>Subscribers could not load.</strong><span>${escape(WGH.friendlyError(err))}</span></div></td></tr>`;throw err}}
+  let purchaserRecipientsCount=0;
+  const purchaserForm=document.querySelector('[data-purchaser-broadcast-form]');
+  const purchaserSendButton=document.querySelector('[data-purchaser-send]');
+  const purchaserBroadcastMessage=document.querySelector('[data-purchaser-broadcast-message]');
+  function syncPurchaserSendButton(){
+    if(!purchaserSendButton||purchaserSendButton.classList.contains('is-loading'))return;
+    const subject=String(purchaserForm?.elements.subject?.value||'').trim();
+    const body=String(purchaserForm?.elements.message?.value||'').trim();
+    purchaserSendButton.disabled=purchaserRecipientsCount<1||!subject||!body;
+  }
+  purchaserForm?.elements.subject?.addEventListener('input',syncPurchaserSendButton);
+  purchaserForm?.elements.message?.addEventListener('input',syncPurchaserSendButton);
+  async function loadPurchasers(force=false){
+    const statsRoot=document.querySelector('[data-purchaser-metrics]');
+    const tableRoot=document.querySelector('[data-purchasers-table]');
+    const mobileRoot=document.querySelector('[data-purchasers-mobile]');
+    const noteRoot=document.querySelector('[data-purchaser-list-note]');
+    try{
+      const data=await adminApi(force?'/purchasers?refresh=1':'/purchasers');
+      const recipients=Array.isArray(data.items)?data.items:[];
+      const stats=data.stats||{};
+      purchaserRecipientsCount=Number(stats.recipientCount??recipients.length)||0;
+      if(statsRoot){
+        const metrics=[
+          ['Eligible purchasers',purchaserRecipientsCount],
+          ['Orders represented',Number(stats.orderCount||0)],
+          ['Opt-outs excluded',Number(stats.excludedOptOuts||0)],
+          ['Orders without valid email',Number(stats.ordersMissingEmail||0)]
+        ];
+        statsRoot.innerHTML=metrics.map(([label,value])=>`<article class="admin-metric"><p>${escape(label)}</p><strong>${Number(value).toLocaleString('en-US')}</strong></article>`).join('');
+      }
+      const visible=recipients.slice(0,150);
+      if(tableRoot)tableRoot.innerHTML=visible.map(x=>`<tr><td><strong>${escape(x.email)}</strong></td><td>${escape(x.name||'Customer')}</td><td>${Number(x.orderCount||0)}</td><td>${date(x.lastOrderAt)}</td></tr>`).join('')||'<tr><td colspan="4">No eligible purchaser email addresses were found.</td></tr>';
+      if(mobileRoot)mobileRoot.innerHTML=visible.map(x=>`<article class="admin-mobile-card"><div><strong>${escape(x.name||'Customer')}</strong><span>${escape(x.email)}</span></div><p>${Number(x.orderCount||0)} order${Number(x.orderCount||0)===1?'':'s'} · Last order ${escape(date(x.lastOrderAt))}</p></article>`).join('')||'<div class="admin-empty compact"><h3>No eligible purchasers</h3><p>Once an order with a valid email address is recorded, it will appear here.</p></div>';
+      if(noteRoot)noteRoot.textContent=recipients.length>150?`Showing the 150 most recent customers. Sending uses all ${recipients.length.toLocaleString('en-US')} eligible addresses.`:`${recipients.length.toLocaleString('en-US')} unique customer email address${recipients.length===1?'':'es'} currently eligible.`;
+      syncPurchaserSendButton();
+      return data;
+    }catch(err){
+      purchaserRecipientsCount=0;syncPurchaserSendButton();
+      if(tableRoot)tableRoot.innerHTML=`<tr><td colspan="4"><div class="admin-empty-row error"><strong>Purchaser audience could not load.</strong><span>${escape(WGH.friendlyError(err))}</span></div></td></tr>`;
+      if(mobileRoot)mobileRoot.innerHTML=`<div class="admin-empty compact"><h3>Audience unavailable</h3><p>${escape(WGH.friendlyError(err))}</p></div>`;
+      throw err;
+    }
+  }
+  purchaserForm?.addEventListener('submit',async e=>{
+    e.preventDefault();
+    const subject=String(purchaserForm.elements.subject.value||'').trim();
+    const messageText=String(purchaserForm.elements.message.value||'').trim();
+    if(!subject||!messageText){if(purchaserBroadcastMessage)purchaserBroadcastMessage.textContent='Enter a subject and message first.';return;}
+    if(purchaserRecipientsCount<1){if(purchaserBroadcastMessage)purchaserBroadcastMessage.textContent='There are no eligible purchaser email addresses to send to.';return;}
+    const confirmed=window.confirm(`Send “${subject}” to ${purchaserRecipientsCount.toLocaleString('en-US')} unique past-purchaser email address${purchaserRecipientsCount===1?'':'es'}? This uses order records, not newsletter subscribers. People already marked unsubscribed will be excluded.`);
+    if(!confirmed)return;
+    if(purchaserBroadcastMessage){purchaserBroadcastMessage.classList.remove('auth-message-success');purchaserBroadcastMessage.textContent='Preparing your email…';}
+    await WGH.withLoading(purchaserSendButton,async()=>{
+      try{
+        const result=await adminApi('/purchaser-broadcast',{subject,message:messageText,confirmAllPurchasers:true});
+        const sent=Number(result.sent||0),failed=Number(result.failed||0),total=Number(result.total||0);
+        if(purchaserBroadcastMessage){
+          purchaserBroadcastMessage.textContent=`Email run finished: ${sent} sent, ${failed} failed, from ${total} eligible past purchaser${total===1?'':'s'}.`;
+          purchaserBroadcastMessage.classList.toggle('auth-message-success',failed===0&&sent>0);
+        }
+        if(sent>0&&failed===0)WGH.showToast(`Email sent to ${sent} past purchaser${sent===1?'':'s'}.`,'success');
+        if(failed===0&&sent>0){purchaserForm.elements.subject.value='';purchaserForm.elements.message.value='';}
+      }catch(err){
+        if(purchaserBroadcastMessage){purchaserBroadcastMessage.textContent=WGH.friendlyError(err);purchaserBroadcastMessage.classList.remove('auth-message-success');}
+        WGH.showToast(WGH.friendlyError(err));
+      }
+    },'Sending email');
+    syncPurchaserSendButton();
+  });
+  document.querySelector('[data-refresh-purchasers]')?.addEventListener('click',e=>WGH.withLoading(e.currentTarget,()=>loadPurchasers(true),'Refreshing'));
 
   function isInternationalOrder(o){
     const d=o?.delivery||{};

@@ -45,6 +45,35 @@
 .pending-payment-card.is-working{opacity:.66;pointer-events:none}
 @media(max-width:860px){.pending-payment-card{grid-template-columns:1fr;gap:14px}.pending-payment-action{justify-items:stretch}.pending-payment-action .button{width:100%}.pending-payment-meta{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.pending-payments-count{padding-bottom:0}}
 @media(max-width:560px){.pending-payments-note{padding:13px}.pending-payment-card{padding:16px}.pending-payment-main h3{font-size:16px}.pending-payment-meta{grid-template-columns:1fr 1fr}.pending-payment-action .button{min-height:46px}}
+
+/* Past-purchaser email composer */
+.purchaser-email-view .purchaser-email-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+.purchaser-email-composer{align-items:stretch;margin-top:4px}
+.purchaser-email-composer form{min-width:0;align-content:start}
+.purchaser-email-composer h2{max-width:520px;line-height:1.08}
+.purchaser-email-composer input,.purchaser-email-composer textarea{width:100%;max-width:100%;min-width:0;border-radius:8px;font:inherit;font-size:13px;line-height:1.55;letter-spacing:normal;text-transform:none;box-sizing:border-box}
+.purchaser-email-composer textarea{resize:vertical;min-height:170px}
+.purchaser-email-composer label{min-width:0}
+.purchaser-email-help{font-size:11px;line-height:1.6;color:var(--admin-muted);margin:0}
+.purchaser-email-composer button{justify-self:start;max-width:100%;min-height:46px}
+.purchaser-email-composer button:disabled{opacity:.45;cursor:not-allowed}
+.purchaser-email-preview{gap:0;min-width:0;border-radius:16px;overflow:hidden}
+.purchaser-email-preview h3{max-width:360px;font-size:clamp(30px,3.6vw,46px);line-height:1.04;overflow-wrap:anywhere}
+.purchaser-email-preview p{line-height:1.7;max-width:380px}
+.purchaser-email-preview>span{display:flex;align-items:center;gap:8px;margin-top:24px;padding-top:15px;border-top:1px solid rgba(255,255,255,.18);font-size:10px;color:#e6ddd4}
+.purchaser-audience-card{margin-top:8px;padding:0}
+.purchaser-audience-card>.admin-card-head{padding:24px 24px 16px;margin:0}
+.purchaser-audience-card .admin-card-head h2{font-family:'Libre Caslon Display',serif;font-weight:400}
+.purchaser-list-note{margin:8px 0 0;color:var(--admin-muted);font-size:11px;line-height:1.5}
+.purchaser-email-view .admin-table{min-width:620px}
+.purchaser-email-view .admin-table td:first-child{overflow-wrap:anywhere}
+.purchaser-email-view .admin-mobile-list{padding:0 12px 12px}
+.purchaser-email-view .admin-mobile-card{overflow-wrap:anywhere}
+.purchaser-email-view .auth-message{white-space:pre-line;line-height:1.55}
+@media(max-width:900px){.purchaser-email-view .purchaser-email-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.purchaser-email-composer form{padding:18px}.purchaser-email-composer h2{font-size:27px}.purchaser-email-composer button{width:100%;justify-content:center}.purchaser-email-preview{min-height:240px;padding:25px}.purchaser-audience-card>.admin-card-head{padding:18px}.purchaser-email-view .admin-table-wrap{display:none}.purchaser-email-view .admin-mobile-list{display:grid}.purchaser-email-view .purchaser-email-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:380px){.purchaser-email-view .purchaser-email-metrics{grid-template-columns:1fr}.purchaser-email-composer form{padding:15px}}
+
 </style>
 <link rel="icon" type="image/jpeg" href="/logo.jpg?v=4" />
 </head>
@@ -75,6 +104,7 @@
 <button data-admin-view="accounts"><i class="fa-solid fa-user-group"></i><span>Registered accounts</span></button>
 <button data-admin-view="abandoned"><i class="fa-solid fa-cart-arrow-down"></i><span>Abandoned carts</span></button>
 <button data-admin-view="subscribers"><i class="fa-solid fa-envelope"></i><span>Subscribers</span></button>
+<button data-admin-view="purchasers"><i class="fa-solid fa-bag-shopping"></i><span>Past purchasers</span></button>
 <span class="admin-nav-group">Operations</span>
 <button data-admin-view="alerts"><i class="fa-solid fa-bell"></i><span>Notifications</span><em data-admin-notification-count>0</em></button>
 <button data-admin-view="activity"><i class="fa-solid fa-clock-rotate-left"></i><span>Activity history</span></button>
@@ -157,6 +187,31 @@
 <section class="admin-view" data-view-panel="wholesale" hidden=""><div class="admin-page-head"><div><p class="eyebrow">Wholesale</p><h1>Wholesale overview</h1><p>See wholesale-ready products, minimum quantities and wholesale order activity in one place.</p></div><button class="admin-refresh" data-refresh-wholesale="">Refresh</button></div><div class="admin-metric-grid" data-wholesale-metrics=""></div><div class="admin-card admin-table-card"><div class="admin-card-head"><div><p class="eyebrow">Wholesale products</p><h2>Ready for wholesale</h2></div></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Style</th><th>Wholesale price</th><th>MOQ</th><th>Colours</th><th>Sizes</th><th>Status</th></tr></thead><tbody data-wholesale-products=""></tbody></table></div></div><div class="admin-card wholesale-admin-orders-card"><div class="admin-card-head wholesale-admin-orders-head"><div><p class="eyebrow">Wholesale orders</p><h2>Orders placed at wholesale pricing</h2></div><div class="admin-inline-filter"><input data-wholesale-order-search placeholder="Search order or customer" type="search"><select data-wholesale-order-filter><option value="all">All stages</option><option value="order_confirmed">Order confirmed</option><option value="payment_received">Payment received</option><option value="cycle_assigned">Cycle assigned</option><option value="in_production">In production</option><option value="quality_control">Quality control</option><option value="packaged">Packaged</option><option value="dispatched">Dispatched</option><option value="delivered">Delivered</option></select></div></div><div class="wholesale-admin-orders-list" data-wholesale-orders></div></div></section>
 <section class="admin-view" data-view-panel="abandoned" hidden=""><div class="admin-page-head"><div><p class="eyebrow">Recovery</p><h1>Abandoned carts</h1><p>People who started checkout but did not complete payment. Use this list for gentle follow-up.</p></div><button class="admin-refresh" data-refresh-abandoned="">Refresh</button></div><div class="admin-clarity-note"><i aria-hidden="true" class="fa-regular fa-circle-question"></i><div><strong>What counts as abandoned</strong><p>A cart appears here only after checkout activity has been saved and payment was not completed. Completed orders are removed from recovery.</p></div></div><div class="admin-card" data-abandoned-list=""></div></section>
 <section class="admin-view" data-view-panel="subscribers" hidden=""><div class="admin-page-head"><div><p class="eyebrow">Audience</p><h1>Subscribers</h1><p>Everyone subscribed to store emails, whether they joined through an account or the newsletter form.</p></div><button class="admin-refresh" data-refresh-subscribers="">Refresh</button></div><div class="admin-clarity-note"><i aria-hidden="true" class="fa-regular fa-circle-question"></i><div><strong>Who receives broadcasts</strong><p>This combines verified account subscribers and footer newsletter signups into one audience. Transactional order emails are separate.</p></div></div><div class="subscriber-composer"><form class="admin-card" data-broadcast-form=""><p class="eyebrow">Subscriber email</p><h2>Send one email to everyone currently subscribed to store updates.</h2><label>Subject<input name="subject" placeholder="New drop, production update…" required=""/></label><label>Message<textarea name="message" placeholder="Write the update here" required="" rows="7"></textarea></label><label class="broadcast-confirm"><input name="confirmAllSubscribers" type="checkbox" required=""/><span><strong>Send this email to all opted-in customers</strong><small>Includes newsletter subscribers and account holders who agreed to receive store updates. People who unsubscribed are excluded.</small></span></label><button class="button button-dark" disabled="" type="submit"><i class="fa-regular fa-paper-plane"></i> Send email to subscribers</button><p class="auth-message" data-broadcast-message="" aria-live="polite"></p></form><div class="subscriber-email-preview"><small>THE WHOLESALE GHANA</small><h3>Your message, professionally delivered.</h3><p>Account signups and footer newsletter signups are combined into one audience.</p></div></div><div class="admin-card admin-table-card"><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Email</th><th>Name</th><th>Status</th><th>Updated</th></tr></thead><tbody data-subscribers-table=""></tbody></table></div></div></section>
+<section class="admin-view purchaser-email-view" data-view-panel="purchasers" hidden="">
+  <div class="admin-page-head">
+    <div><p class="eyebrow">Customer outreach</p><h1>Past purchasers</h1><p>Write one email and send it to people with an order on record. This audience is built from orders, not newsletter subscriptions.</p></div>
+    <button class="admin-refresh" data-refresh-purchasers type="button">Refresh audience</button>
+  </div>
+  <div class="admin-clarity-note"><i aria-hidden="true" class="fa-regular fa-circle-question"></i><div><strong>Who receives this email</strong><p>Recipients are unique, valid email addresses from official orders and manually recorded orders. Pending checkouts are not included. Addresses already marked as unsubscribed are excluded even if they have ordered before.</p></div></div>
+  <div class="admin-metric-grid purchaser-email-metrics" data-purchaser-metrics=""></div>
+  <div class="subscriber-composer purchaser-email-composer">
+    <form class="admin-card" data-purchaser-broadcast-form="">
+      <p class="eyebrow">Past-customer email</p>
+      <h2>One message. Every eligible purchaser.</h2>
+      <label>Subject<input autocomplete="off" maxlength="140" name="subject" placeholder="What should the email be about?" required=""/></label>
+      <label>Message<textarea name="message" placeholder="Write your email message here…" required="" rows="8" maxlength="5000"></textarea></label>
+      <p class="purchaser-email-help">The message is delivered separately to each recipient, so customers cannot see one another's email addresses. Existing opt-outs are respected.</p>
+      <button class="button button-dark" data-purchaser-send disabled="" type="submit"><i class="fa-regular fa-paper-plane"></i> Send email to purchasers</button>
+      <p class="auth-message" data-purchaser-broadcast-message="" aria-live="polite"></p>
+    </form>
+    <aside class="subscriber-email-preview purchaser-email-preview"><small>THE WHOLESALE GHANA</small><h3>Made for our customers.</h3><p>Your message will use a clean branded email layout. Only people with past orders are considered, whether or not they signed up for the newsletter.</p><span><i class="fa-solid fa-lock" aria-hidden="true"></i> Private one-to-one delivery</span></aside>
+  </div>
+  <div class="admin-card admin-table-card purchaser-audience-card">
+    <div class="admin-card-head"><div><p class="eyebrow">Recipient list</p><h2>Eligible purchasers</h2><p class="purchaser-list-note" data-purchaser-list-note="">Loading the latest order audience…</p></div></div>
+    <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Email</th><th>Name</th><th>Orders</th><th>Last order</th></tr></thead><tbody data-purchasers-table=""><tr><td colspan="4">Loading purchaser emails…</td></tr></tbody></table></div>
+    <div class="admin-mobile-list" data-purchasers-mobile=""></div>
+  </div>
+</section>
 <section class="admin-view" data-view-panel="activity" hidden=""><div class="admin-page-head"><div><p class="eyebrow">History</p><h1>Activity history</h1><p>A chronological record of order-status changes and important admin actions.</p></div><button class="admin-refresh" data-refresh-activity="">Refresh</button></div><div class="admin-card notification-feed" data-activity-list=""></div></section>
 <section class="admin-view" data-view-panel="analytics" hidden=""><div class="admin-page-head"><div><p class="eyebrow">Performance</p><h1>Sales analytics</h1><p>A simple view of sales, order stages and production performance from your current order data.</p></div><button class="admin-refresh" data-refresh-analytics="">Refresh</button></div><div class="admin-metric-grid" data-analytics-metrics=""></div><div class="admin-card"><div class="admin-card-head"><div><p class="eyebrow">Status mix</p><h2>Where orders are now</h2></div></div><div class="admin-status-bars" data-status-bars=""></div></div></section>
 <section class="admin-view" data-view-panel="alerts" hidden=""><div class="admin-page-head"><div><p class="eyebrow">Attention</p><h1>Notifications</h1><p>Important operational reminders generated from orders and production activity.</p></div><button class="admin-refresh" data-refresh-alerts="">Refresh</button></div><div class="admin-card notification-feed" data-admin-alerts=""></div></section>
