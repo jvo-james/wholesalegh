@@ -824,6 +824,96 @@ async function getAllOrders(db, { force = false } = {}) {
   }, {force});
 }
 
+
+/*
+  Build the admin-only audience from official order records, not newsletter
+  subscriptions. One recipient per email address, while keeping an order
+  count and last-order date for the admin's preview. Existing opt-outs are
+  always suppressed for bulk customer outreach.
+*/
+async function getPastPurchaserAudience(db) {
+  const [ordersSnapshot, mailingList] = await Promise.all([
+    db.collection("orders").get(),
+    getCachedMailingList(db, { force: true })
+  ]);
+  const unsubscribedEmails = new Set(
+    mailingList
+      .filter(item => item && item.subscribed === false)
+      .map(item => String(item.email || "").trim().toLowerCase())
+      .filter(Boolean)
+  );
+  const blockedStates = new Set([
+    "pending", "pending_payment", "failed", "failed_payment", "unpaid",
+    "cancelled", "canceled", "refunded", "void", "voided"
+  ]);
+  const recipientsByEmail = new Map();
+  const excludedOptOutEmails = new Set();
+  let ordersMissingEmail = 0;
+  let orderCount = 0;
+
+  for (const doc of ordersSnapshot.docs) {
+    const order = doc.data() || {};
+    const paymentStatus = String(order.paymentStatus || "").trim().toLowerCase();
+    const orderStatus = String(order.status || "").trim().toLowerCase();
+    if (blockedStates.has(paymentStatus) || blockedStates.has(orderStatus)) continue;
+
+    const customer = order.customer || {};
+    const email = String(customer.email || order.email || order.delivery?.email || "")
+      .trim()
+      .toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      ordersMissingEmail++;
+      continue;
+    }
+    if (unsubscribedEmails.has(email)) {
+      excludedOptOutEmails.add(email);
+      continue;
+    }
+
+    const firstName = String(customer.firstName || order.firstName || "").trim();
+    const lastName = String(customer.lastName || order.lastName || "").trim();
+    const name = `${firstName} ${lastName}`.trim() || String(customer.name || order.customerName || "").trim() || "Customer";
+    const createdValue = order.createdAt || doc.createTime || null;
+    const lastOrderAt = timestampIso(createdValue);
+    const createdMillis = createdValue?.toDate
+      ? createdValue.toDate().getTime()
+      : new Date(createdValue || 0).getTime();
+    const current = recipientsByEmail.get(email);
+
+    if (!current) {
+      recipientsByEmail.set(email, {
+        email,
+        name,
+        orderCount: 1,
+        lastOrderAt,
+        _lastOrderMillis: Number.isFinite(createdMillis) ? createdMillis : 0
+      });
+    } else {
+      current.orderCount++;
+      if ((!current.name || current.name === "Customer") && name !== "Customer") current.name = name;
+      if (Number.isFinite(createdMillis) && createdMillis > current._lastOrderMillis) {
+        current.lastOrderAt = lastOrderAt;
+        current._lastOrderMillis = createdMillis;
+      }
+    }
+    orderCount++;
+  }
+
+  const recipients = [...recipientsByEmail.values()]
+    .map(({ _lastOrderMillis, ...item }) => item)
+    .sort((a, b) => String(b.lastOrderAt || "").localeCompare(String(a.lastOrderAt || "")));
+
+  return {
+    recipients,
+    stats: {
+      recipientCount: recipients.length,
+      orderCount,
+      excludedOptOuts: excludedOptOutEmails.size,
+      ordersMissingEmail
+    }
+  };
+}
+
 function serializeOrder(doc) {
   const order = doc.data();
 
@@ -4320,6 +4410,12 @@ export default async function handler(
       return json(200,{ok:true});
     }
 
+    if (path === "/admin/purchasers" && method === "GET") {
+      await requireAdmin(request);
+      const audience = await getPastPurchaserAudience(getDb());
+      return json(200, { items: audience.recipients, stats: audience.stats });
+    }
+
     if (path === "/admin/subscribers" && method === "GET") {
       await requireAdmin(request);
       const db = getDb();
@@ -4416,6 +4512,57 @@ export default async function handler(
         return users.map(x=>({id:x.id,firstName:x.firstName||'',lastName:x.lastName||'',email:x.email||'',phone:x.phone||'',createdAt:timestampIso(x.createdAt),updatedAt:timestampIso(x.updatedAt),orderCount:counts.get(String(x.email||'').toLowerCase())||0})).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
       },{force});
       return json(200,accounts);
+    }
+
+    if (path === "/admin/purchaser-broadcast" && method === "POST") {
+      await requireAdmin(request);
+      const input = await readBody(request);
+      if (input.confirmAllPurchasers !== true) {
+        throw new Error("Confirm that this email should be sent to past purchasers.");
+      }
+      const subject = safeText(input.subject, 140).replace(/[\r\n]+/g, " ");
+      const message = safeText(input.message, 5000);
+      if (!subject || !message) throw new Error("Add an email subject and message first.");
+
+      const audience = await getPastPurchaserAudience(getDb());
+      const recipients = audience.recipients;
+      if (!recipients.length) {
+        throw new Error("No eligible past-purchaser email addresses were found. Missing or invalid addresses and existing opt-outs are excluded.");
+      }
+
+      const escapeEmailHtml = value => String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;"
+      }[character]));
+      const site = (env("SITE_URL") || "https://thewholesalegh.shop").replace(/\/+$/, "");
+      const safeSubject = escapeEmailHtml(subject);
+      const safeMessage = escapeEmailHtml(message);
+      const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting"><title>${safeSubject}</title></head><body style="margin:0;background:#f4f0ea;font-family:Arial,Helvetica,sans-serif;color:#171412"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f0ea"><tr><td align="center" style="padding:28px 14px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;background:#fff;border:1px solid #ded7d0"><tr><td style="padding:26px 30px;border-bottom:1px solid #ded7d0;font-size:16px;font-weight:700;letter-spacing:.13em">THE WHOLESALE GHANA</td></tr><tr><td style="padding:34px 30px"><div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#725545">A message for past customers</div><h1 style="font-family:Georgia,serif;font-weight:400;font-size:30px;line-height:1.15;margin:12px 0 18px">${safeSubject}</h1><div style="font-size:15px;line-height:1.7;white-space:pre-line;color:#514b47">${safeMessage}</div><p style="margin:26px 0 0;padding-top:18px;border-top:1px solid #ded7d0;font-size:11px;line-height:1.65;color:#6f6862">You are receiving this message because you have previously placed an order with The Wholesale Ghana. To opt out of future promotional emails, contact us and ask to be unsubscribed.<br><br>The Wholesale Ghana · Joy City &amp; The Clock Bar · 0533357961 · @the.wholesalegh<br><a href="${site}" style="color:#171412">${site.replace(/^https?:\/\//, "")}</a></p></td></tr></table></td></tr></table></body></html>`;
+      const text = `${subject}\n\n${message}\n\nYou are receiving this message because you have previously placed an order with The Wholesale Ghana. To opt out of future promotional emails, contact us and ask to be unsubscribed.\n\nThe Wholesale Ghana\nJoy City & The Clock Bar · 0533357961 · @the.wholesalegh\n${site}`;
+
+      let sent = 0;
+      let failed = 0;
+      let nextIndex = 0;
+      const workerCount = Math.min(4, recipients.length);
+      await Promise.all(Array.from({ length: workerCount }, async () => {
+        while (nextIndex < recipients.length) {
+          const recipient = recipients[nextIndex++];
+          try {
+            await sendEmail({ to: recipient.email, subject, html, text });
+            sent++;
+          } catch (error) {
+            failed++;
+            console.error("Past-purchaser email failed:", error?.message || error);
+          }
+        }
+      }));
+
+      return json(200, {
+        ok: true,
+        total: recipients.length,
+        sent,
+        failed,
+        excludedOptOuts: audience.stats.excludedOptOuts
+      });
     }
 
     if (path === "/admin/broadcast" && method === "POST") {
