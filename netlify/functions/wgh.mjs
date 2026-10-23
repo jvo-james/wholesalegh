@@ -434,11 +434,16 @@ async function sendEmail({
     );
 
     const resendMessage = safeText(result?.message || result?.error || "", 220);
-    throw new Error(
+    const error = new Error(
       resendMessage
         ? `Resend could not send this email: ${resendMessage}`
         : "We could not send the email right now. Please try again."
     );
+
+    // Preserve rate-limit details so the purchaser broadcast can retry safely.
+    error.status = response.status;
+    error.retryAfter = response.headers.get("retry-after") || "";
+    throw error;
   }
 
   return result;
@@ -4541,20 +4546,67 @@ export default async function handler(
 
       let sent = 0;
       let failed = 0;
-      let nextIndex = 0;
-      const workerCount = Math.min(4, recipients.length);
-      await Promise.all(Array.from({ length: workerCount }, async () => {
-        while (nextIndex < recipients.length) {
-          const recipient = recipients[nextIndex++];
+      const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+      // Send sequentially and leave a one-second gap between requests. This
+      // avoids the burst of concurrent Resend requests from the old worker pool.
+      for (let i = 0; i < recipients.length; i++) {
+        const recipient = recipients[i];
+
+        // Initial attempt plus up to two retries for HTTP 429 only.
+        for (let attempt = 0; attempt < 3; attempt++) {
           try {
             await sendEmail({ to: recipient.email, subject, html, text });
             sent++;
+            break;
           } catch (error) {
+            const isRateLimited = Number(error?.status) === 429;
+            const canRetry = attempt < 2;
+
+            if (isRateLimited && canRetry) {
+              const retryAfter = String(error?.retryAfter || "").trim();
+              let retryAfterMs = NaN;
+
+              if (retryAfter) {
+                const seconds = Number(retryAfter);
+                if (Number.isFinite(seconds) && seconds >= 0) {
+                  retryAfterMs = seconds * 1000;
+                } else {
+                  const retryAt = Date.parse(retryAfter);
+                  if (Number.isFinite(retryAt)) {
+                    retryAfterMs = Math.max(0, retryAt - Date.now());
+                  }
+                }
+              }
+
+              // Respect Retry-After when present; otherwise use 1s then 2s.
+              const retryDelayMs = Number.isFinite(retryAfterMs)
+                ? Math.max(1000, retryAfterMs)
+                : 1000 * (2 ** attempt);
+
+              console.warn(
+                `Resend rate limit for past purchaser ${recipient.email}; ` +
+                `retrying in ${retryDelayMs}ms (attempt ${attempt + 2}/3).`
+              );
+              await sleep(retryDelayMs);
+              continue;
+            }
+
             failed++;
-            console.error("Past-purchaser email failed:", error?.message || error);
+            console.error(
+              "Past-purchaser email failed:",
+              recipient.email,
+              error?.message || error
+            );
+            break;
           }
         }
-      }));
+
+        // The gap is between completed sends, keeping request rate conservative.
+        if (i < recipients.length - 1) {
+          await sleep(1000);
+        }
+      }
 
       return json(200, {
         ok: true,
